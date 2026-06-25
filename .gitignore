@@ -1,0 +1,6 @@
+# per-worktree seat identity (scaffolded by setup-seat.sh)
+.orbis-seat.md
+.*-seat.md
+# local seat env (secrets)
+.env.local
+.DS_Store
