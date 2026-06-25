@@ -3,7 +3,8 @@
 > **Capgemini IP — evaluation / non-production license.** This framework is the
 > intellectual property of **Capgemini**, provided under a **royalty-free license
 > for evaluation and non-production use only**. Production use is not permitted
-> without a separate written agreement with Capgemini. See [`LICENSE`](LICENSE).
+> without a separate written agreement with Capgemini — for production licensing,
+> contact Sebastiaan van Wijngaarden <sebastiaan.van.wijngaarden@capgemini.com>. See [`LICENSE`](LICENSE).
 
 
 An agentic software-delivery lifecycle: an **Owner**, a **PM-orchestrator**, and
