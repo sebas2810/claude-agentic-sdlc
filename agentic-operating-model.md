@@ -42,7 +42,7 @@ instance ships) is the instance's mapping — ORBIS's is in
 |---|---|
 | **1. Workflow-first; agents only for genuinely open-ended work** | EPIC delivery is a fixed-phase workflow (Frame → Steer → Plan → Build → Verify → Adjudicate → Release → Learn), not "an engineer agent figures it out". The open-ended judgement sits inside Build, scaffolded by the phases around it. |
 | **2. Start simple; complexity must demonstrably pay** | One branch per EPIC, smallest design that meets the AC. Worker subagents are added only when parallel WPs are genuinely independent; "more agents" is never the default. |
-| **3. The augmented LLM (tools + memory + guardrails) is the atom; compose, don't framework** | The Principal skills are composable operating standards the one engineer seat embodies, not a framework of separate agent roles. The seat is the augmented atom; GitHub is the composition substrate. |
+| **3. The augmented LLM (tools + memory + guardrails) is the atom; compose, don't framework** | The Principal skills are composable operating standards a seat embodies. A core PM + Engineer pair extends to a squad of specialist **producer** + independent **assurance** seats when independence is warranted (the #985 granularity rule + produce ≠ adjudicate) — see [`seats/SQUAD.md`](seats/SQUAD.md). Each seat is an augmented atom composing its skills; GitHub is the composition substrate — a principled squad, not a sprawl of agents for its own sake. |
 | **4. Orchestrator-workers for unpredictable multi-step** | PM-orchestrator decomposes an EPIC into WPs; engineer-Principal executes; worker subagents only for genuinely-independent parallel WPs. The same in-runtime-default / cross-runtime-only-when-independent rule applies to how work is split. |
 | **5. Verify against the environment; evaluator ≠ producer** | Deterministic evals are the oracle for "done". The seat that produced the work does not adjudicate it; PM validates once at merge against pre-committed criteria. No LLM-self-grade in either column. |
 | **6. ACI / tool design is first-class (as much effort as prompts)** | The GitHub thread, PR templates, `## Retires`/`## Closes` conventions, ready-signal shape, and local gate scripts are the SDLC's ACI. Their design is load-bearing and maintained with the same care as agent tooling. |
@@ -98,6 +98,11 @@ judgement call.
 
 Three roles, each with an exact fixed touchpoint list. The list is the
 contract: a role's surface is what is on its list and nothing else.
+
+The Engineer-Principal role is **staffable as a squad** — one or more specialist
+producer seats (full-stack, data, cloud, …) plus an independent assurance seat
+(quality / testing). The authority tiers stay these three; the squad is *how the
+Engineer-Principal role is staffed*, not a fourth tier. See [`seats/SQUAD.md`](seats/SQUAD.md).
 
 ### Owner
 

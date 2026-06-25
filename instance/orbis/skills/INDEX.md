@@ -13,3 +13,7 @@ The 5 Principal-grade operating standards the ORBIS engineer seat embodies while
 Often more than one governs a surface (a Strands graph writing to Aurora is both Agentic Engineer and AWS Cloud Architect). Hold the matching `## Operating standard` + `## Hard rules & refusals` as the floor; run the `## Decision checklist` before any "ready" signal — a failed check is a blocker, not a note.
 
 **Bundled evals — honest status:** ADR-0001 (A3) requires each skill to ship a bundled falsifiable eval; **these five do not yet carry one** (`status: TBD (follow-up)` in each). "Skill exists" ≠ "eval-backed" — exactly the false-green (#985) these standards exist to prevent.
+
+## Adding a skill
+
+This catalog is **AWS-first and extensible**. To add a domain (e.g. Testing, Data & Pipelines, Reporting) or — later — another cloud, copy the framework template [`SKILL.template.md`](../../../skills/SKILL.template.md), drop the filled-in skill here, and add a row to the table above. Add a skill **when the engineer actually builds in that domain**, not before. See [`../../../skills/INDEX.md`](../../../skills/INDEX.md) → "Add your own skill".

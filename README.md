@@ -82,7 +82,7 @@ agentic-sdlc/
 ├── agentic-operating-model.md ← the spine: roles · 8 phases · 8 invariants
 ├── engineering-standard.md    ← the generic production-ready floor (instances add their tiered standard)
 ├── onboarding/                ← new-pair-setup + per-seat config (.env.local, setup-seat.sh)
-├── seats/                     ← pm/ + engineer/ : one KICKOFF.md per seat (authority + cycle + report)
+├── seats/                     ← the agentic squad: SQUAD.md roster + SEAT.template.md + a KICKOFF per seat
 ├── skills/                    ← the Principal-skill MODEL (structure + how-to)
 ├── learning-loop/             ← how rules are captured + the CHANGELOG
 ├── feedback/                  ← the portable (framework) rules, by area
