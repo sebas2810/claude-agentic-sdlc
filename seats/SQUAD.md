@@ -32,4 +32,4 @@ Mirror the skills flow:
 3. Drop it as `seats/<role>/KICKOFF.md` and add a row above.
 4. Wire its identity via `onboarding/setup-seat.sh` (native start).
 
-Add the specialist seats **when the squad actually staffs them** — the roster is the suggested shape, not a requirement. The two enforced seats today are **PM-Orchestrator** and **Full-Stack Engineer**; the rest are ready to switch on.
+All four specialist seats now ship a `KICKOFF.md` + an `orbis-seat.<role>.template.md`, so each is **startable** — `SEAT_ROLE=quality-engineer source onboarding/setup-seat.sh` boots it with its identity, work cycle, and skills. Where an official Anthropic skill fits, the seat **references** it (Cloud Architect → `mcp-builder` · `claude-api`; Quality Engineer → `webapp-testing`) via `/plugin marketplace add anthropics/skills` — referenced, not vendored. Staff each seat **when the work needs it** — the roster is the suggested shape, not a requirement.

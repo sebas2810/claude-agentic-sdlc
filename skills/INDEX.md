@@ -24,7 +24,7 @@ Skills are **extensible** and **seat-agnostic** — any seat (engineer, PM, or a
 3. **Register it** in your instance's catalog (ORBIS: [`../instance/orbis/skills/INDEX.md`](../instance/orbis/skills/INDEX.md)) — drop the file under `instance/<you>/skills/` and add a row.
 4. **Embody it** — a seat (engineer or PM) composes the matching skill(s) per EPIC; more than one can govern a surface.
 
-The format is the official **Agent Skills** standard ([anthropics/skills](https://github.com/anthropics/skills)), so a skill written here is portable to Claude Code, Claude.ai, and — via a runtime loader — your AgentCore product agents. Add a skill **when the engineer actually builds in that domain**, not before.
+The format is the official **Agent Skills** standard ([anthropics/skills](https://github.com/anthropics/skills)), so a skill written here is portable to Claude Code, Claude.ai, and — via a runtime loader — your AgentCore product agents. Anthropic also ships a **`skill-creator`** skill that scaffolds + lints a new `SKILL.md` — `/plugin marketplace add anthropics/skills` and use it to author yours faster. And where an official Anthropic skill fits the domain, **reference it rather than reinventing** (e.g. `webapp-testing`, `mcp-builder`, `claude-api`). Add a skill **when a seat actually builds in that domain**, not before.
 
 ## Your instance's concrete skills
 

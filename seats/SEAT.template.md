@@ -6,7 +6,7 @@ You are a **<role>** in the agentic squad, paired with the **PM-Orchestrator** (
 
 ## 1. Confirm your seat
 - ✅ Your own worktree + identity — `source ./agentic-sdlc/onboarding/setup-seat.sh`
-- ✅ The skills you embody: <list — from [`../skills/INDEX.md`](../skills/INDEX.md)>
+- ✅ The skills you embody: <list — from [`../skills/INDEX.md`](../skills/INDEX.md)>. Where an official Anthropic skill fits the domain (e.g. `webapp-testing`, `mcp-builder`, `claude-api`), **reference** it (`/plugin marketplace add anthropics/skills`) rather than reinventing — reference, don't vendor.
 
 ## 2. Read order
 1. `CLAUDE.md` · 2. `agentic-sdlc/README.md` · 3. the spine `agentic-operating-model.md` (read before §3) · 4. **this file** · 5. `feedback/INDEX.md` · 6. your skills.
