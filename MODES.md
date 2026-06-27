@@ -34,6 +34,25 @@ That is the entire delta. The engineer seat *behaves identically* in both —
 subagent does; the only change is who receives the report and drives the next
 unit.
 
+### Two ways to staff the producer in autonomous mode
+
+"Autonomous" constrains the *trigger* (no per-unit human nudge), not the
+*instantiation*. The producer can be staffed either way — both are equally
+autonomous and run the **same** gates:
+
+| Producer form | Is | Trade |
+|---|---|---|
+| **PM-spawned subagent** (default) | the PM-orchestrator spawns a **headless** engineer subagent per `Scoped` item; it builds, reports, terminates | zero panes to operate; you can't watch or interject mid-build |
+| **Standing self-looping seat** | a **visible pane** the human launched that runs its **own** board-loop ([`seats/engineer/autonomous-runner.md`](seats/engineer/autonomous-runner.md)) — pulls `Scoped` items in its domain, builds, reports, loops | watchable + interjectable, but it burns tokens polling and must be launched once per seat |
+
+The distinction is **ergonomic, not architectural** — same board-as-bus, same
+produce ≠ adjudicate, same owner-gated class. The standing-seat form exists so a
+human can *watch and interject* without reintroducing the manual per-unit nudge:
+the seat self-triggers off the board, it is not re-engaged by a human. It is
+enabled by `SDLC_MODE=autonomous` in the seat's `.env.local` (the
+[seat template](onboarding/seat.engineer.template.md) then injects the board-loop
+at boot via the SessionStart hook — nothing to paste).
+
 ## Why the autonomous loop is safe (it *strengthens* principle 7, not loosens it)
 
 Principle 7's blunt "no autonomous loop-driven merge" is replaced by the **finer
