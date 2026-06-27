@@ -6,7 +6,7 @@ added: 2026-05-11
 last-confirmed: 2026-05-13
 ---
 
-> Stands under the ORBIS Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
+> Stands under the Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
 
 ## Rule
 
@@ -56,7 +56,7 @@ Don't claim "smoke passed" when it actually didn't run on the surface in questio
 
 ## When the smoke step fails on something unrelated to your work
 
-E.g., DEV's scale-to-zero frontend pattern causes the SHA wait to fail per [`../../instance/orbis/rules/dev-ecs-scale-to-zero.md`](../../instance/orbis/rules/dev-ecs-scale-to-zero.md). Don't pretend smoke passed — explicitly note:
+E.g., DEV's scale-to-zero frontend pattern causes the SHA wait to fail per [`../../instance/<your-instance>/rules/dev-ecs-scale-to-zero.md`](../../instance/<your-instance>/rules/dev-ecs-scale-to-zero.md). Don't pretend smoke passed — explicitly note:
 
 ```
 Smoke step: DEV frontend SHA wait failed (scale-to-zero false-positive, known pattern). 

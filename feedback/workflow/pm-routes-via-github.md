@@ -7,7 +7,7 @@ last-confirmed: 2026-05-19
 reconciled: 2026-05-19 (to spine invariant 7; one PM seat)
 ---
 
-> Stands under the ORBIS Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)) - this is the spine's **invariant 7** verbatim, applied.
+> Stands under the Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)) - this is the spine's **invariant 7** verbatim, applied.
 
 ## Rule
 

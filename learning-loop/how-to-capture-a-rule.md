@@ -1,6 +1,6 @@
 # How to Capture a Rule (the learning loop)
 
-> Stands under the ORBIS Agentic SDLC spine ([`../agentic-operating-model.md`](../agentic-operating-model.md)).
+> Stands under the Agentic SDLC spine ([`../agentic-operating-model.md`](../agentic-operating-model.md)).
 
 When you discover something worth preserving across sessions — capture it as a feedback rule. This is the SYSTEM that makes the team smarter over time.
 

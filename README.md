@@ -15,10 +15,10 @@ you build and the process you build it with.
 
 **Two layers.** Everything at the top of this folder is the **generic framework**
 (spine, seats, the skill model, learning-loop, onboarding + native-start, the
-portable rules, the production-ready floor). [`instance/orbis/`](instance/orbis/)
+portable rules, the production-ready floor). [`instance/<your-instance>/`](instance/<your-instance>/)
 is the **instance overlay** — the product-specific skills, rules, standard, and
 product-mapping. **To fork: keep the framework, swap the overlay** (see *Fork it*
-below). ORBIS is the reference instance.
+below). The reference instance lives under instance/<name>/.
 
 > This folder is the single source for how the SDLC works. Everything here is
 > live — no history, no old versions.
@@ -28,11 +28,12 @@ below). ORBIS is the reference instance.
 1. `CLAUDE.md` (repo root, auto-loaded)
 2. `agentic-sdlc/README.md` — this file
 3. `agentic-sdlc/agentic-operating-model.md` — **the spine**; all seat authority derives from it
+   - `MODES.md` — manual vs **autonomous** mode (`SDLC_MODE`) · `workflow/state-machine.md` — the **stateless board state machine** both modes run on · autonomous PM runner: `seats/pm/autonomous-runner.md`
 4. Your seat file (authority + work cycle + report protocol in one):
    - **PM** → `seats/pm/KICKOFF.md`
    - **Engineer** → `seats/engineer/KICKOFF.md`
 5. `feedback/INDEX.md` (skim) · `learning-loop/CHANGELOG.md` (last few entries)
-6. Engineer also: `skills/INDEX.md` (the skill model) + `instance/orbis/skills/` — embody the matching Principal skill
+6. Engineer also: `skills/INDEX.md` (the skill model) + `instance/<your-instance>/skills/` — embody the matching Principal skill
 
 ## The seats
 
@@ -53,8 +54,8 @@ and AWS/GitHub calls attribute correctly and never collide.
 
 ```bash
 # 1. a worktree per seat
-git worktree add -b feat/<epic> ~/Code/capgemini-orbis-<seat> origin/main
-cd ~/Code/capgemini-orbis-<seat>
+git worktree add -b feat/<epic> ~/Code/<your-repo>-<seat> origin/main
+cd ~/Code/<your-repo>-<seat>
 
 # 2. configure the seat
 cp agentic-sdlc/onboarding/.env.local.example .env.local
@@ -67,9 +68,9 @@ claude
 
 `setup-seat.sh` sets a **per-worktree** git identity (via
 `extensions.worktreeConfig` — never shared), exports `AWS_PROFILE` (which AWS
-credential the seat uses — `orbis-admin` today) and an optional `GH_TOKEN`, and
+credential the seat uses — `<your-aws-profile>` today) and an optional `GH_TOKEN`, and
 verifies AWS resolves. It then **starts the seat natively**: it scaffolds a
-per-worktree `.orbis-seat.md` (your identity + a self-route block) from the role
+per-worktree `.<instance>-seat.md` (your identity + a self-route block) from the role
 template and wires a SessionStart hook, so every Claude session in the worktree
 boots with that identity injected — no manual re-brief. Full walkthrough:
 [`onboarding/new-pair-setup.md`](onboarding/new-pair-setup.md).
@@ -86,7 +87,7 @@ agentic-sdlc/
 ├── skills/                    ← the Principal-skill MODEL (structure + how-to)
 ├── learning-loop/             ← how rules are captured + the CHANGELOG
 ├── feedback/                  ← the portable (framework) rules, by area
-└── instance/orbis/            ← ORBIS-specific overlay: concrete skills + rules (fork = swap this folder)
+└── instance/<your-instance>/            ← the instance-specific overlay: concrete skills + rules (fork = swap this folder)
 ```
 
 ## Fork it
@@ -94,7 +95,7 @@ agentic-sdlc/
 To run this SDLC for your own product:
 
 1. **Take the framework** — everything outside `instance/`.
-2. **Replace the overlay.** Delete `instance/orbis/` and create `instance/<you>/` with your own:
+2. **Replace the overlay.** Delete `instance/<your-instance>/` and create `instance/<you>/` with your own:
    - `skills/` — your Principal-grade engineer skills (the *model* is [`skills/INDEX.md`](skills/INDEX.md));
    - `rules/` — your stack-specific feedback rules (the portable ones stay in [`feedback/`](feedback/INDEX.md));
    - `engineering-standard.md` — your concrete tiered bar on top of the [framework floor](engineering-standard.md);

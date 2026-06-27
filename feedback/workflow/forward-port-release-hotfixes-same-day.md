@@ -7,7 +7,7 @@ last-confirmed: 2026-05-19
 enforced-by: FLOOR-4 gate (#1069) — infra/scripts/check-forward-port-convergence.ts
 ---
 
-> Stands under the ORBIS Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
+> Stands under the Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
 
 ## Rule
 

@@ -6,7 +6,7 @@ added: 2026-05-03
 last-confirmed: 2026-05-13
 ---
 
-> Stands under the ORBIS Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
+> Stands under the Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
 
 ## Rule
 
@@ -70,4 +70,4 @@ Rule cost: 90 seconds local pre-flight. Saves: 20+ min per occurrence + reviewer
 
 ## Enforcement (promoted from prose to gate, 2026-06-12)
 
-The `.claude/hooks/bash-guard.mjs` PreToolUse hook **blocks** any `git push` whose committed diff touches `agents/**`, `docs/agents/**`, or agent-adjacent Lambda code unless `npm run gates:agents` has passed against that exact diff (patch-id stamp in `.git/orbis-gates-pass`). "I ran the gates" is now verified, not claimed.
+The `.claude/hooks/bash-guard.mjs` PreToolUse hook **blocks** any `git push` whose committed diff touches `agents/**`, `docs/agents/**`, or agent-adjacent Lambda code unless `npm run gates:agents` has passed against that exact diff (patch-id stamp in `.git/gates-pass`). "I ran the gates" is now verified, not claimed.
