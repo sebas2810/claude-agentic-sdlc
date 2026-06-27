@@ -10,22 +10,27 @@
 # create views) — see workflow/project-boards.md.
 #
 # Usage:
-#   onboarding/setup-board.sh --owner <login|org> --title "<full title>" --template workflow/project-templates/execution-board.json
+#   onboarding/setup-board.sh --owner <login|org> --title "<full title>" \
+#       --template workflow/project-templates/execution-board.json --repo <owner/repo>
+#
+# --repo is optional; when given, the new project is linked to that repository so it
+# shows in the repo's Projects tab (issues/PRs can then be added to it from the repo).
 #
 # Requires: gh (with `project` scope) + node.
 set -euo pipefail
 
-OWNER="" ; TITLE="" ; TEMPLATE=""
+OWNER="" ; TITLE="" ; TEMPLATE="" ; REPO=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --owner)    OWNER="$2"; shift 2 ;;
     --title)    TITLE="$2"; shift 2 ;;
     --template) TEMPLATE="$2"; shift 2 ;;
+    --repo)     REPO="$2"; shift 2 ;;
     *) echo "unknown arg: $1" >&2; exit 1 ;;
   esac
 done
 [ -n "$OWNER" ] && [ -n "$TITLE" ] && [ -n "$TEMPLATE" ] || {
-  echo "usage: setup-board.sh --owner <login> --title <title> --template <path.json>" >&2; exit 1; }
+  echo "usage: setup-board.sh --owner <login> --title <title> --template <path.json> [--repo <owner/repo>]" >&2; exit 1; }
 [ -f "$TEMPLATE" ] || { echo "template not found: $TEMPLATE" >&2; exit 1; }
 
 echo "→ creating project: $TITLE  (owner: $OWNER)"
@@ -62,5 +67,12 @@ for (const f of tpl.fields || []) {
 }
 console.log(`  board #${NUM} configured.`);
 NODE
+
+# Link to the repo so it appears in the repo's Projects tab.
+if [ -n "$REPO" ]; then
+  gh project link "$NUM" --owner "$OWNER" --repo "$REPO" >/dev/null 2>&1 \
+    && echo "  linked to $REPO" \
+    || echo "  ! link to $REPO failed (check the repo + project scope)"
+fi
 
 echo "✓ done: project #$NUM"

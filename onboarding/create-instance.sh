@@ -93,9 +93,9 @@ done
 # ── 3. boards ─────────────────────────────────────────────────────────────────
 TITLE_CASE="$(printf '%s' "$INSTANCE" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
 echo "→ provisioning Program board"
-bash "$HERE/setup-board.sh" --owner "$OWNER" --title "$TITLE_CASE — Program" --template "$TPL/program-board.json"
+bash "$HERE/setup-board.sh" --owner "$OWNER" --title "$TITLE_CASE — Program" --template "$TPL/program-board.json" --repo "$REPO"
 echo "→ provisioning Execution board"
-bash "$HERE/setup-board.sh" --owner "$OWNER" --title "$TITLE_CASE — Delivery" --template "$TPL/execution-board.json"
+bash "$HERE/setup-board.sh" --owner "$OWNER" --title "$TITLE_CASE — Delivery" --template "$TPL/execution-board.json" --repo "$REPO"
 
 # ── 4. standing epics ─────────────────────────────────────────────────────────
 echo "→ seeding standing epics in $REPO"

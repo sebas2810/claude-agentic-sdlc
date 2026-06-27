@@ -91,9 +91,11 @@ Both projects are provisioned by
 [`../onboarding/create-instance.sh`](../onboarding/create-instance.sh) →
 [`setup-board.sh`](../onboarding/setup-board.sh) from the JSON
 [templates](project-templates/) — not hand-built per instance. The script creates
-each project and sets the canonical `Status` options + custom fields (`WSJF`,
-`Priority`, `Level`, `Area`) the [state machine](state-machine.md) expects. The
-default **Board + Table** views ship automatically.
+each project, sets the canonical `Status` options + custom fields (`WSJF`,
+`Priority`, `Level`, `Area`) the [state machine](state-machine.md) expects, and
+**links the project to the product repo** (`gh project link`) so it appears in the
+repo's Projects tab and issues/PRs can be added to it from the repo. The default
+**Board + Table** views ship automatically.
 
 > **Two GitHub realities to know.** (1) The Projects v2 API **cannot create
 > views** — Roadmap + Insights are added once from a golden template via
