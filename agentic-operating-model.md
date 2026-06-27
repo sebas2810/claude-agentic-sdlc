@@ -61,6 +61,12 @@ instance ships) is the instance's mapping — the instance's is in
 | **7 Release** | Staging = PM ceremony; PROD = human owner | PM-autonomous (staging) / owner-only (PROD) | Irreversible release is human-owned. Principle 7. |
 | **8 Learn** | PM-orchestrator | PM-autonomous | Capture rule/eval/skill; feed the RAG→fine-tune signal (V1→V2). Principle 5 (eval capture) + product flywheel. |
 
+> The concrete realisation of these phases on the board — the 7 states, the
+> Definition of Ready/Done gates, WSJF ordering, the Initiative→Epic→Story→Task
+> hierarchy, and the Program ⇄ Execution boards — is the [`workflow/`](workflow/)
+> process layer. The spine **decides**; `workflow/` **operationalises**. On any
+> conflict, the spine wins.
+
 ## The 8 invariants
 
 These hold across product and process. Breaking one is a defect, not a

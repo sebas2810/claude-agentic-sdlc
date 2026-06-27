@@ -1,0 +1,24 @@
+{
+  "kind": "execution",
+  "title_suffix": "Delivery",
+  "description": "Story/Task execution board — the 7-state Kanban the engineers + Quality seat + runner operate. Provisioned by onboarding/setup-board.sh.",
+  "statusField": {
+    "name": "Status",
+    "options": [
+      { "name": "Backlog", "color": "GRAY", "description": "exists, not yet steered (no committed AC)" },
+      { "name": "Scoped", "color": "BLUE", "description": "PM-steered; DoR met (scope + pre-committed AC)" },
+      { "name": "In Progress", "color": "YELLOW", "description": "a seat/subagent is building it; a branch exists" },
+      { "name": "Delivered", "color": "ORANGE", "description": "PR open + ready-signal; awaiting verification" },
+      { "name": "Tested", "color": "PURPLE", "description": "independent verification PASS against the AC" },
+      { "name": "Merged", "color": "PINK", "description": "adjudicated + squash-merged to main" },
+      { "name": "Released", "color": "GREEN", "description": "deployed + verified in target env; issue closed" },
+      { "name": "Blocked", "color": "RED", "description": "a consult-exception or owner-touchpoint is pending" }
+    ]
+  },
+  "fields": [
+    { "name": "WSJF", "dataType": "NUMBER" },
+    { "name": "Priority", "dataType": "SINGLE_SELECT", "options": ["P0", "P1", "P2", "P3"] },
+    { "name": "Level", "dataType": "SINGLE_SELECT", "options": ["epic", "story", "task"] },
+    { "name": "Area", "dataType": "TEXT" }
+  ]
+}

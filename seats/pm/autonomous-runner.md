@@ -23,21 +23,28 @@ adjudicate, eval-gate, merge, verify, and loop** are the PM's — without a huma
 the loop between owner touchpoints. The PM does not author product code (still the
 engineer's lane) and does not make judgement calls in the loop (it **checks**).
 
-## When the PM embodies this
+## Who embodies it
 
-`SDLC_MODE=autonomous` and an EPIC is framed + steered (its WPs `Ready` with
-pre-committed AC).
+In autonomous mode the runner is embodied by the **Scrum-Master / Flow seat**
+when one is staffed ([`../scrum-master/KICKOFF.md`](../scrum-master/KICKOFF.md)) —
+it owns dispatch + flow; the **PM still adjudicates + merges** (produce ≠
+adjudicate). When no Flow seat is staffed, the PM embodies the whole runner itself.
+
+## When it runs
+
+`SDLC_MODE=autonomous` and an EPIC is framed + steered (its Stories `Scoped` with
+pre-committed AC, per the [Definition of Ready](../../workflow/definition-of-ready-done.md)).
 
 ## The loop (a pure reduction over the board)
 
-Each tick:
+Each tick — see the canonical [state machine](../../workflow/state-machine.md):
 
 1. **Read** the board — the GitHub Project `Status` field + issue/PR state. This is the only state.
-2. For each item, act by its state:
-   - **`Ready` → dispatch.** Spawn an **engineer subagent** (see *Spawning* below); set `In Progress`. Independent `Ready` WPs may be dispatched in parallel — but only when genuinely independent (principle 2/4), never as the default.
-   - **`In Review` → adjudicate.** Run the **deterministic** checks: ready-signal conforms · `gates:agents` green · the pre-committed AC met · deployed-env smoke present · no false-green. On a high-stakes unit, first spawn an **independent assurance subagent** (Quality seat) and require its PASS verdict. Pass → squash-merge, set `Done`. Fail → post the specific failing check on the thread, set back to `In Progress` (the same subagent or a re-dispatch addresses it).
-   - **`Done` → deploy + set `Testing`.** Push the DEV deploy; await it.
-   - **`Testing` → verify.** Run the evals / e2e; **canary before anything irreversible**. Green → set `Completed`. Red → `In Progress` with the failure.
+2. For each item, act by its state (most-advanced first — finish work before starting it; honour the [WIP limits](../../workflow/state-machine.md)):
+   - **`Scoped` → dispatch.** If a WIP slot is free, spawn an **engineer subagent** (see *Spawning* below); set `In Progress`. Independent `Scoped` Stories may be dispatched in parallel — but only when genuinely independent (principle 2/4), never as the default.
+   - **`Delivered` → verify.** Run **independent** verification — spawn the **assurance subagent** (Quality seat) or run the deterministic evals against deployed-env, the happy path perturbed. Pass → set `Tested`. Fail → post the specific failing check, set back to `In Progress`.
+   - **`Tested` → adjudicate + merge.** The non-authoring check, **once**: ready-signal conforms · `gates:agents` green · every pre-committed AC met with evidence · no false-green. Pass → squash-merge, set `Merged`. Fail → post the failure, set `In Progress`.
+   - **`Merged` → deploy + release.** Deploy to the target env; **canary before anything irreversible**; PROD is owner-gated (never in the loop). Green → set `Released`. Red → `In Progress` with the failure.
    - **`Blocked` → skip.** Do not advance; it is awaiting a consult-exception or owner decision (see *Pausing*).
 3. **Stop** when no item was actionable — the board is drained or only `Blocked` items remain. Report the run summary and idle. (No self-paced timer; the loop is woken by board change / subagent completion, not a clock.)
 
@@ -53,7 +60,8 @@ with — so behaviour is identical:
 
 The subagent then: branches off `origin/main`, builds, runs the gates + a real DEV
 round-trip, opens **one PR per unit** with the `## Closes`/`## Retires` body, posts
-the `## Unit landed` ready-signal — and stops. The PM loop takes it from `In Review`.
+the `## Unit landed` ready-signal — and stops. The runner takes it from `Delivered`
+(verify → `Tested`, adjudicate → `Merged`, release → `Released`).
 
 ## Produce ≠ adjudicate (preserved, not weakened)
 

@@ -1,0 +1,30 @@
+{
+  "description": "The portable label taxonomy (see workflow/naming-conventions.md). level + type + priority are flat string labels; state lives in the Project Status field, never a label.",
+  "labels": [
+    { "name": "level:initiative", "color": "5319e7", "description": "strategic outcome (quarters), owner-framed" },
+    { "name": "level:epic", "color": "8250df", "description": "shippable capability; the unit of steering" },
+    { "name": "level:story", "color": "a371f7", "description": "one outcome; fits a PR; flows the 7 states" },
+    { "name": "level:task", "color": "d2a8ff", "description": "sub-unit of a story" },
+
+    { "name": "type:feat", "color": "1f6feb", "description": "a new capability" },
+    { "name": "type:fix", "color": "d73a4a", "description": "a bug fix" },
+    { "name": "type:chore", "color": "bfbfbf", "description": "hygiene / maintenance / deps" },
+    { "name": "type:ci", "color": "bfbfbf", "description": "pipeline / build plumbing" },
+    { "name": "type:docs", "color": "0075ca", "description": "documentation only" },
+    { "name": "type:refactor", "color": "fbca04", "description": "behaviour-preserving change" },
+    { "name": "type:test", "color": "0e8a16", "description": "tests / evals only" },
+    { "name": "type:spike", "color": "c5def5", "description": "time-boxed investigation" },
+    { "name": "type:perf", "color": "fbca04", "description": "performance work" },
+
+    { "name": "priority:P0", "color": "b60205", "description": "incident / interrupt — preempts WSJF order" },
+    { "name": "priority:P1", "color": "e99695", "description": "high" },
+    { "name": "priority:P2", "color": "f9d0c4", "description": "normal" },
+    { "name": "priority:P3", "color": "fef2c0", "description": "low" }
+  ],
+  "standing_epics": [
+    { "title": "Epic: Maintenance & Tech Debt", "body": "Standing epic. Parents chores, refactors, dep bumps, CI work that isn't part of a feature epic. See workflow/hierarchy.md.", "labels": ["level:epic", "type:chore"] },
+    { "title": "Epic: Operations & Incidents", "body": "Standing epic. Parents hotfixes, P0 reactive work, ops. A bug with no clear feature epic homes here. See workflow/hierarchy.md.", "labels": ["level:epic", "type:fix"] },
+    { "title": "Epic: Quality & Evals", "body": "Standing epic. Parents the assurance/eval backlog owned by the Quality seat. See workflow/hierarchy.md.", "labels": ["level:epic", "type:test"] },
+    { "title": "Epic: Discovery & Spikes", "body": "Standing epic. Parents time-boxed research/investigation spikes. See workflow/hierarchy.md.", "labels": ["level:epic", "type:spike"] }
+  ]
+}

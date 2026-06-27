@@ -29,6 +29,7 @@ below). The reference instance lives under instance/<name>/.
 2. `agentic-sdlc/README.md` — this file
 3. `agentic-sdlc/agentic-operating-model.md` — **the spine**; all seat authority derives from it
    - `MODES.md` — manual vs **autonomous** mode (`SDLC_MODE`) · `workflow/state-machine.md` — the **stateless board state machine** both modes run on · autonomous PM runner: `seats/pm/autonomous-runner.md`
+   - `workflow/` — the **process layer**: [state-machine](workflow/state-machine.md) (the 7 states) · [definition-of-ready-done](workflow/definition-of-ready-done.md) · [prioritization (WSJF)](workflow/prioritization.md) · [hierarchy](workflow/hierarchy.md) (Initiative→Epic→Story→Task) · [naming-conventions](workflow/naming-conventions.md) · [flow-metrics](workflow/flow-metrics.md) · [project-boards](workflow/project-boards.md) (Program ⇄ Execution)
 4. Your seat file (authority + work cycle + report protocol in one):
    - **PM** → `seats/pm/KICKOFF.md`
    - **Engineer** → `seats/engineer/KICKOFF.md`
@@ -43,9 +44,14 @@ below). The reference instance lives under instance/<name>/.
 - **Engineer-Principal** (Claude Code panel) — architect-level design + build
   within an assigned EPIC; branch-per-EPIC; report-then-stop after each unit.
   Does **not** touch the backlog / PM lane.
+- **Quality Engineer** — independent verification at the `Delivered → Tested` gate
+  (produce ≠ adjudicate); reports a falsifiable verdict, never merges.
+- **Scrum-Master / Flow** *(optional)* — runs the board flow + WIP limits + the
+  autonomous runner's dispatch step; never adjudicates, merges, or codes.
 
-The **Owner** frames master EPICs and owns PROD. The full role model, the
-8 SDLC phases, and the 8 invariants live in the spine.
+The **Owner** frames master EPICs and owns PROD. The full roster (+ specialist
+build seats) is [`seats/SQUAD.md`](seats/SQUAD.md); the role model, the 8 SDLC
+phases, and the 8 invariants live in the spine.
 
 ## Per-seat setup — multiple seats on one machine
 
@@ -81,18 +87,25 @@ boots with that identity injected — no manual re-brief. Full walkthrough:
 agentic-sdlc/
 ├── README.md                  ← this guide
 ├── agentic-operating-model.md ← the spine: roles · 8 phases · 8 invariants
+├── MODES.md                   ← manual vs autonomous mode (SDLC_MODE)
 ├── engineering-standard.md    ← the generic production-ready floor (instances add their tiered standard)
-├── onboarding/                ← new-pair-setup + per-seat config (.env.local, setup-seat.sh)
-├── seats/                     ← the agentic squad: SQUAD.md roster + SEAT.template.md + a KICKOFF per seat
+├── workflow/                  ← the process layer: state machine · DoR/DoD · WSJF · hierarchy · naming · flow metrics · project boards (+ project-templates/)
+├── onboarding/                ← new-pair-setup + per-seat config · create-instance.sh (golden-path scaffolder) · setup-board.sh
+├── seats/                     ← the agentic squad: SQUAD.md roster + a KICKOFF per seat (PM · Engineer · Quality · optional Flow · specialists)
 ├── skills/                    ← the Principal-skill MODEL (structure + how-to)
 ├── learning-loop/             ← how rules are captured + the CHANGELOG
 ├── feedback/                  ← the portable (framework) rules, by area
-└── instance/<your-instance>/            ← the instance-specific overlay: concrete skills + rules (fork = swap this folder)
+└── instance/<your-instance>/  ← the instance-specific overlay: concrete skills + rules (fork = swap this folder)
 ```
 
 ## Fork it
 
 To run this SDLC for your own product:
+
+**Golden path** — `onboarding/create-instance.sh --instance <you> --owner <gh-login> --repo <owner/repo>`
+scaffolds the overlay skeleton, creates the [label taxonomy](workflow/project-templates/labels.json) +
+the standing epics, and provisions both boards (Program + Execution) from the
+[templates](workflow/project-templates/). Then refine by hand:
 
 1. **Take the framework** — everything outside `instance/`.
 2. **Replace the overlay.** Delete `instance/<your-instance>/` and create `instance/<you>/` with your own:
