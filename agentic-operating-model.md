@@ -15,7 +15,7 @@ PR rather than diverging silently.
 
 This is the **generic framework** spine — product-agnostic. How its principles
 map to the specific agent platform an instance ships is the instance's overlay
-(ORBIS's is [`instance/orbis/product-mapping.md`](instance/orbis/product-mapping.md)).
+(the instance's is [`instance/<your-instance>/product-mapping.md`](instance/<your-instance>/product-mapping.md)).
 
 ## Thesis
 
@@ -35,8 +35,8 @@ as product. We do not maintain two bars.
 Each principle governs both the product an instance ships and the process it
 ships with — that is the isomorphism. The column below is the **process** (how
 we build); the **product** column (how these principles govern the agents your
-instance ships) is the instance's mapping — ORBIS's is in
-[`instance/orbis/product-mapping.md`](instance/orbis/product-mapping.md).
+instance ships) is the instance's mapping — the instance's is in
+[`instance/<your-instance>/product-mapping.md`](instance/<your-instance>/product-mapping.md).
 
 | Principle | Agentic SDLC (how we build) |
 |---|---|
@@ -46,7 +46,7 @@ instance ships) is the instance's mapping — ORBIS's is in
 | **4. Orchestrator-workers for unpredictable multi-step** | PM-orchestrator decomposes an EPIC into WPs; engineer-Principal executes; worker subagents only for genuinely-independent parallel WPs. The same in-runtime-default / cross-runtime-only-when-independent rule applies to how work is split. |
 | **5. Verify against the environment; evaluator ≠ producer** | Deterministic evals are the oracle for "done". The seat that produced the work does not adjudicate it; PM validates once at merge against pre-committed criteria. No LLM-self-grade in either column. |
 | **6. ACI / tool design is first-class (as much effort as prompts)** | The GitHub thread, PR templates, `## Retires`/`## Closes` conventions, ready-signal shape, and local gate scripts are the SDLC's ACI. Their design is load-bearing and maintained with the same care as agent tooling. |
-| **7. Simplicity + transparency; human owns irreversible; explicit stop condition** | Fixed countable human touchpoints; the thread is transparent and auditable; PROD + product/strategic + master-EPIC are owner-owned; routine DEV→main merge is the PM (4-eye = Engineer→PM, not an owner gate); "finish, report, stop" is the explicit stop condition (no loops, no autonomous loop-driven merge). |
+| **7. Simplicity + transparency; human owns irreversible; explicit stop condition** | Fixed countable human touchpoints; the thread is transparent and auditable; PROD + product/strategic + master-EPIC are owner-owned; routine DEV→main merge is the PM (4-eye = Engineer→PM, not an owner gate). **The stop condition is mode-aware** ([`MODES.md`](MODES.md)): in **manual** mode, "finish, report, stop" — no loops, no autonomous loop-driven merge; in **autonomous** mode, the PM runs a bounded, eval-gated [stateless loop over the board](workflow/state-machine.md) that stops when the board is drained or only `Blocked` remains. Either way the loop is bounded and the irreversible class stays owner-owned. |
 
 ## The Agentic SDLC - 8 phases
 
@@ -55,7 +55,7 @@ instance ships) is the instance's mapping — ORBIS's is in
 | **1 Frame** | Human owner | Owner-only | Master-EPIC definition, product/strategic intent. Principle 7 (human owns the irreversible framing). |
 | **2 Steer** | PM-orchestrator | PM-autonomous | EPIC scope + WP decomposition + acceptance criteria pre-committed. Principle 1 (workflow scaffold) + 4 (orchestrator). |
 | **3 Plan** | Engineer-Principal | Engineer-autonomous within steer | Design proposed against the smallest sufficient shape. Principle 2 (start simple) + 3 (augmented atom). |
-| **4 Build** | Engineer-Principal (+ worker subagents only for genuinely-independent parallel WPs) | Engineer-autonomous within steer + guardrails + skills | Branch-per-EPIC; the instance's augmented-atom platform floor (ORBIS: AgentCore-first + the 5-layer envelope). Principle 3 + 4. |
+| **4 Build** | Engineer-Principal (+ worker subagents only for genuinely-independent parallel WPs) | Engineer-autonomous within steer + guardrails + skills | Branch-per-EPIC; the instance's augmented-atom platform floor (the instance: AgentCore-first + the 5-layer envelope). Principle 3 + 4. |
 | **5 Verify** | Deterministic evals | Non-negotiable, automated | Falsifiable, both-directions, anti-tautology. Canary before any irreversible step. Never LLM-self-grade. Principle 5 + 7. |
 | **6 Adjudicate + Integrate** | PM-orchestrator | PM-autonomous, exactly once | Produce ≠ adjudicate: the non-authoring seat validates vs pre-committed criteria, once, at merge. Principle 5. |
 | **7 Release** | Staging = PM ceremony; PROD = human owner | PM-autonomous (staging) / owner-only (PROD) | Irreversible release is human-owned. Principle 7. |
@@ -145,8 +145,8 @@ scaffold + bounded autonomy within a step, the augmented-atom as the unit,
 evaluator ≠ producer at every tier, a single canonical tool surface, and a
 falsifiable bundled eval per agent or it is not "done". The instance's concrete
 agent-platform rules (its augmented-atom floor, the in-runtime-vs-cross-runtime
-split, the tool surface) live in its overlay — ORBIS's are in
-[`instance/orbis/product-mapping.md`](instance/orbis/product-mapping.md).
+split, the tool surface) live in its overlay — the instance's are in
+[`instance/<your-instance>/product-mapping.md`](instance/<your-instance>/product-mapping.md).
 
 ## Scope honesty
 

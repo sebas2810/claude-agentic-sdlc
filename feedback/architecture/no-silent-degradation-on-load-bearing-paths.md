@@ -6,7 +6,7 @@ added: 2026-05-18
 last-confirmed: 2026-05-18
 ---
 
-> Stands under the ORBIS Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
+> Stands under the Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
 
 ## Rule
 
@@ -32,7 +32,7 @@ businessLine-drop bugs survived invisibly for weeks — every static gate
 was green while the app was behaviourally broken (#985). FLOOR-2 (#1067)
 + FLOOR-3 (#1068) exist to kill this class. The reference implementation
 is the converged intake write-back: `_api_call(required=True)` →
-`OrbisWriteError` + write-health signal; `validate_finalize_payload`
+`WriteError` + write-health signal; `validate_finalize_payload`
 schema-gate pre-POST; the TS-side `slotData.transcriptIntegrity` marker
 (#1079) is the cross-language parity pattern.
 

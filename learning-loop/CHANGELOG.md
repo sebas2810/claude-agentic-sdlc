@@ -32,9 +32,9 @@ Pre-blog review found the operating model strong but the enforcement almost enti
 
 ### Promoted from prose to hard gate (`.claude/hooks/` + `.claude/settings.json`)
 
-- `always-pr-never-push` — PreToolUse hook blocks `git push` to `main`/`release/*` (ceremony override: `ORBIS_ALLOW_RELEASE_PUSH=1`, PM staging-promote only)
+- `always-pr-never-push` — PreToolUse hook blocks `git push` to `main`/`release/*` (ceremony override: `<INSTANCE>_CEREMONY_OVERRIDE=1`, PM staging-promote only)
 - `no-claude-attribution` — hook blocks commits carrying Claude attribution footers
-- `always-rebase-before-push` — hook blocks pushes while behind `origin/main` (the BEHIND class that hit every INTAKEV2 first-shot PR); `hotfix/*` skipped, EPIC-branch sub-PRs use `ORBIS_SKIP_REBASE_CHECK=1`
+- `always-rebase-before-push` — hook blocks pushes while behind `origin/main` (the BEHIND class that hit every INTAKEV2 first-shot PR); `hotfix/*` skipped, EPIC-branch sub-PRs use `<INSTANCE>_CEREMONY_OVERRIDE=1`
 - `run-oversight-gates-locally` — hook blocks agent-path pushes unless `npm run gates:agents` (NEW single-command runner, `scripts/run-agent-gates.sh`, all 11 blocking + 2 report-only gates) passed against the exact committed diff (patch-id stamp). Supersedes the copy-paste gate loop; rule file updated from the stale 2-gate version.
 - `db:generate after schema.prisma edit` — PostToolUse hook regenerates the Prisma client automatically
 - SessionStart hook injects the seat-kickoff briefing + standing-state surfaces into every session
@@ -45,7 +45,7 @@ Pre-blog review found the operating model strong but the enforcement almost enti
 
 ### Added
 
-- `plugins/orbis-sdlc/` plugin + root `.claude-plugin/marketplace.json` — kickoff-pm, kickoff-engineer, ready-signal, promote-staging, capture-rule as installable skills. The WoW procedures become infrastructure new pairs install, not docs they remember to read. Docs remain the source of truth; skills point at them.
+- `plugins/<instance>-sdlc/` plugin + root `.claude-plugin/marketplace.json` — kickoff-pm, kickoff-engineer, ready-signal, promote-staging, capture-rule as installable skills. The WoW procedures become infrastructure new pairs install, not docs they remember to read. Docs remain the source of truth; skills point at them.
 - `REVIEW.md` (repo root) — severity overrides for Claude Code Review: ADR-0006 Tier-1 / AgentCore-first / edge-runtime / `## Retires` follow-through escalate to Important; style stays Nit; playbook PRs skipped. Enabling the GitHub review service itself is an owner decision (billed, org-admin).
 
 ### Debt cleared (named in the 2026-05-19 reconciliation)
@@ -91,7 +91,7 @@ Pre-blog review found the operating model strong but the enforcement almost enti
 
 Estimated wasted cycle time: ~30–60 min across the kickoff day. The sharpened rule eliminates the pattern.
 
-## 2026-05-19 - Reconciled agentic-sdlc → ORBIS Agentic SDLC (deliberate pass)
+## 2026-05-19 - Reconciled agentic-sdlc → Agentic SDLC (deliberate pass)
 
 The deliberate reconciliation pass named in the spine's `## Scope honesty`.
 The spine ([`agentic-operating-model.md`](../agentic-operating-model.md)) and
@@ -100,13 +100,13 @@ ratified root + reference shape; everything below derives from them, nothing
 contradicts them. Staged on-branch only - **no commit, no push, no merge**.
 
 ### Rebrand (name only - directory path stable)
-- `README.md` retitled to **"ORBIS Agentic SDLC"** ("the operating model
+- `README.md` retitled to **"Agentic SDLC"** ("the operating model
   formerly called 'way of working'"), reframed as the index; spine named as
   the root. Seat overview rewritten to the 3-role spine model (Owner /
   PM-orchestrator / Engineer-Principal). Folder tree, the session-start
   checklist, and the "bounded autonomy / fixed owner-touchpoints" principle
   updated. The directory path `agentic-sdlc/` is unchanged.
-- `CLAUDE.md`: textual references call it the "ORBIS Agentic SDLC"; seat
+- `CLAUDE.md`: textual references call it the "Agentic SDLC"; seat
   pointers now point at `seats/pm/KICKOFF.md` + the spine; all
   `agentic-sdlc/...` paths kept intact. Surgical - the workflow-split
   prose (Terminal/VS Code lanes) was left intact (not a name/seat-pointer
@@ -167,7 +167,7 @@ contradicts them. Staged on-branch only - **no commit, no push, no merge**.
   same-file-two-sessions detection) was left intact.
 
 ### ~26 neutral integrity/architecture/operational rules - confirmed-and-kept (NOT rewritten)
-- A single one-line spine note (`> Stands under the ORBIS Agentic SDLC
+- A single one-line spine note (`> Stands under the Agentic SDLC
   spine ...`) was added to: the 13 kept `feedback/workflow/*` integrity rules
   (always-pr-never-push, no-claude-attribution, branch-per-epic,
   deployed-env-smoke-before-ready, audit-pr-history-before-pickup,
@@ -215,7 +215,7 @@ textual seat/name pointers in `CLAUDE.md`).
 ## 2026-05-19
 
 ### Added (agentic operating model: the spine)
-- `agentic-sdlc/agentic-operating-model.md`: the single authoritative spine. ORBIS is an agentic platform built by an agentic SDLC, both on one root (Anthropic "Building Effective Agents"). Carries the 7-principle dual mapping (product vs SDLC), the 8-phase Agentic SDLC, the 8 invariants, the 3-role touchpoint model, and the agent-scaling rules. Seat authority / Principal skills / kickoffs are now downstream of it.
+- `agentic-sdlc/agentic-operating-model.md`: the single authoritative spine. the instance is an agentic platform built by an agentic SDLC, both on one root (Anthropic "Building Effective Agents"). Carries the 7-principle dual mapping (product vs SDLC), the 8-phase Agentic SDLC, the 8 invariants, the 3-role touchpoint model, and the agent-scaling rules. Seat authority / Principal skills / kickoffs are now downstream of it.
 - **De-gated `seats/engineer/authority.md`**: removed the heavy per-unit "do X" trigger protocol; installed the bounded-autonomy contract: EPIC-scoped full autonomy as Senior Cloud Architect / Agentic Engineer, only 3 consult-PM triggers (out-of-scope / better solution / external blocker), ONE PM validation at merge (produce != adjudicate, the only retained routine check), PM owns staging ceremony, owner only for PROD + product/strategic + master-EPIC. Integrity rules preserved verbatim (produce != adjudicate, no-false-green, no-silent-degradation, AgentCore-first, isolation, branch-per-EPIC).
 - **Pointers (surgical, no rewrites):** `principal-agentic-engineer.md` gained a `## Building Effective Agents canon` section; `agentic-sdlc/README.md`, `seats/engineer/KICKOFF.md` (read-order), `skills/INDEX.md`, `CLAUDE.md` (standards area), and `docs/product-vision.md` each point at the spine.
 - **Tracked deliberate follow-up (NOT done here, stated plainly in the spine's `## Scope honesty`):** full reconciliation of the ~30 agentic-sdlc files against the spine, deep ADR-0006/vision prose integration, and the per-skill ADR-0001 bundled-eval builds. "Spine exists" is not "agentic-sdlc reconciled".
@@ -237,7 +237,7 @@ textual seat/name pointers in `CLAUDE.md`).
 ## 2026-05-18
 
 ### Added
-- `feedback/architecture/no-silent-degradation-on-load-bearing-paths.md` — load-bearing swallow = defect; surface + health signal; schema-validate structured output pre-persist. Codified by WP2 (FLOOR-2 #1067 + FLOOR-3 #1068, EPIC #1065); reference impl = the converged intake write-back (`_api_call(required=True)` → `OrbisWriteError` + write-health, `validate_finalize_payload` pre-POST gate).
+- `feedback/architecture/no-silent-degradation-on-load-bearing-paths.md` — load-bearing swallow = defect; surface + health signal; schema-validate structured output pre-persist. Codified by WP2 (FLOOR-2 #1067 + FLOOR-3 #1068, EPIC #1065); reference impl = the converged intake write-back (`_api_call(required=True)` → `WriteError` + write-health, `validate_finalize_payload` pre-POST gate).
 - `feedback/operational/seat-coordination-loop.md` — GitHub-as-bus + per-seat self-paced poll loop + ceremony-only owner escalation. Operationalises the previously-principle-only `standing-by-means-polling` + `pm-routes-via-github` rules so routine WP handoffs flow seat-to-seat without the owner hand-carrying messages between terminals. Owner is a subscriber to one topic: ceremony gates.
 - `feedback/operational/seat-coordination-loop.md` **amended (same day, first live run)**: 3 demonstrated hard-won rules — (a) a seat must not conclude its loop while a dispatch to it is unacknowledged; dispatcher confirms pickup; (b) shared `sebas2810` identity ⇒ watermark-dedupe + own-post/ack no-ops + don't poll human-gated waits; (c) AskUserQuestion answers are invisible to the auto-mode classifier — ceremony-grade actions need in-transcript auth or human execution.
 
@@ -282,7 +282,7 @@ textual seat/name pointers in `CLAUDE.md`).
 ## Backfill queue (not in scaffold; landing over the week)
 
 - `reference/capgemini-landing-zone-sso.md`
-- `reference/orbis-repo-map.md`
+- `reference/repo-map.md`
 - `reference/virtual-team.md`
 - `reference/release-strategy.md`
 - `reference/gh-cli.md`

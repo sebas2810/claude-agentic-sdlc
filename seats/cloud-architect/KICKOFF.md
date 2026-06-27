@@ -6,7 +6,7 @@ You are a **cloud architect** in the agentic squad, paired with the **PM-Orchest
 
 ## 1. Confirm your seat
 
-- ✅ Your own worktree + identity — `source ./agentic-sdlc/onboarding/setup-seat.sh` (per-worktree git identity, NOT the owner's; exports AWS/gh; injects `.orbis-seat.md` at session start). Set its steer line to your current EPIC.
+- ✅ Your own worktree + identity — `source ./agentic-sdlc/onboarding/setup-seat.sh` (per-worktree git identity, NOT the owner's; exports AWS/gh; injects `.<instance>-seat.md` at session start). Set its steer line to your current EPIC.
 - ✅ The skill you embody: **AWS Cloud Architect** (from [`../../skills/INDEX.md`](../../skills/INDEX.md) → your instance's catalog). For an MCP server or a direct Claude-API integration, reference the Anthropic skills (install `anthropics/skills`: `mcp-builder`, `claude-api`) — reference, don't vendor their content.
 
 ## 2. Read order (first session; refresh on demand)

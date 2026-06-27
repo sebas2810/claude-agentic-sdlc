@@ -1,15 +1,15 @@
-# New Pair Setup - onboarding into the ORBIS Agentic SDLC
+# New Pair Setup - onboarding into the Agentic SDLC
 
 > Root: the spine [`../agentic-operating-model.md`](../agentic-operating-model.md).
 > Read it first - it is the model everything below operationalises.
 
-A "pair" in ORBIS is **one PM seat + one engineer seat**, both Claude Code,
+A "pair" in the instance is **one PM seat + one engineer seat**, both Claude Code,
 coordinating over GitHub. The human is the **owner**. This walks you through
 getting productive in that model on day 1.
 
 ## The model in one paragraph
 
-ORBIS is an agentic platform built by an agentic SDLC, both on one root
+the instance is an agentic platform built by an agentic SDLC, both on one root
 (Building Effective Agents). Delivery is a fixed-phase workflow: the **owner**
 frames the master EPIC; the **PM-orchestrator** steers it (scope + WP
 decomposition + pre-committed acceptance criteria); the **Engineer-Principal**
@@ -35,8 +35,8 @@ blocker), resolved on the GitHub thread.
 ## Step 1: Clone
 
 ```bash
-git clone git@github.com:sebas2810/orbis-platform.git ~/Code/capgemini-orbis
-cd ~/Code/capgemini-orbis
+git clone git@github.com:<you>/<your-product>.git ~/Code/<your-repo>
+cd ~/Code/<your-repo>
 npm install
 ```
 
@@ -59,10 +59,10 @@ source ./agentic-sdlc/onboarding/setup-seat.sh   # per-worktree git identity + A
 ```
 
 `setup-seat.sh` sets a per-worktree git identity (never shared), exports
-`AWS_PROFILE` (`orbis-admin` today) + an optional `GH_TOKEN`, and verifies AWS resolves.
-It then **starts the seat natively**: it scaffolds a per-worktree `.orbis-seat.md`
+`AWS_PROFILE` (`<your-aws-profile>` today) + an optional `GH_TOKEN`, and verifies AWS resolves.
+It then **starts the seat natively**: it scaffolds a per-worktree `.<instance>-seat.md`
 (your identity + a self-route block) from the role template
-(`orbis-seat.${SEAT_ROLE}.template.md`) and wires a SessionStart hook into this
+(`seat.${SEAT_ROLE}.template.md`) and wires a SessionStart hook into this
 worktree's `.claude/settings.local.json`, so every Claude session here boots with
 your seat identity injected — no manual re-brief. Set its **steer line** to your
 EPIC when you pick one up. The file is gitignored (per-worktree, never shared).
@@ -71,14 +71,14 @@ EPIC when you pick one up. The file is gitignored (per-worktree, never shared).
 
 **Terminal (PM seat):**
 ```bash
-cd ~/Code/capgemini-orbis
+cd ~/Code/<your-repo>
 claude
 # Auto-loads CLAUDE.md → read the spine, then seats/pm/KICKOFF.md
 ```
 
 **VS Code (Engineer seat):**
 ```bash
-code ~/Code/capgemini-orbis
+code ~/Code/<your-repo>
 # Open the Claude Code panel → read the spine, then seats/engineer/KICKOFF.md
 ```
 
@@ -107,7 +107,7 @@ engineer does not wait for a per-unit go-signal after it.
 ```bash
 gh issue view <epic-#> --json assignees,milestone,labels
 # PM: flip Project #4 status to In Progress before the first PR
-# (per instance/orbis/rules/flip-epic-status-when-starting.md)
+# (per instance/<your-instance>/rules/flip-epic-status-when-starting.md)
 ```
 
 ## Step 6: The delivery loop (phases 3-8)
@@ -198,7 +198,7 @@ Project rules go in the repo `agentic-sdlc/`, never personal memory.
 
 - **Claude Code didn't auto-load CLAUDE.md?** You're not at repo root / a recognized worktree.
 - **PR CI failing on a check you didn't change?** [`../feedback/workflow/dont-block-on-irrelevant-ci.md`](../feedback/workflow/dont-block-on-irrelevant-ci.md)
-- **Smoke failing on DEV but Lambda looks fine?** [`../instance/orbis/rules/dev-ecs-scale-to-zero.md`](../instance/orbis/rules/dev-ecs-scale-to-zero.md)
+- **Smoke failing on DEV but Lambda looks fine?** [`../instance/<your-instance>/rules/dev-ecs-scale-to-zero.md`](../instance/<your-instance>/rules/dev-ecs-scale-to-zero.md)
 - **Don't know what's next?** If you're the engineer mid-EPIC, the steer already cleared it - continue. If you hit a consult-exception, post it on the thread (not chat). The PM responds there.
 
 ## First week

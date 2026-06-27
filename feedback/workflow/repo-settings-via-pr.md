@@ -6,7 +6,7 @@ added: 2026-04-22
 last-confirmed: 2026-05-13
 ---
 
-> Stands under the ORBIS Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
+> Stands under the Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
 
 ## Rule
 
@@ -45,7 +45,7 @@ Wait for explicit "yes, fire it" before running.
 
 ## Exceptions (auto-approved by this rule's existence)
 
-- Status flips on Project #4 (per [`../../instance/orbis/rules/flip-epic-status-when-starting.md`](../../instance/orbis/rules/flip-epic-status-when-starting.md)) — these are routine
+- Status flips on Project #4 (per [`../../instance/<your-instance>/rules/flip-epic-status-when-starting.md`](../../instance/<your-instance>/rules/flip-epic-status-when-starting.md)) — these are routine
 - Existing-label-set assignment to issues/PRs — routine
 - `gh label edit` of an existing label's description/color — routine (but ask before creating new ones)
 - Issue body editing on EPICs you own — routine

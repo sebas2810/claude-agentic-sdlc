@@ -6,7 +6,7 @@ added: 2026-04-15
 last-confirmed: 2026-05-13
 ---
 
-> Stands under the ORBIS Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
+> Stands under the Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
 
 ## Rule
 
@@ -31,4 +31,4 @@ All changes to `main` go through a PR. **Never** push directly to `main`. Repo h
 
 ## Enforcement (promoted from prose to gate, 2026-06-12)
 
-The `.claude/hooks/bash-guard.mjs` PreToolUse hook (wired in `.claude/settings.json`) **blocks** any `git push` targeting `main` or `release/*` from a Claude Code session. The release-ceremony exception is the `ORBIS_ALLOW_RELEASE_PUSH=1` override — PM staging-promote ceremony only.
+The `.claude/hooks/bash-guard.mjs` PreToolUse hook (wired in `.claude/settings.json`) **blocks** any `git push` targeting `main` or `release/*` from a Claude Code session. The release-ceremony exception is the `<INSTANCE>_CEREMONY_OVERRIDE=1` override — PM staging-promote ceremony only.

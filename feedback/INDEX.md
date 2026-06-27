@@ -4,13 +4,13 @@ Accumulated rules. Each is a short markdown file with a clear "why" and "how
 to apply" so future sessions can apply them without re-deriving.
 
 **The root every rule stands under** is the spine,
-[`../agentic-operating-model.md`](../agentic-operating-model.md) (the ORBIS
+[`../agentic-operating-model.md`](../agentic-operating-model.md) (the the instance
 Agentic SDLC). When a rule conflicts with the spine, the spine wins - raise a
 `chore(playbook):` PR rather than diverging silently.
 
 **To add a rule:** see [`../learning-loop/how-to-capture-a-rule.md`](../learning-loop/how-to-capture-a-rule.md).
 
-**ORBIS-specific rules** (AgentCore-first, the AWS/Next.js gotchas, dev-environment practices, the Project-#4 status flip) live in the instance overlay: [`../instance/orbis/rules/`](../instance/orbis/rules/INDEX.md). This index lists the **portable framework** rules a fork keeps.
+**the instance-specific rules** (AgentCore-first, the AWS/Next.js gotchas, dev-environment practices, the Project-#4 status flip) live in the instance overlay: [`../instance/<your-instance>/rules/`](../instance/<your-instance>/rules/INDEX.md). This index lists the **portable framework** rules a fork keeps.
 
 ## Integrity / workflow rules (kept - load-bearing under the spine)
 
@@ -59,10 +59,10 @@ Violating these creates real bugs / outages. Each stands under the spine
 |---|---|
 | [`architecture/no-silent-degradation-on-load-bearing-paths.md`](architecture/no-silent-degradation-on-load-bearing-paths.md) | Load-bearing swallow = defect: surface + health signal; schema-validate structured output pre-persist (FLOOR-2/3) |
 
-ORBIS's stack-specific architecture rules (AgentCore-first, the `auth.ts` edge-runtime + Next.js slug gotchas) are in the instance overlay: [`../instance/orbis/rules/`](../instance/orbis/rules/INDEX.md).
+the instance's stack-specific architecture rules (AgentCore-first, the `auth.ts` edge-runtime + Next.js slug gotchas) are in the instance overlay: [`../instance/<your-instance>/rules/`](../instance/<your-instance>/rules/INDEX.md).
 
 ## Operational rules
 
-All operational rules are ORBIS-specific (DEV credentials, ECS scale-to-zero, the deploy circuit breaker) and live in the instance overlay: [`../instance/orbis/rules/`](../instance/orbis/rules/INDEX.md).
+All operational rules are the instance-specific (DEV credentials, ECS scale-to-zero, the deploy circuit breaker) and live in the instance overlay: [`../instance/<your-instance>/rules/`](../instance/<your-instance>/rules/INDEX.md).
 
 _(removed 2026-05-19: the autonomous seat-coordination-loop pattern — see `learning-loop/CHANGELOG.md` and `workflow/finish-report-stop.md`.)_

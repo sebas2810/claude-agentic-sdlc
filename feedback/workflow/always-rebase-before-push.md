@@ -6,7 +6,7 @@ added: 2026-05-12
 last-confirmed: 2026-05-20
 ---
 
-> Stands under the ORBIS Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
+> Stands under the Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
 
 ## Rule
 
@@ -111,7 +111,7 @@ If you don't have collaborators on a feature branch, both are equivalent — `--
 
 ## Enforcement (promoted from prose to gate, 2026-06-12)
 
-The `.claude/hooks/bash-guard.mjs` PreToolUse hook **blocks** any `git push` from a Claude Code session while the branch is behind `origin/main` — the BEHIND-at-merge class that hit every first-shot PR on the INTAKEV2 kickoff day can no longer reach the PM. Exceptions: `hotfix/*` branches (release-line based) are skipped; sub-PRs targeting a long-lived EPIC branch rebase onto that branch and re-run with `ORBIS_SKIP_REBASE_CHECK=1`.
+The `.claude/hooks/bash-guard.mjs` PreToolUse hook **blocks** any `git push` from a Claude Code session while the branch is behind `origin/main` — the BEHIND-at-merge class that hit every first-shot PR on the INTAKEV2 kickoff day can no longer reach the PM. Exceptions: `hotfix/*` branches (release-line based) are skipped; sub-PRs targeting a long-lived EPIC branch rebase onto that branch and re-run with `<INSTANCE>_CEREMONY_OVERRIDE=1`.
 
 ## Related enforcement (FLOOR-4, #1069)
 

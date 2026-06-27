@@ -2,7 +2,7 @@
 
 <!--
   Per-worktree seat identity. `agentic-sdlc/onboarding/setup-seat.sh` scaffolds
-  this template into `.orbis-seat.md` (gitignored) and wires a SessionStart hook
+  this template into `.<instance>-seat.md` (gitignored) and wires a SessionStart hook
   that injects it into every Claude session in this worktree.
 -->
 

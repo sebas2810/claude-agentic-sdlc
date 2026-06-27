@@ -6,7 +6,7 @@ added: 2026-05-05
 last-confirmed: 2026-05-13
 ---
 
-> Stands under the ORBIS Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
+> Stands under the Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
 
 ## Rule
 

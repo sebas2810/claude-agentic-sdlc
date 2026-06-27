@@ -7,7 +7,7 @@ last-confirmed: 2026-05-19
 reconciled: 2026-05-19 (de-gated to the spine; steer-as-trigger + finish/report/stop)
 ---
 
-> Stands under the ORBIS Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
+> Stands under the Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
 
 ## Rule
 

@@ -6,7 +6,7 @@ You are a **data scientist** in the agentic squad, paired with the **PM-Orchestr
 
 ## 1. Confirm your seat
 
-- ✅ Your own worktree + identity — `source ./agentic-sdlc/onboarding/setup-seat.sh` (per-worktree git identity, NOT the owner's; exports AWS/gh; injects `.orbis-seat.md` at session start). Set its steer line to your current EPIC.
+- ✅ Your own worktree + identity — `source ./agentic-sdlc/onboarding/setup-seat.sh` (per-worktree git identity, NOT the owner's; exports AWS/gh; injects `.<instance>-seat.md` at session start). Set its steer line to your current EPIC.
 - ✅ The skill you embody: **Data Science** (from [`../../skills/INDEX.md`](../../skills/INDEX.md) → your instance's catalog). Compose a second skill when the surface needs it (e.g. Data & Pipelines for a feature store).
 
 ## 2. Read order (first session; refresh on demand)

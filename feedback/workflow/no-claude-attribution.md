@@ -6,7 +6,7 @@ added: 2026-04-15
 last-confirmed: 2026-05-13
 ---
 
-> Stands under the ORBIS Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
+> Stands under the Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)).
 
 ## Rule
 
@@ -20,7 +20,7 @@ Commits/PRs are attributed to the **human author** (the seat owner running Claud
 
 ## Why
 
-- ORBIS git history represents work the human team produced, with Claude as a tool — same as IDE autocomplete or copilot. Tools don't get authorship.
+- the project's git history represents work the human team produced, with Claude as a tool — same as IDE autocomplete or copilot. Tools don't get authorship.
 - Cleaner `git blame` / `git log` — the human is the actual decision-maker / reviewer-of-record
 - External-readability — when Capgemini leadership reviews the changelog, Claude attribution adds noise
 
