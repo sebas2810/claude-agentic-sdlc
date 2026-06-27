@@ -40,10 +40,10 @@ Principle 7's blunt "no autonomous loop-driven merge" is replaced by the **finer
 safeguards already in the spine** — the loop is safe *because* the other
 invariants hold:
 
-- **Evals are the oracle (#2).** Every `In Review → Done` merge is gated by deterministic, falsifiable evals — never the runner's opinion.
-- **Produce ≠ adjudicate (#3).** The runner *spawned* the engineer but did not *author* the code; on a high-stakes unit it spawns an **independent assurance subagent** (the squad's Quality seat, [`seats/SQUAD.md`](seats/SQUAD.md)) whose verdict feeds the adjudication. Dispatching ≠ producing.
-- **Canary before irreversible (#4) + owner-only PROD/gated class (#1).** The loop *cannot* perform the irreversible class — PROD, branch-protection, destructive infra still stop for the owner.
-- **Bounded, stateless stop.** The loop acts only on `Ready`/`In Review`/`Done`/`Testing` items and **stops** when none remain or only `Blocked` does. No self-paced timer, no invented work.
+- **Evals are the oracle (#2).** Every `Tested → Merged` merge is gated by deterministic, falsifiable evals — never the runner's opinion. The independent verification that produces `Tested` is its own state, *before* merge.
+- **Produce ≠ adjudicate (#3).** The runner *spawned* the engineer but did not *author* the code; the **independent assurance subagent** (the squad's Quality seat, [`seats/SQUAD.md`](seats/SQUAD.md)) verifies at the `Delivered → Tested` gate and the PM adjudicates at `Tested → Merged`. Dispatching ≠ producing ≠ adjudicating.
+- **Canary before irreversible (#4) + owner-only PROD/gated class (#1).** The loop *cannot* perform the irreversible class — `Merged → Released` to PROD, branch-protection, destructive infra still stop for the owner.
+- **Bounded, stateless stop.** The loop acts only on `Scoped`/`Delivered`/`Tested`/`Merged` items and **stops** when none remain or only `Blocked` does. No self-paced timer, no invented work.
 
 The runner never makes a judgement call — it **checks** (gates, evals, the AC
 checklist). A failed check is a blocker that pauses the loop; a passed check is
