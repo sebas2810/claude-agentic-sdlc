@@ -14,12 +14,12 @@
 
 ## Each session — self-route
 
-**If `SDLC_MODE=autonomous` — do NOT wait to be nudged.** On boot, enter the board-loop (`agentic-sdlc/seats/engineer/autonomous-runner.md`):
-1. Read the Execution board: `gh project item-list <exec-board#> --owner $(gh repo view --json owner -q .owner.login) --format json`.
-2. Keep `Status=Scoped` items in **your Domain** (above); skip everything else (that's another seat's lane).
-3. If one exists and you're not already mid-build: take it — read the issue + its `## Steer` comment (the pre-committed AC) — and run the build cycle below.
-4. After you post `## Unit landed`, **loop back to step 1** for the next Scoped item in your domain.
-5. Nothing Scoped for you → post `idle — watching the board` and re-check periodically. Stop only when drained or on a consult-exception.
+**You are EVENT-DRIVEN — you NEVER poll the board.** Your work arrives in your local **inbox**; the
+SM (the single board reader) or `/recheck` pushes it there. On boot (`agentic-sdlc/seats/engineer/autonomous-runner.md`):
+1. Confirm your seat → `git fetch origin main`.
+2. **Drain your inbox** — the Stop hook hands you any queued item (`{item, action:claim+build, ac_ref}`). Read the issue + its `## Steer` comment (the pre-committed AC) and run the build cycle below.
+3. When you finish a unit, the hook re-checks your inbox; another queued item → next unit.
+4. **Inbox empty → IDLE.** Do not poll the board; the SM/dispatch (or `/recheck`) wakes you. On a 3rd repeat of one item → `Blocked` + `## Consult-exception` (the dead-letter).
 
 **The build cycle** (both modes; in `manual` you run it once per nudge, then idle until re-engaged):
 1. Read your steer + `agentic-sdlc/seats/engineer/KICKOFF.md`.

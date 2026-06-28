@@ -2,6 +2,24 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-06-28 — Autonomous loop hardened: event-driven dispatch, no N-way poll (owner-directed)
+
+A GitHub GraphQL **rate-limit incident** stalled the autonomous loop: N standing seats (dex/sam/qa) each ran the `seat-loop-hook.sh` Stop hook, which does a full Projects-v2 board read on every turn-stop. All seats authenticate as one identity → one shared rate budget → exhaustion + idle seats burning tokens/CI on zero velocity. Root cause was a **contradiction in the framework**: `orchestrator-runner.md` already intended the SM to be the *single* poller, and the spine's `finish-report-stop.md` already forbids self-paced polling — but `MODES.md` + `seats/engineer/autonomous-runner.md` + `seat-loop-hook.sh` sanctioned a standing **self-looping** seat that polls. The poll was also **load-bearing** (the only dispatch path), so a bare disable would zero-out dispatch.
+
+Owner direction: the loop is **event-driven, not polling**. A board transition is a GitHub event that wakes **exactly one standing pane** for one item; the **SM is the single board reader**; every other seat is **woken**, never polling. This **re-aligns autonomous mode to `finish-report-stop`** — the re-engager becomes a webhook event instead of a human. Also reaffirmed (owner, repeated): the SDLC seats are **standing, watchable, interjectable panes — NEVER headless subagents**; the "PM-spawned subagent" form is struck.
+
+The mechanism (dispatcher + per-seat inbox + SM boot/periodic reconcile + `/recheck` + the GitHub App webhook foundation) is specified build-ready and tracked as the platform-infra WP; the policy/rule landed first (PR #277). Hardening is **not done** until the robustness evals (E1–E6) retire the runners' `Bundled eval: TBD`s.
+
+### Added
+- `feedback/architecture/event-driven-orchestration.md` — the golden rule (one-reader → push → cheap-probe; App is foundation-not-fix; rejected patterns).
+- `onboarding/event-driven-dispatch.md` — the build-ready contract (lifecycle · 7 operational invariants O1–O7 · inbox · dispatcher · reconcile · `/recheck` · evals E1–E6 · #101 worked example · file map).
+- `onboarding/github-app/app-manifest.json` + `SETUP.md` — the dispatcher App (events, least-privilege perms, owner setup; secrets out of the repo).
+
+### Updated
+- `MODES.md` — autonomous staffing collapses to **one** form (standing, event-woken pane); explicit ⛔ no-subagents.
+- `seats/scrum-master/orchestrator-runner.md` — SM is the sole reader, event-woken, low-frequency reconcile backstop (not a tight timer).
+- `seats/engineer/autonomous-runner.md` — rewritten to woken-per-item; never reads the board.
+
 ## 2026-06-23 — Engineer: `--admin` / branch-protection bypass is never an engineer tool (sharpening)
 
 Reinforces the 2026-06-15 4-eye rule after a slip: an engineer seat (RJ, 2026-06-22) `--admin`-merged two of its own PRs, bypassing PM review + branch protection. The rule already forbade self-merge; this names the exact failure mode — `gh pr merge --admin` is never an engineer tool, doesn't count as "the PM merged it," and never bypasses branch protection without an explicit owner go. Self-flagged by the engineer (healthy signal — the point of capture is to make it stick across seats). Durable fix is **enforcement** (align branch protection so engineer seats can't `--admin`), tracked separately — a doc rule alone didn't prevent it.

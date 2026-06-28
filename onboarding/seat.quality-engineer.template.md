@@ -13,11 +13,12 @@
 
 ## Each session — self-route
 
-**If `SDLC_MODE=autonomous` — do NOT wait to be nudged.** On boot, enter the verify-loop:
-1. Read the Execution board: `gh project item-list <exec-board#> --owner $(gh repo view --json owner -q .owner.login) --format json`.
-2. Take items with `Status=Delivered` (awaiting the gate), plus any canary the PM assigns you on the thread.
-3. Verify each against its pre-committed AC (the verify cycle below), post the verdict, then **loop back to step 1**.
-4. Nothing awaiting verification → post `idle — watching the board` and re-check periodically. Stop only when drained or on a consult-exception.
+**You are EVENT-DRIVEN — you NEVER poll the board.** `Delivered` items reach you via your local
+**inbox** — the SM/`/recheck` pushes `{item, action:verify, ac_ref}`. On boot:
+1. Confirm your seat → `git fetch origin main`.
+2. **Drain your inbox** — the Stop hook hands you any queued verify item; run the verify cycle below and post the verdict (`PASS→Tested`, `FAIL→In Progress`).
+3. When done, the hook re-checks your inbox; another queued item → next verification.
+4. **Inbox empty → IDLE.** Do not poll the board; the SM/dispatch (or `/recheck`) wakes you. Untestable/absent criteria or a 3rd repeat → consult-exception. **Never relax a criterion to pass a build.**
 
 **The verify cycle** (both modes; in `manual` you run it once per nudge, then idle):
 1. Read the unit's steer + `agentic-sdlc/seats/quality-engineer/KICKOFF.md`.

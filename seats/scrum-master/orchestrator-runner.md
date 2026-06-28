@@ -16,7 +16,15 @@ status: active
 This promotes the [flow-master](flow-master.md) half of the old PM runner into the SM's
 **primary** role. The PM no longer runs dispatch/flow ([its runner](../pm/autonomous-runner.md)
 is now prep + adjudication only). One SM reading the board is also one GraphQL consumer — the
-single poller that keeps the autonomous loop within rate.
+**single** board reader that keeps the autonomous loop within rate; every other seat is
+**woken**, never polling ([event-driven-orchestration](../../feedback/architecture/event-driven-orchestration.md)).
+
+**The SM is event-woken, not a self-timer.** In the target architecture a board/PR webhook
+(`project_v2_item` · `pull_request` · `issues`) wakes the SM for the one item that changed; the
+SM acts on that edge and idles. A low-frequency **reconcile** sweep (cache-aware cadence, not a
+tight poll) is the only timer — a backstop for dropped events / idle seats, never the primary
+driver. The SM is the **sole** GraphQL board reader; a producer that pulls `Scoped` on its own
+timer is the rejected N-way poll.
 
 ## Identity
 
@@ -38,14 +46,19 @@ Each tick — read the board once (the only state), then act, most-advanced stat
    then reviews → approves → sets `Scoped`; that gate is the PM's.)*
 2. **WIP — stop starting, start finishing.** Apply [flow-master](flow-master.md) §1: Active Epics ≤ 3,
    per-seat `In Progress` ≤ limit, review/verify not behind build. A breach → skip dispatch this tick.
-3. **Dispatch.** For each PM-approved `Scoped` item with a free producer slot, set `In Progress` and
-   assign it to the producer seat for its label — the standing seat's loop builds it
-   ([standing-seats.md](../../onboarding/standing-seats.md)).
+3. **Dispatch (PUSH to the seat's inbox).** For each PM-approved `Scoped` item with a free producer
+   slot, set `In Progress`, assign it to the producer seat for its label, **and write it to that
+   seat's inbox** — `bash ../../onboarding/inbox.sh push --key <seat> --item <n> --action claim+build
+   --ac '#<n> ## Steer' --epic <e> --by sm` (seat key = the `seat:<x>` label suffix). The producer
+   reads its inbox, **never the board** — the push *is* the dispatch
+   ([event-driven-dispatch](../../onboarding/event-driven-dispatch.md)).
 4. **Flow + wake.** Sweep aging/`Blocked` ([flow-master](flow-master.md) §2); recompute throughput /
    cycle-time / WIP / DORA (§3). **Wake idle seats** — if a producer/Quality seat has drained and
-   stopped while work for it exists, surface it for relaunch (a stopped session can't self-wake).
+   stopped while work for it exists, ensure its inbox holds the item and surface it for relaunch
+   (`open …/<seat>.command` or `/wake <seat>`); a stopped pane can't self-wake.
 5. **Route the back-edges** (deterministic, no judgement):
-   - `Delivered` → ensure it reaches the **Quality** seat (it verifies → `Tested`/`In Progress`).
+   - `Delivered` → **push it to the Quality inbox** (`bash ../../onboarding/inbox.sh push --key
+     quality-engineer --item <n> --action verify --ac '#<n>' --by sm`); Quality verifies → `Tested`/`In Progress`.
    - **QA-fail** (`In Progress` with a failing check) → re-confirm it's routed back to its producer.
    - **deploy-fail** (`Released` red / canary fail) → open a **fix-story** (nested under the Epic),
      route it; set the failed item back to `In Progress`.
@@ -72,9 +85,9 @@ Each tick — read the board once (the only state), then act, most-advanced stat
 1. Read the board (the only state; no private cursor).
 2. New framed Epic? → explode WP table into nested issues, back-link the `#`s, bounce gaps to the PM.
 3. WIP ok? → breach = *stop starting*; skip dispatch.
-4. Dispatch each PM-approved `Scoped` to its producer seat (`In Progress`).
-5. Sweep aging/`Blocked`; wake idle seats; recompute metrics.
-6. Route back-edges (Delivered→QA · QA-fail→producer · deploy-fail→fix-story).
+4. Dispatch each PM-approved `Scoped`: `In Progress` + assign + **`inbox.sh push` to the producer's inbox**.
+5. Sweep aging/`Blocked`; wake idle seats (fill inbox + surface relaunch/`/wake`); recompute metrics.
+6. Route back-edges (Delivered→**push** Quality inbox · QA-fail→producer · deploy-fail→fix-story).
 7. `Merged` → deploy + canary → `Released` (PROD owner-gated).
 8. Surface to the PM: `Tested`-ready, consult-exceptions, owner touchpoints.
 9. Stop when drained to `Released`/`Blocked`/PM-pending `Backlog`.
