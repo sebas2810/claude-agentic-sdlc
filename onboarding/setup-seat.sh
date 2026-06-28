@@ -28,7 +28,10 @@ echo "    github: ${GH_TOKEN:+custom token}${GH_TOKEN:-default gh login}"
 #    (per-worktree, gitignored). Update its steer line when you pick up an EPIC.
 ROOT="$(git rev-parse --show-toplevel)"
 SEAT_FILE="$ROOT/.${INSTANCE}-seat.md"
-TEMPLATE="$ROOT/agentic-sdlc/onboarding/seat.${SEAT_ROLE}.template.md"
+# Locate the framework wherever it is vendored: SDLC_FRAMEWORK_DIR wins (set by seat-launch.sh),
+# else the conventional in-repo overlay. Lets the role template resolve under docs/agentic-sdlc/ too.
+FW="${SDLC_FRAMEWORK_DIR:-$ROOT/agentic-sdlc}"
+TEMPLATE="$FW/onboarding/seat.${SEAT_ROLE}.template.md"
 if [ -f "$SEAT_FILE" ]; then
   echo "    seat:   .${INSTANCE}-seat.md present (kept)"
 elif [ -f "$TEMPLATE" ]; then
