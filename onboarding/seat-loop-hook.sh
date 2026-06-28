@@ -37,12 +37,25 @@ INBOX_ROOT="${SAMMY_INBOX_ROOT:-$HOME/.agentic-sdlc/${INSTANCE:-seat}/inbox}"
 
 block() { jq -cn --arg r "$1" '{decision:"block", reason:$r}'; }
 
-# ── SCRUM-MASTER: the one board reader ───────────────────────────────────────────────────────────
+# ── SCRUM-MASTER: the one board reader (TTL-cached) ──────────────────────────────────────────────
 if [ "$SEAT_ROLE" = "scrum-master" ]; then
   [ -n "${BOARD_ID:-}" ] && [ -n "${BOARD_OWNER:-}" ] || exit 0
-  # control-char-safe read (LC_ALL=C strips raw control bytes; multi-byte UTF-8 survives).
-  ITEMS="$(gh project item-list "$BOARD_ID" --owner "$BOARD_OWNER" --format json --limit 300 2>/dev/null \
-            | LC_ALL=C tr -d '\000-\010\013\014\016-\037')" || exit 0
+  # Board-read CACHE: the heavy Projects-v2 GraphQL read is the expensive thing. Claude Code can fire
+  # this Stop hook up to ~8 times in a force-stop burst — re-reading the board each time is what spiked
+  # GraphQL. Reuse a fresh cached read (TTL) so a burst of blocks collapses to ONE read. Dispatch stays
+  # correct: re-dispatch is idempotent (inbox push by item+action) and the board CLAIM is the real guard,
+  # so acting on ≤TTL-stale data is harmless. Override TTL with SAMMY_BOARD_TTL (default 45s).
+  CACHE="$INBOX_ROOT/.board-cache.json"; TTL="${SAMMY_BOARD_TTL:-45}"
+  _now="$(date +%s 2>/dev/null || echo 0)"
+  _mtime="$( [ -f "$CACHE" ] && stat -f %m "$CACHE" 2>/dev/null || stat -c %Y "$CACHE" 2>/dev/null || echo 0 )"
+  if [ -s "$CACHE" ] && [ "$(( _now - _mtime ))" -lt "$TTL" ]; then
+    ITEMS="$(cat "$CACHE" 2>/dev/null)"          # fresh cache → $0, no GraphQL
+  else
+    # control-char-safe read (LC_ALL=C strips raw control bytes; multi-byte UTF-8 survives).
+    ITEMS="$(gh project item-list "$BOARD_ID" --owner "$BOARD_OWNER" --format json --limit 300 2>/dev/null \
+              | LC_ALL=C tr -d '\000-\010\013\014\016-\037')" || exit 0
+    [ -n "$ITEMS" ] && { mkdir -p "$INBOX_ROOT"; printf '%s' "$ITEMS" > "$CACHE"; }
+  fi
   [ -z "$ITEMS" ] && exit 0
   NEXT="$(printf '%s' "$ITEMS" | jq -r 'first(.items[] | select(.status=="Scoped" or .status=="In Progress" or .status=="Delivered" or .status=="Tested" or .status=="Merged")) | .content.number // empty' 2>/dev/null)"
   if [ -n "$NEXT" ]; then
