@@ -24,8 +24,8 @@ They differ in exactly **one** transition and **one** principle.
 | | **Manual** (default) | **Autonomous** |
 |---|---|---|
 | Seat instantiation | a human launches a Claude session per seat (worktree + the SessionStart hook injects the seat) | the **PM-orchestrator spawns the engineer as a subagent** per `Ready` work-item, the *same* KICKOFF + skills + AC injected as its context |
-| Who drives the next unit | a human re-engages the seat | the **PM loop** (a stateless reducer over the board) |
-| Merge | PM, on a human-triggered cycle | PM loop, **autonomously, eval-gated** |
+| Who drives the next unit | a human re-engages the seat | the **SM orchestrator** (the board's heartbeat — dispatch/flow/release); the PM frames + adjudicates |
+| Merge | PM, on a human-triggered cycle | the **PM**, autonomously, eval-gated — the SM surfaces `Tested`-ready, the PM adjudicates |
 | Human's role | owner touchpoints **+ operator (launches/relaunches sessions)** | owner touchpoints **only** |
 | Principle 7 stop condition | "finish, report, stop; idle until a human re-engages" | "act only on board-actionable items; **stop when the board is drained or only `Blocked` remains**" |
 

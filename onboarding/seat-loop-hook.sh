@@ -40,6 +40,12 @@ ITEMS="$(gh project item-list "$BOARD_ID" --owner "$BOARD_OWNER" --format json -
 if [ "$SEAT_ROLE" = "quality-engineer" ]; then
   NEXT="$(printf '%s' "$ITEMS" | jq -r 'first(.items[] | select(.status=="Delivered")) | .content.number // empty' 2>/dev/null)"
   ACT="VERIFY it against its pre-committed AC on the deployed env (perturb the happy path — gate reliability, not one lucky output); post a falsifiable per-criterion PASS/FAIL; on PASS set Status->Tested, on FAIL set Status->In Progress (so it leaves your queue). You never merge. No false-green — a deployed eval must assert the feature's CONTENT, not just disposition."
+elif [ "$SEAT_ROLE" = "scrum-master" ]; then
+  # the ORCHESTRATOR: keep driving while anything is mid-pipeline (Scoped..Merged). Backlog-only
+  # waits on the PM to Scope; Released/Blocked-only is drained → stop. The SM dispatches + flows;
+  # it never adjudicates/merges (that is the PM).
+  NEXT="$(printf '%s' "$ITEMS" | jq -r 'first(.items[] | select(.status=="Scoped" or .status=="In Progress" or .status=="Delivered" or .status=="Tested" or .status=="Merged")) | .content.number // empty' 2>/dev/null)"
+  ACT="ORCHESTRATE per your orchestrator-runner — enforce WIP first, then: dispatch Scoped items to the producer seat for their label (set In Progress), ensure Delivered items reach the Quality seat, drive Merged items through deploy/canary->Released, route failures (deploy-fail->fix-story, QA-fail->re-Scope), wake idle seats, sweep aging/Blocked. Surface Tested-ready items + the 3 consult-exceptions to the PM. You do NOT merge, adjudicate, or write product code."
 else
   [ -n "${SEAT_LABEL:-}" ] || exit 0
   NEXT="$(printf '%s' "$ITEMS" | jq -r --arg L "$SEAT_LABEL" 'first(.items[] | select(.status=="Scoped") | select((.labels // []) | index($L))) | .content.number // empty' 2>/dev/null)"

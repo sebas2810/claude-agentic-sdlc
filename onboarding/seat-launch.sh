@@ -63,10 +63,22 @@ if [ "$AUTONOMOUS" = "1" ]; then
         .claude/settings.local.json > "$tmp" 2>/dev/null; then mv "$tmp" .claude/settings.local.json; else rm -f "$tmp"; fi
 fi
 
-# 5) boot prompt — generic; the full brief comes from the injected seat file.
-read -r -d '' PROMPT <<EOP || true
-You are ${SEAT_NAME}, the ${SEAT_ROLE} seat for ${INSTANCE} (SDLC_MODE=autonomous). Your full brief is injected at session start (the seat file). Confirm your seat + boot your read-order, then: git fetch origin main. Then run your board-loop over the Execution board (#${BOARD_ID:-?}, owner ${BOARD_OWNER:-?}): take your next item per your KICKOFF — claim -> build/verify -> deliver, post the ready-signal, set the next Status. NEVER self-merge. The Stop hook hands you the next item automatically; stop only when your queue is empty (or a 3rd repeat of one item -> Blocked + a consult-exception). Sign all activity as ${SEAT_NAME}.
+# 5) boot prompt — role-aware; the full brief comes from the injected seat file.
+case "$SEAT_ROLE" in
+  scrum-master)     LOOP_LINE="ORCHESTRATE per your orchestrator-runner: enforce WIP, dispatch Scoped items to producer seats, ensure Delivered->Quality, drive Merged->deploy/canary->Released, route failures (deploy-fail->fix-story, QA-fail->re-Scope), wake idle seats. Surface Tested-ready items + consult-exceptions to the PM. You do NOT merge, adjudicate, or write product code." ;;
+  quality-engineer) LOOP_LINE="VERIFY each Delivered item against its pre-committed AC on the deployed env (perturb the happy path); post a per-criterion PASS/FAIL; PASS->Tested, FAIL->In Progress. You never merge." ;;
+  *)                LOOP_LINE="take your next Scoped item carrying your label — CLAIM it (atomic flip In Progress + assign) -> build per your KICKOFF -> ONE PR -> Delivered. NEVER self-merge — the PM adjudicates." ;;
+esac
+
+if [ "$SEAT_ROLE" = "pm" ] || [ "$SEAT_ROLE" = "orchestrator" ]; then
+  read -r -d '' PROMPT <<EOP || true
+You are ${SEAT_NAME}, the PM seat for ${INSTANCE} — the human's interface + prep + adjudication (NOT the dispatch loop; the Scrum-Master orchestrates that). Confirm your seat + boot your read-order, then: git fetch origin main. Your work: (1) PREP — identify + prioritise new work and the roadmap; refine Backlog->Scoped with pre-committed, falsifiable AC (Definition of Ready). (2) ADJUDICATE — review Tested/green producer PRs against the AC you pre-committed, and merge (the merge authority; 4-eye = producer->you; never merge what you authored). (3) OWNER interface — surface the fixed touchpoints (roadmap/EPIC framing, strategic consult-exceptions, PROD) with a recommendation. Sign all activity as ${SEAT_NAME}, never as the owner.
 EOP
+else
+  read -r -d '' PROMPT <<EOP || true
+You are ${SEAT_NAME}, the ${SEAT_ROLE} seat for ${INSTANCE} (SDLC_MODE=autonomous). Your full brief is injected at session start. Confirm your seat + boot your read-order, then: git fetch origin main. Then run your board-loop over the Execution board (#${BOARD_ID:-?}, owner ${BOARD_OWNER:-?}): ${LOOP_LINE} The Stop hook hands you the next item automatically; stop only when your queue is empty (or a 3rd repeat of one item -> Blocked + a consult-exception). Sign all activity as ${SEAT_NAME}.
+EOP
+fi
 
 echo "== ${TITLE} · autonomous=${AUTONOMOUS} =="
 echo "worktree: $WORKTREE"
