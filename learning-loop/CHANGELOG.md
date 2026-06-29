@@ -2,6 +2,21 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-06-29 — v1.3: rate-aware board access — the `status:*` label index + per-seat model tier (owner-directed)
+
+The board read was the rate-limit hog: `gh project item-list … --limit 300` (Projects-v2 GraphQL) has **no server-side `Status` filter**, so every `/check` pulled ~N items to use one — and N seats on a shared 5,000-pt/hr GraphQL budget exhausted it in 2–3 epics. Fix: **discover off a cheap `status:*` issue-label index (REST/Search), never the board read.**
+
+- **The `status:*` label index.** One label per `Status` option (`status:backlog|scoped|in-progress|delivered|tested|merged|released|blocked`). The board `Status` field stays the **canonical record + the visual kanban**; the label is its **read-replica / discovery index**. Seats find work with a server-filtered query (`gh issue list --search "label:status:scoped label:seat:dex no:assignee"`) on the **REST budget** — the expensive GraphQL read is off the hot path entirely.
+- **`/check`, `/workload`, `/board`, `/backlog` all run off the index** (REST). `/check` drains by **re-running the cheap query** (no snapshot needed — re-querying is cheap, which also retires v1.2's "drain from one snapshot" workaround). New `/backlog` command lists the unframed queue + flags issues missing a `status:*` label.
+- **Dual-write, every transition (default, zero new infra).** A flip sets the `status:*` label (REST) **and** the board `Status` field (one cheap single-item mutation — a few points, not the ~30–90 of the full read; the targeted flip Vera proved works under the limit). Keeps the visual kanban live with no extra infrastructure.
+- **Optional pure-A upgrade.** A small GitHub Action (`onboarding/board-label-sync.md`) projects `status:*` label changes onto the board field — seats then write **only** the label (zero GraphQL in the loop). Needs a project-scoped `PROJECTS_TOKEN` secret (the default `GITHUB_TOKEN` can't write an org-owned project; GitHub emits events on label changes, not field changes — hence labels-are-writeable, field-is-projection). A pure optimisation, never a prerequisite — dual-write already fixes the rate limit.
+- **Per-seat model tier (`SEAT_MODEL`).** `seat-launch.sh` now launches each seat on a capability tier: **pm + quality-engineer → opus** (judgment + the independent gate — where an error is expensive or hard to catch), **scrum-master + producers → sonnet** (mechanical / high-volume, backstopped by the gate). Override per seat via `SEAT_MODEL` in `.env.local` (e.g. `opus` for an agent-path/infra/data/ML engineer; `haiku` for a pure-mechanics SM; empty → account default). Spends capability where it changes outcomes; economises on gated, high-volume work.
+
+One-time per repo: create the labels + **backfill** existing items from their current `Status` field (the one expensive board read, run once when the budget is healthy) — both scripted in `board-label-sync.md`.
+
+### Files updated
+- **new** `commands/backlog.md` · `onboarding/board-label-sync.md` · rewritten `commands/{check,workload,board}.md` · `workflow/state-machine.md` (the label-index section + reducer/stop-condition) · `onboarding/seat-launch.sh` (`SEAT_MODEL` tier) + `onboarding/.env.local.example` · seat KICKOFFs + templates + `MODES.md` + spine + `new-pair-setup.md` (discovery-via-label + dual-write propagation).
+
 ## 2026-06-29 — v1.2: engineer block-protocol · SM verifies/operationalizes Blocked · PM never edits the board · drain-the-queue (owner-directed)
 
 Refines the operator-driven loop and hardens the PM↔SM boundary. Four changes:

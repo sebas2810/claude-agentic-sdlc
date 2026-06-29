@@ -101,6 +101,18 @@ EOP
     ;;
 esac
 
-echo "== ${TITLE} · operator-driven (semi-automated) — /check to pull work, /board for the overview =="
+# 6) model tier — capability where errors are expensive / hard to catch; economy on gated, high-volume
+#    work. Defaults: PM + quality-engineer (judgment + the independent gate) → opus; scrum-master +
+#    producers (mechanical / volume, with a downstream gate) → sonnet. Override per seat with SEAT_MODEL
+#    in .env.local (e.g. opus for an agent-path / infra / data / ML engineer). Set SEAT_MODEL="" to
+#    inherit the account default (pass no --model). `${SEAT_MODEL-…}` keeps an explicit "" distinct from unset.
+case "$SEAT_ROLE" in
+  pm|orchestrator|quality-engineer) DEFAULT_MODEL="opus" ;;
+  *)                                DEFAULT_MODEL="sonnet" ;;
+esac
+SEAT_MODEL="${SEAT_MODEL-$DEFAULT_MODEL}"
+MODEL_FLAG=(); [ -n "$SEAT_MODEL" ] && MODEL_FLAG=(--model "$SEAT_MODEL")
+
+echo "== ${TITLE} · operator-driven (semi-automated) · model: ${SEAT_MODEL:-account-default} — /check to pull work, /board for the overview =="
 echo "worktree: $WORKTREE"
-exec claude --permission-mode acceptEdits "$PROMPT"
+exec claude "${MODEL_FLAG[@]}" --permission-mode acceptEdits "$PROMPT"

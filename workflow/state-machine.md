@@ -101,37 +101,41 @@ regardless of when the operator triggers it.** The operator's pacing changes
 *when* a step runs, never *who* runs it or *whether* its gate holds — so a safety
 gate can never be skipped.
 
-## The board as the reducer (drain the snapshot per `/check`)
+## The board as the reducer (drain the queue per `/check`)
 
-No seat holds **state between engagements**. Each `/check` reads the board
-**once** and acts on what the state dictates — a pure-reduction **drain** of the
-items eligible for its role in that one snapshot, operator-triggered: reduce one
-item, then the next, until none remain. There is no self-running loop and no
+No seat holds **state between engagements**. Each `/check` discovers its role's
+actionable items via a **cheap label-index query** and acts on what the state
+dictates — a pure-reduction **drain**, operator-triggered: reduce one item,
+re-query for the next, until none remain. There is no self-running loop and no
 poll; once the queue is empty the operator re-runs `/check` to start the next
-engagement.
+engagement. Discovery never touches the expensive 300-item Projects read — it's a
+server-filtered query on the `status:*` labels (REST budget), so re-querying per
+item is cheap (this is what the operator-driven rate-limit fix rests on).
 
 ```
 on /check in <seat>:
-  board = read(Project Status + issue/PR state)        # the ONLY source of truth — ONE read per /check
+  # discovery = a cheap REST/Search query on the status:* LABEL INDEX (never the 300-item Projects read)
   if active_epics > 3 or wip_breached: finish_in_flight_first
-  while (item = next actionable item for <seat>'s role in board) is not EMPTY:   # most-advanced first; drain THIS snapshot
+  while (item = next actionable item for <seat>'s role) is not EMPTY:   # one cheap label query per pull; most-advanced first
     case item.status:
-      Scoped     (producer) -> if free_wip: claim(item); branch; build; set In Progress -> Delivered
-      Delivered  (quality)  -> v = verify(item)            # independent: Quality seat / evals, deployed-env
-                               v.pass ? set Tested : (comment per-criterion; set Scoped)   # FAIL: engineer re-pulls it
-      Tested     (sm)       -> p = check_preconditions(item)   # real QA PASS + CI green + PR clean; SM did not author -> produce != adjudicate
-                               p.ok ? (squash-merge; set Merged) : route(item)   # dirty PR -> engineer rebase; no verdict -> back to QA; never force-merge
-      Merged     (sm)       -> deploy(item); canary; set Released   # PROD is owner-gated, never automated
-      Blocked    (producer) -> post full consult-exception to the ISSUE (findings·options·recommendation); set Blocked; assign self; do NOT build
-      Blocked    (sm)       -> verify claims vs codebase/board; surface to PM with a verdict (legit/avoidable/needs-PM-call); operationalize a PM re-frame (flip Blocked->Scoped). PM posts decisions, never edits Status
-    # cheap single-item ops only (its own Status mutation + PR/REST) — no full board re-read mid-drain
-  report "queue clear — idle"; idle   # drained the snapshot — stop at empty; operator re-engages for new work (no idle-poll)
+      scoped     (producer) -> if free_wip: claim(item); branch; build; -> in-progress -> delivered
+      delivered  (quality)  -> v = verify(item)            # independent: Quality seat / evals, deployed-env
+                               v.pass ? -> tested : (comment per-criterion; -> scoped)   # FAIL: engineer re-pulls it
+      tested     (sm)       -> p = check_preconditions(item)   # real QA PASS + CI green + PR clean; SM did not author -> produce != adjudicate
+                               p.ok ? (squash-merge; -> merged) : route(item)   # dirty PR -> engineer rebase; no verdict -> back to QA; never force-merge
+      merged     (sm)       -> deploy(item); canary; -> released   # PROD is owner-gated, never automated
+      blocked    (producer) -> post full consult-exception to the ISSUE (findings·options·recommendation); -> blocked; assign self; do NOT build
+      blocked    (sm)       -> verify claims vs codebase/board; surface to PM with a verdict (legit/avoidable/needs-PM-call); operationalize a PM re-frame (-> scoped). PM posts decisions, never sets status
+    # every transition DUAL-WRITES: set the status:* label (REST, the discovery mirror) + the board Status field
+    #   (one cheap single-item mutation, the canonical record) — or label-only if the sync Action is enabled
+  report "queue clear — idle"; idle   # queue drained — stop at empty; operator re-engages (no idle-poll; the expensive read is never run)
 ```
 
-The drain is **operator-initiated** (this `/check`) and **bounded by the work in
-that one snapshot**; every item still passes its normal gate (producers stay
-Engineer → QA → SM per unit — not autonomous EPIC-draining), and the whole drain
-costs **one** board read regardless of depth. Each iteration takes the
+The drain is **operator-initiated** (this `/check`) and **bounded by the work that
+exists now**; every item still passes its normal gate (producers stay
+Engineer → QA → SM per unit — not autonomous EPIC-draining), and discovery is a
+**cheap label-index query** throughout — the expensive 300-item Projects read is
+never run, so re-querying per item is cheap. Each iteration takes the
 most-advanced actionable item first, so the system **finishes work before
 starting new work** (WIP discipline falls out of the ordering).
 
@@ -145,11 +149,11 @@ What treating the board as the only state buys:
 ## The stop condition (principle 7)
 
 Each `/check` has an **explicit stop**: the seat **drains its role's eligible
-queue** from the one board snapshot — actionable item → report → next — and then
-**idles**. It does not poll on a self-paced timer, does not loop the board, and
-does not invent work — it acts only on what that snapshot says is actionable for
-its role, and once its queue is empty it does **not** keep re-reading the board
-(no idle-poll). When no actionable item remains — the queue is drained, or every
+queue** via the cheap label-index query — actionable item → report → re-query for
+next — and then **idles**. It does not poll on a self-paced timer, does not run
+the expensive board read, and does not invent work — it acts only on what the
+label index says is actionable for its role, and once its queue is empty it does
+**not** keep re-querying (no idle-poll). When no actionable item remains — the queue is drained, or every
 remaining item is `Blocked` (awaiting a consult-exception or owner-touchpoint) —
 `/check` reports `queue clear — idle` and idles. This is "finish, report, stop"
 made literal at the **queue level**: within an operator-initiated `/check` the
@@ -159,6 +163,19 @@ seat drains its queue, and **nothing advances without an operator-initiated
 ## GitHub mapping (the concrete board)
 
 - The states are the **`Status` single-select** options, in the order above.
+- **The `status:*` label index (cheap discovery).** Each `Status` is mirrored by a
+  `status:<state>` **issue label** — the *discovery index*. Seats find work with a
+  cheap server-filtered REST/Search query (`label:status:scoped label:seat:dex …`),
+  **never** `gh project item-list` (Projects v2 has no server-side `Status` filter,
+  so the board read pulls all ~N items to use one — the call that exhausts the
+  GraphQL budget). The board `Status` field stays the **canonical record + the
+  visual kanban**; the label is its read-replica. Every transition **dual-writes**:
+  set the `status:*` label (REST) **and** the board `Status` field (one cheap
+  single-item mutation). With the optional label→board sync Action
+  ([`../onboarding/board-label-sync.md`](../onboarding/board-label-sync.md))
+  enabled, seats write **only** the label and the board follows — zero GraphQL in
+  the loop. Either way `/check`, `/workload`, `/board`, `/backlog` all run off the
+  label index; the expensive read is never on the hot path.
 - An item **carries its Epic parent** (sub-issue link / `Epic` field) — every
   Story is parented per [`hierarchy.md`](hierarchy.md); an orphan Story has no
   steer to build from.

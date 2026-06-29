@@ -1,23 +1,23 @@
 ---
-description: Show THIS seat's outstanding workload from the board (role-aware list). Read-only — /check takes the next one.
+description: Show THIS seat's outstanding workload (role-aware list) via the cheap status:* label index. Read-only — /check takes the next one.
 ---
 
-Show — don't take — every outstanding item **this seat** owns, by role. One board read, list, stop. This is **read-only**: do NOT claim, build, verify, merge, or change any status — that's what `/check` is for.
+Show — don't take — every outstanding item **this seat** owns, by role, off the cheap `status:*` **label index** (REST/Search — never the 300-item board read). **Read-only**: do NOT claim, build, verify, merge, or change any status — that's `/check`.
 
 Resolve once:
 ```
-BOARD_ID="${BOARD_ID:?BOARD_ID unset — run /workload in a configured seat pane}"; BOARD_OWNER="${BOARD_OWNER:?BOARD_OWNER unset}"
 ROLE="${SEAT_ROLE:?run /workload inside a seat pane}"; KEY="${SEAT_KEY:-$ROLE}"
 ```
-Read the board **once**: `gh project item-list "$BOARD_ID" --owner "$BOARD_OWNER" --format json --limit 300`.
+Discovery runs against THIS worktree's repo (`gh` resolves it from cwd). Each list is one cheap `gh issue list --search "...status:* label..."` — list, don't act.
 
-Then list, by **role** — each line `#num  title  [seat:label]` (truncate long titles), most-recent/priority first, with a **count** header:
+List, by **role** — each line `#num  title  [labels]` (truncate long titles), oldest-first, with a **count** header:
 
 - **engineer** (KEY = `dex`/`sam`/…):
-  - **`Scoped` · `seat:$KEY`** — your outstanding build queue (what `/check` would pull next; a re-`Scoped` item carries QA comments to address). *This is the "items scoped on your name" list.*
-  - **`In Progress` · `seat:$KEY`** — what you already have in flight.
-- **quality-engineer**: all **`Delivered`** items — your verify queue.
-- **scrum-master**: all **`Tested`** items — your **merge queue** (validate preconditions → squash-merge → drive `Merged→Released`); plus a flow view — count per state (`Scoped`/`In Progress`/`Delivered`/`Tested`/`Merged`) + any **aging** items; and any **`Blocked`** items needing action — consult-exceptions to **verify + surface to the PM with a verdict**, and PM-re-framed items to **operationalize** (flip `Blocked→Scoped`).
-- **pm**: the **`Backlog`** awaiting framing — your steer queue; plus any product/scope judgement the QA seat has flagged, or `Blocked` consult-exception the SM surfaced, for you to resolve. *(Not a merge queue — the SM merges. The PM posts decisions; the SM does the status flips.)*
+  - **`status:scoped` · `seat:$KEY` · `no:assignee`** — your outstanding build queue (what `/check` pulls next; a re-`status:scoped` item carries QA comments). *This is the "items scoped on your name" list.*
+    `gh issue list --search "is:open label:status:scoped label:seat:$KEY no:assignee sort:created-asc" -L 30 --json number,title`
+  - **`status:in-progress` · `seat:$KEY`** — what you already have in flight.
+- **quality-engineer**: all **`status:delivered`** — your verify queue. `gh issue list --search "is:open label:status:delivered sort:created-asc" -L 30`
+- **scrum-master**: all **`status:tested`** — your **merge queue** (validate preconditions → squash-merge → drive `→ status:released`); plus a flow view — a count per `status:*` label; and any **`status:blocked`** items needing action — consult-exceptions to **verify + surface to the PM with a verdict**, and PM-re-framed items to **operationalize** (dual-write `status:blocked`→`status:scoped`).
+- **pm**: the **`status:backlog`** awaiting framing — your steer queue; plus any product/scope judgement the QA seat flagged, or `status:blocked` consult-exception the SM surfaced, for you to resolve. *(Not a merge queue — the SM merges. The PM posts decisions; the SM does the status transitions.)*
 
-Head each list with its count, e.g. `3 Scoped for dex:` then the lines. If a list is empty say `none`. End with a one-line nudge: "run `/check` to take the next one." Keep it to a screen.
+Head each list with its count, e.g. `3 status:scoped for dex:` then the lines. If a list is empty say `none`. End with: "run `/check` to take the next one." Keep it to a screen.
