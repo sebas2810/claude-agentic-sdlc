@@ -25,9 +25,9 @@ watch **`/board`** → run **`/check`** in the seat that should advance.
 1. **`/board`** — the operator's one-shot overview (counts + in-flight items per state).
 2. **`/check`** in a seat pane → that seat pulls + does its **next workload**:
    - **producer** (`engineer`) → next `Scoped` for its `seat:` lane → claim → build → `Delivered`
-   - **quality-engineer** → next `Delivered` → verify on the deployed env → `Tested` / `In Progress`
-   - **pm** → next `Tested` → adjudicate + merge (4-eye); else frame the next `Backlog` → `Scoped`
-   - **scrum-master** → board hygiene (explode Epics into sub-issues, WIP, sweep, surface to PM)
+   - **quality-engineer** → next `Delivered` → verify on the deployed env → PASS `Tested` / FAIL `Scoped` (+ comments — the engineer re-pulls it)
+   - **scrum-master** → next `Tested` → validate (real QA verdict, CI green, PR clean) + merge (squash) → drive `Merged → Released`; plus board hygiene (explode Epics into sub-issues, WIP, sweep, surface to PM)
+   - **pm** → oversight + product: frame the next `Backlog` → `Scoped` with its pre-committed AC, own the roadmap + owner touchpoints, resolve the rare product/scope judgment the QA seat surfaces (not in the routine merge path)
 3. **One item per `/check`**, report, idle. The operator runs `/check` again for the next.
 
 ## What is unchanged (the spine)
@@ -38,10 +38,13 @@ watch **`/board`** → run **`/check`** in the seat that should advance.
 
 ## Why operator-driven is safe (the safeguards still hold)
 
-- **Produce ≠ adjudicate (#3)** — the producer builds; the independent Quality seat verifies at
-  `Delivered → Tested`; the PM adjudicates at `Tested → Merged`. The operator triggering `/check`
-  changes *when* a step runs, never *who* runs it.
-- **Evals are the oracle (#2)** — `Tested` is gated by falsifiable verification, not opinion.
+- **Produce ≠ adjudicate (#3)** — now a three-way separation: the producer (Engineer) builds; the
+  independent Quality seat verifies at `Delivered → Tested` (FAIL sends it back `Delivered → Scoped`
+  for the engineer to re-pull); the SM — who didn't author — validates and merges (squash) at
+  `Tested → Merged` and drives `Merged → Released`. The PM frames + adjudicates product/scope but is
+  out of the routine merge path. The operator triggering `/check` changes *when* a step runs, never *who* runs it.
+- **Evals are the oracle (#2)** — `Tested` is gated by falsifiable QA verification, not opinion; that
+  QA verification is the gate the SM merges on.
 - **Canary before irreversible (#4) + owner-only PROD/gated class (#1)** — `Merged → Released` to PROD,
   branch-protection, and destructive infra still stop for the owner.
 - **No runaway cost** — GraphQL + tokens are spent only on an operator `/check`; idle costs nothing

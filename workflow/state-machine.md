@@ -45,10 +45,11 @@ Two deliberate properties of this ordering:
   reaches `main` — not after. This is the Quality Engineer seat's state
   ([`../seats/quality-engineer/KICKOFF.md`](../seats/quality-engineer/KICKOFF.md));
   where no Quality seat is staffed, the deterministic evals are the oracle and the
-  PM confirms them at the gate.
+  SM confirms them at the merge gate.
 - **`Released` is its own state, owner-gated at PROD.** Merging to `main` is the
-  PM's routine authority; pushing the irreversible release is the owner's. Keeping
-  them as two states keeps that boundary legible on the board.
+  SM's routine authority (it did not author the work, so produce ≠ adjudicate
+  holds); pushing the irreversible release is the owner's. Keeping them as two
+  states keeps that boundary legible on the board.
 
 ## Definition of Ready / Done (the gates between states)
 
@@ -87,9 +88,10 @@ The operator runs `/check` in the seat that should advance; that seat does the
 | Scoped → In Progress | the producer pulls its next `Scoped` → claims + branches | a free WIP slot |
 | In Progress → Delivered | producer (PR + ready-signal) | local gates green + a real DEV round-trip |
 | Delivered → Tested | quality-engineer pulls its next `Delivered` → verifies on the deployed env (or runs evals) | **evals (oracle) + AC, deployed-env, perturbed** |
-| Tested → Merged | PM pulls its next `Tested` → adjudicates + merges | **produce ≠ adjudicate**, once, at the gate |
-| Delivered/Tested → In Progress | PM/QE requests changes (verification FAIL → back to `In Progress`) | a failed gate is a blocker, not a note |
-| Merged → Released | PM deploys (staging); PROD = owner | **canary before irreversible**; PROD owner-gated |
+| Tested → Merged | SM pulls its next `Tested` → validates preconditions (real QA PASS + CI green + PR mergeable/clean) → squash-merges | **produce ≠ adjudicate**, once, by the non-author at the gate |
+| Delivered → Scoped | quality-engineer verification FAIL → back to `Scoped` with per-criterion comments (the engineer re-pulls it via `/check`) | a failed gate is a blocker, not a note |
+| Tested → (routed) | SM finds a precondition unmet → routes, never force-merges: dirty/conflicting PR → engineer rebases; no QA verdict → back to QA | real QA PASS + CI green + PR clean |
+| Merged → Released | SM deploys (staging); PROD = owner | **canary before irreversible**; PROD owner-gated |
 | any → Blocked | the seat surfaces (`## Consult-exception`) | the 3 consult-exceptions / owner-touchpoints |
 | Blocked → (prior) | PM / owner resolves on the thread | — |
 
@@ -113,10 +115,10 @@ on /check in <seat>:
   case item.status:
     Scoped     (producer) -> if free_wip: claim(item); branch; build; set In Progress -> Delivered
     Delivered  (quality)  -> v = verify(item)            # independent: Quality seat / evals, deployed-env
-                             v.pass ? set Tested : (comment; set In Progress)
-    Tested     (pm)       -> a = adjudicate(item)        # produce != adjudicate, once
-                             a.pass ? (merge; set Merged) : (comment; set In Progress)
-    Merged     (pm)       -> deploy(item); canary; set Released   # PROD is owner-gated, never automated
+                             v.pass ? set Tested : (comment per-criterion; set Scoped)   # FAIL: engineer re-pulls it
+    Tested     (sm)       -> p = check_preconditions(item)   # real QA PASS + CI green + PR clean; SM did not author -> produce != adjudicate
+                             p.ok ? (squash-merge; set Merged) : route(item)   # dirty PR -> engineer rebase; no verdict -> back to QA; never force-merge
+    Merged     (sm)       -> deploy(item); canary; set Released   # PROD is owner-gated, never automated
     Blocked               -> surface to PM/owner          # do NOT advance
   report; idle        # one item per /check — the operator re-runs /check for the next
 ```

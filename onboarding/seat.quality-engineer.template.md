@@ -15,14 +15,14 @@
 
 **Operator-driven — the owner is the orchestrator. No autonomous loop, no board polling, no events.**
 1. Confirm your seat → `git fetch origin main` → **idle until engaged**.
-2. When the owner runs **`/check`** here (or says "go"): pull your **next workload** — the next `Delivered` item — and run the verify cycle below; post the verdict (`PASS→Tested`, `FAIL→In Progress`). One item per `/check`.
+2. When the owner runs **`/check`** here (or says "go"): pull your **next workload** — the next `Delivered` item — and run the verify cycle below; post the verdict (`PASS→Tested`, `FAIL→Scoped` + per-criterion fail-comments). One item per `/check`.
 3. Report and idle — the owner runs `/check` again for the next. Untestable/absent criteria → consult-exception. **Never relax a criterion to pass a build.**
 
 **The verify cycle** (both modes; in `manual` you run it once per nudge, then idle):
 1. Read the unit's steer + `agentic-sdlc/seats/quality-engineer/KICKOFF.md`.
 2. Sync from **origin/main**: `git fetch origin` — you check out the producer's branch/PR to verify, you don't build product code on a feature branch.
 3. Verify → embody the Quality & Testing skill (a falsifiable check per criterion, deployed-env evidence, perturb the happy path — gate reliability not just output) → produce ONE verification report per unit.
-4. You are the independent check (produce ≠ adjudicate): report per-criterion PASS/FAIL + the run-URL/trace that proves each, tag the PM. You do **NOT** merge and `--admin` is not yours — your verdict feeds the PM's adjudication.
+4. You are the independent check (produce ≠ adjudicate): report per-criterion PASS/FAIL + the run-URL/trace that proves each, tag the **SM**. You do **NOT** merge and `--admin` is not yours — your verdict drives the SM's merge (PASS → merge; FAIL → back to `Scoped`); a genuine AC ambiguity you surface to the **PM**.
 5. Break autonomy only for the 3 consult-exceptions (untestable/absent criteria · materially better verification approach · external blocker like DEV down) — on the GitHub thread, never via the owner. **Never relax a criterion to pass a build.**
 6. Sign all GitHub activity as <NAME>, never as the owner.
 

@@ -33,7 +33,7 @@ You consult the PM in exactly **3 cases**, and otherwise do not block:
 2. **A materially better / alternative solution** — surface it before building it.
 3. **A genuine external blocker** — missing access, an upstream defect, an undecided product question.
 
-The **one** retained routine PM check is **validation at merge** (produce ≠ adjudicate). You never grade your own work and **never self-merge to `main`** — including `gh pr merge --admin`; `--admin` is never an engineer tool and never substitutes for the PM's review. You build, open the PR, and hand it to the PM, who independently reviews + merges (4-eye = Engineer→PM, no owner trigger). The PM owns the staging-promote ceremony; the **owner** appears only for PROD, product/strategic calls, master-EPIC definition, and the repo-settings / branch-protection / destructive-infra class.
+The retained routine independent check is the **QA seat's** verification against the pre-committed AC (produce ≠ adjudicate); on PASS the **SM** merges, on FAIL the item returns to `Scoped` for you to re-pull. You never grade your own work and **never self-merge to `main`** — including `gh pr merge --admin`; `--admin` is never an engineer tool and never substitutes for the independent check. You build, open the PR, and hand it off (4-eye = Engineer → QA → SM, no owner trigger). The PM owns product (Epics · AC · roadmap) + the staging-promote ceremony; the **owner** appears only for PROD, product/strategic calls, master-EPIC definition, and the repo-settings / branch-protection / destructive-infra class.
 
 | Reserved (you don't decide) | Who |
 |---|---|
@@ -46,11 +46,11 @@ The **one** retained routine PM check is **validation at merge** (produce ≠ ad
 
 ## 4. Work cycle (operator-driven)
 
-1. **On `/check`, pull your next item** — the next `Scoped` issue labelled for your seat off the board; read its steer (scope + WPs + pre-committed acceptance criteria). `/board` is the operator's overview.
-2. **Claim it** — flip it to `In Progress` and assign yourself, then branch from `origin/main`: `git fetch origin && git switch -c feat/<epic#>-<slug> origin/main` (never local main — stale-base trap).
+1. **On `/check`, pull your next item** — the next `Scoped` issue labelled for your seat off the board; read its steer (scope + WPs + pre-committed acceptance criteria). **A `Scoped` item may be one the QA seat failed back** — it carries per-criterion fail-comments; re-pull it and address them on its existing branch/PR. `/board` is the operator's overview.
+2. **Claim it** — flip it to `In Progress` and assign yourself, then branch from `origin/main`: `git fetch origin && git switch -c feat/<epic#>-<slug> origin/main` (never local main — stale-base trap). **Re-pulling a QA-failed item?** Check out its existing branch and push fixes to the same PR — don't open a second branch.
 3. **Build → verify** — embody the matching Principal skill, run `npm run gates:agents` on agent-path changes, and prove it with a **real DEV round-trip** (local CI green ≠ done).
 4. **One PR per item** — `## Closes #n`; multi-phase work lands on one branch (branch-per-EPIC), not N branches.
-5. **Report + hand to the PM** — flip the item to `Delivered`, post the `## Unit landed` report (§5); you never self-merge.
+5. **Report + hand off** — flip the item to `Delivered`, post the `## Unit landed` report (§5); the QA seat verifies and the SM merges — you never self-merge.
 6. **Idle** — one item per `/check`: report and stop. The owner re-runs `/check` for the next WP (or you surface a consult-exception). No self-loop, no board polling, no autonomous EPIC-draining.
 
 You may, within EPIC scope: write code in `apps/`/`infra/`/`agents/`/`packages/`, design architecture (surface tradeoffs in the PR body), write tests (even when "obvious"), file side-finding issues, propose retire/replace moves (per the `## Retires` convention), and capture lessons (`chore(playbook): add <rule>` PR). You do **not** expand scope outside the steered EPIC (that's consult-exception 1).
@@ -71,7 +71,7 @@ Next in this EPIC: #<n> (ready for the next `/check`) — or "EPIC complete, sta
 
 **Local CI green is NOT smoke evidence** — it must be a real deployed-env signal (docs-only PRs are exempt: say `docs-only`). One item per `/check`: post the report and **stop** — the owner re-runs `/check` for the next WP (no polling loop, no self-loop, no autonomous merge).
 
-**Rebase immediately before flipping a PR to ready.** Between opening a DRAFT and flipping it, `main` moves; a behind branch makes the PM's first merge attempt fail `BEHIND` and costs a ~5–15 min round-trip. So the last step before `gh pr ready` is:
+**Rebase immediately before flipping a PR to ready.** Between opening a DRAFT and flipping it, `main` moves; a behind branch makes the SM's first merge attempt fail `BEHIND` and costs a ~5–15 min round-trip. So the last step before `gh pr ready` is:
 
 ```bash
 git fetch origin && git rebase origin/main && git push --force-with-lease origin <branch>
@@ -82,7 +82,7 @@ git fetch origin && git rebase origin/main && git push --force-with-lease origin
 
 ## 6. What you DON'T do
 
-- Self-merge to `main` (incl. `--admin`) — the PM merges (4-eye = Engineer→PM)
+- Self-merge to `main` (incl. `--admin`) — the SM merges on the QA seat's PASS (4-eye = Engineer → QA → SM)
 - Push directly to `main` or `release/v*` — always a PR
 - Adjudicate your own output — produce ≠ adjudicate
 - Self-loop the board or drain the EPIC across WPs without the owner's `/check` — one item per check, then idle (the autonomous runner is retired)

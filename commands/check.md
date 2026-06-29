@@ -14,13 +14,13 @@ Read the board **once**: `gh project item-list "$BOARD_ID" --owner "$BOARD_OWNER
 
 Then act by **role**:
 
-- **producer** (`engineer`; KEY = your `seat:<x>` suffix): the next item with `Status=Scoped`, label `seat:$KEY`, **no assignee**. → CLAIM it (flip `Scoped→In Progress` + assign yourself), read its issue + its `## Steer` AC, build per your KICKOFF (branch off `origin/main`, gates + a real deployed round-trip), open ONE PR with `## Closes #<n>`, set `Status→Delivered`, post your ready-signal. **Never self-merge.**
+- **producer** (`engineer`; KEY = your `seat:<x>` suffix): the next item with `Status=Scoped`, label `seat:$KEY`, **no assignee**. → CLAIM it (flip `Scoped→In Progress` + assign yourself), read its issue + its `## Steer` AC (a **re-`Scoped`** item also carries QA's per-criterion comments — address them), build per your KICKOFF (branch off `origin/main`, gates + a real deployed round-trip), open ONE PR with `## Closes #<n>`, set `Status→Delivered`, post your ready-signal. **Never self-merge.**
 
-- **quality-engineer**: the next item with `Status=Delivered`. → VERIFY it against its pre-committed AC on the **deployed** env (perturb the happy path — gate reliability, not one lucky output). Post per-criterion PASS/FAIL; on PASS set `Status→Tested`, on FAIL `Status→In Progress`. **You never merge.**
+- **quality-engineer**: the next item with `Status=Delivered`. → VERIFY it against its pre-committed AC on the **deployed** env (perturb the happy path — gate reliability, not one lucky output). Post per-criterion PASS/FAIL; on PASS set `Status→Tested`, on **FAIL set `Status→Scoped`** with the per-criterion comments (the engineer re-pulls it next `/check`). **You never merge.**
 
-- **pm**: the next `Status=Tested` item. → Adjudicate its PR against the pre-committed AC + evidence; merge it (4-eye — never one you authored). If **nothing** is `Tested`, frame the top `Backlog` item → `Scoped` with falsifiable AC.
+- **scrum-master**: the next `Status=Tested` item. → Validate the merge preconditions — a **real QA PASS** verdict, **CI green**, the PR **mergeable / clean** — then **MERGE it (squash; 4-eye — you did not author it)** and drive `Merged→Released` (staging deploy + canary; PROD stays owner-gated). If a precondition fails, **route, never force-merge**: dirty/conflicting PR → back to the engineer to rebase; no QA verdict → back to QA. Plus board hygiene — explode any newly-framed Epic into sub-issues (back-link the `#`s), enforce WIP, sweep aging/`Blocked`, surface the 3 consult-exceptions to the PM. (Producers pull their own `Scoped` via `/check`, so you don't push build work.)
 
-- **scrum-master**: a flow pass — explode any newly-framed Epic into sub-issues (back-link the `#`s), enforce WIP, sweep aging/`Blocked`, surface `Tested`-ready + the 3 consult-exceptions to the PM. (Producers pull their own `Scoped` via `/check`, so you don't push work.)
+- **pm**: **no routine merge.** Frame the top `Backlog` item → `Scoped` with a **falsifiable** AC (the contract QA verifies against). Resolve any product/scope judgement the QA seat surfaced (an ambiguous or deploy-gated AC) so the SM can merge. Otherwise oversight — roadmap + owner touchpoints.
 
 If there's nothing for your role: report `no <status> work for <seat> — idle` and stop.
 

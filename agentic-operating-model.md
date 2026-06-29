@@ -44,9 +44,9 @@ instance ships) is the instance's mapping — the instance's is in
 | **2. Start simple; complexity must demonstrably pay** | One branch per EPIC, smallest design that meets the AC. Additional producer seats are added only when parallel WPs are genuinely independent; "more seats" is never the default. |
 | **3. The augmented LLM (tools + memory + guardrails) is the atom; compose, don't framework** | The Principal skills are composable operating standards a seat embodies. A core PM + Engineer pair extends to a squad of specialist **producer** + independent **assurance** seats when independence is warranted (the #985 granularity rule + produce ≠ adjudicate) — see [`seats/SQUAD.md`](seats/SQUAD.md). Each seat is an augmented atom composing its skills; GitHub is the composition substrate — a principled squad, not a sprawl of agents for its own sake. |
 | **4. Orchestrator-workers for unpredictable multi-step** | PM-orchestrator decomposes an EPIC into WPs; engineer-Principal executes; additional producer seats only for genuinely-independent parallel WPs. The same in-runtime-default / cross-runtime-only-when-independent rule applies to how work is split. |
-| **5. Verify against the environment; evaluator ≠ producer** | Deterministic evals are the oracle for "done". The seat that produced the work does not adjudicate it; PM validates once at merge against pre-committed criteria. No LLM-self-grade in either column. |
+| **5. Verify against the environment; evaluator ≠ producer** | Deterministic evals are the oracle for "done". The seat that produced the work does not adjudicate it; an independent QA seat verifies it once against the pre-committed criteria, and the SM — who did not author it — merges. Producer ≠ verifier ≠ merger; no LLM-self-grade in either column. |
 | **6. ACI / tool design is first-class (as much effort as prompts)** | The GitHub thread, PR templates, `## Retires`/`## Closes` conventions, ready-signal shape, and local gate scripts are the SDLC's ACI. Their design is load-bearing and maintained with the same care as agent tooling. |
-| **7. Simplicity + transparency; human owns irreversible; explicit stop condition** | Fixed countable human touchpoints; the thread is transparent and auditable; PROD + product/strategic + master-EPIC are owner-owned; routine DEV→main merge is the PM (4-eye = Engineer→PM, not an owner gate). **The stop condition is operator-driven** ([`MODES.md`](MODES.md)): the operator runs [`/check`](workflow/state-machine.md) in a seat, which does **one** board item against its gate and then **idles** — "finish, report, stop", no self-loop and no loop-driven merge. The operator re-engages a seat to advance the next item; every step is operator-paced and the irreversible class stays owner-owned. |
+| **7. Simplicity + transparency; human owns irreversible; explicit stop condition** | Fixed countable human touchpoints; the thread is transparent and auditable; PROD + product/strategic + master-EPIC are owner-owned; the routine DEV→main merge is the **SM** (4-eye = Engineer builds → QA verifies → SM merges, not an owner gate). **The stop condition is operator-driven** ([`MODES.md`](MODES.md)): the operator runs [`/check`](workflow/state-machine.md) in a seat, which does **one** board item against its gate and then **idles** — "finish, report, stop", no self-loop and no loop-driven merge. The operator re-engages a seat to advance the next item; every step is operator-paced and the irreversible class stays owner-owned. |
 
 ## The Agentic SDLC - 8 phases
 
@@ -57,8 +57,8 @@ instance ships) is the instance's mapping — the instance's is in
 | **3 Plan** | Engineer-Principal | Engineer-autonomous within steer | Design proposed against the smallest sufficient shape. Principle 2 (start simple) + 3 (augmented atom). |
 | **4 Build** | Engineer-Principal (+ additional producer seats only for genuinely-independent parallel WPs) | Engineer-autonomous within steer + guardrails + skills | Branch-per-EPIC; the instance's augmented-atom platform floor (the instance: AgentCore-first + the 5-layer envelope). Principle 3 + 4. |
 | **5 Verify** | Deterministic evals | Non-negotiable, automated | Falsifiable, both-directions, anti-tautology. Canary before any irreversible step. Never LLM-self-grade. Principle 5 + 7. |
-| **6 Adjudicate + Integrate** | PM-orchestrator | PM-autonomous, exactly once | Produce ≠ adjudicate: the non-authoring seat validates vs pre-committed criteria, once, at merge. Principle 5. |
-| **7 Release** | Staging = PM ceremony; PROD = human owner | PM-autonomous (staging) / owner-only (PROD) | Irreversible release is human-owned. Principle 7. |
+| **6 Adjudicate + Integrate** | Scrum-Master (merge) | SM-autonomous, exactly once | Produce ≠ adjudicate: the independent QA seat verifies vs pre-committed criteria (Phase 5), then the SM — who did not author — validates the merge preconditions and squash-merges, once. Producer ≠ verifier ≠ merger. Principle 5. |
+| **7 Release** | Staging = SM ceremony; PROD = human owner | SM-autonomous (staging) / owner-only (PROD) | Irreversible release is human-owned. Principle 7. |
 | **8 Learn** | PM-orchestrator | PM-autonomous | Capture rule/eval/skill; feed the RAG→fine-tune signal (V1→V2). Principle 5 (eval capture) + product flywheel. |
 
 > The concrete realisation of these phases on the board — the 7 states, the
@@ -75,16 +75,19 @@ judgement call.
 1. **Fixed, countable human touchpoints.** The *owner* appears in a known finite
    set of places (frame, the 3 consult-exceptions, PROD + the owner-gated
    release/repo-settings/destructive class). Not "wherever a question arises".
-   The routine within-team human touchpoint — review + merge of the engineer's
-   DEV→main work — is the **PM**, not the owner: the 4-eye principle is the
-   Engineer→PM separation (engineer builds, PM independently reviews + merges),
-   not a third owner gate.
+   The routine within-team human touchpoint — verify + merge of the engineer's
+   DEV→main work — is the team's **QA + SM**, not the owner: the 4-eye principle
+   is the Engineer builds → QA verifies → SM merges separation (engineer builds,
+   an independent QA seat verifies, the SM — who did not author — merges), not a
+   third owner gate.
 2. **Evals are the oracle.** "Done" is decided by deterministic, falsifiable,
    both-directions, anti-tautology evals against the environment, not by a
    model's opinion of its own work.
 3. **Produce ≠ adjudicate, once at merge.** The seat that produced the work
-   never grades it. Validation happens once, by the non-authoring seat,
-   against criteria committed before the work started.
+   never grades it, and the seat that merges it never authored it. Verification
+   happens once, by an independent QA seat, against criteria committed before
+   the work started; a separate SM validates the merge preconditions and merges
+   — producer ≠ verifier ≠ merger.
 4. **Canary before irreversible.** Nothing irreversible (PROD, customer publish,
    destructive migration) ships without a reversible canary first.
 5. **No false-green, no silent-degradation.** A failed load-bearing path
@@ -106,9 +109,11 @@ Three roles, each with an exact fixed touchpoint list. The list is the
 contract: a role's surface is what is on its list and nothing else.
 
 The Engineer-Principal role is **staffable as a squad** — one or more specialist
-producer seats (full-stack, data, cloud, …) plus an independent assurance seat
-(quality / testing). The authority tiers stay these three; the squad is *how the
-Engineer-Principal role is staffed*, not a fourth tier. See [`seats/SQUAD.md`](seats/SQUAD.md).
+producer seats (full-stack, data, cloud, …), an independent assurance seat
+(quality / testing) that verifies, and a delivery-flow seat (the **Scrum-Master**)
+that validates the merge preconditions and merges. The authority tiers stay these
+three; the squad is *how the Engineer-Principal role is staffed*, not a fourth
+tier. See [`seats/SQUAD.md`](seats/SQUAD.md).
 
 ### Owner
 
@@ -118,23 +123,22 @@ Engineer-Principal role is staffed*, not a fourth tier. See [`seats/SQUAD.md`](s
 - PROD push.
 
 That is the entire list. The owner does not relay messages between seats and
-does not adjudicate or gate routine PRs — the PM reviews + merges the routine
-DEV→main flow without an owner trigger (4-eye = Engineer→PM). The owner appears
-only for the gated class above (PROD/release, repo-settings / branch-protection,
-destructive infra).
+does not adjudicate or gate routine PRs — the **SM** validates + merges the
+routine DEV→main flow without an owner trigger (4-eye = Engineer builds → QA
+verifies → SM merges). The owner appears only for the gated class above
+(PROD/release, repo-settings / branch-protection, destructive infra).
 
 ### PM-orchestrator
 
-- EPIC steer: scope, WP decomposition, pre-committed acceptance criteria.
+- EPIC steer: scope, WP decomposition, pre-committed **falsifiable** acceptance
+  criteria — the contract QA verifies against.
 - The 3 consult-exception responses (out-of-EPIC-scope, a better/alternative
   solution surfaced, a genuine external blocker).
-- One merge validation per EPIC (produce ≠ adjudicate; the only retained
-  routine check) **and the merge itself** — the PM is the merge authority for
-  the engineer's reviewed DEV→main work, no owner trigger required. The PM may
-  also build *and* merge its own lower-stakes work (CI / docs / config) —
-  same-person build+merge is acceptable for the PM only; keep it low-stakes and
-  loop the owner on anything risky (PM-own-work has no second pair of eyes).
-- Staging-promote ceremony.
+- **Out of the routine merge path** — the PM does not merge. The PM resolves
+  only the rare product/scope judgement the QA seat surfaces (an ambiguous or
+  deploy-gated AC); the SM then executes the merge. Produce ≠ adjudicate holds
+  because the seat that framed the work neither verifies nor merges it.
+- Oversight: roadmap, product vision, owner touchpoints.
 - Way-of-working coherence (this spine + downstream files stay consistent).
 
 ### Engineer-Principal

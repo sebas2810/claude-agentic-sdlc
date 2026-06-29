@@ -7,26 +7,28 @@ status: active
 # Flow-Master
 
 > Keep the board **truthful** and **moving**. The SM runs this when the owner runs
-> **`/check`** ([`MODES.md`](../../MODES.md)); the **adjudicate + merge** path stays the
-> PM (produce ≠ adjudicate), and **producers pull their own `Scoped` work via `/check`** —
+> **`/check`** ([`MODES.md`](../../MODES.md)); on a verified QA PASS the SM also **merges**
+> and drives `Released` (produce ≠ adjudicate holds — the SM did not author the code and
+> validates the gate state, not the AC), and **producers pull their own `Scoped` work via `/check`** —
 > flow-master never dispatches. Measure flow, not utilisation — a busy board with
 > nothing reaching `Released` is the failure these checks expose.
 
 ## Who embodies this
 
-- **Scrum-Master / Flow seat staffed** → the SM runs it ([`KICKOFF.md`](KICKOFF.md)), taking flow/relay load off the PM so the PM stays Product-Owner + adjudicator.
-- **No SM staffed** → the **PM** embodies it inline. The duties are identical; only who sits the seat changes. Either way: flow-master **runs board mechanics + facilitates** when the owner runs `/check`; it never dispatches, adjudicates, or merges.
+- **Scrum-Master / Flow seat staffed** → the SM runs it ([`KICKOFF.md`](KICKOFF.md)), taking flow + merge load off the PM so the PM stays oversight + product vision.
+- **No SM staffed** → the **PM** embodies it inline. The duties are identical; only who sits the seat changes. Either way: flow-master **runs board mechanics + merges on a verified QA PASS** when the owner runs `/check`; it never dispatches or re-judges the AC.
 
 ## Where flow-master stops (operator-driven)
 
-Flow-master is the **board-mechanics** half of the work; the **adjudicate + merge** half stays the PM. The owner triggers a pass with **`/check`** — there is no self-loop and no auto-dispatch:
+Flow-master runs **board mechanics** and **merges on a verified QA PASS**; **AC adjudication** stays the QA seat, and **product/scope judgment** stays the PM. The owner triggers a pass with **`/check`** — there is no self-loop and no auto-dispatch:
 
 | Half | What it does | Owner |
 |---|---|---|
-| **Board mechanics + flow** (this skill) | read the board · explode PM-framed Epics into sub-issues · enforce WIP · sweep aging/blocked · post the snapshot · surface to the PM | flow-master (SM, or PM inline) |
-| **Adjudicate + merge** | verify vs pre-committed AC · squash-merge · deploy/canary · set `Released` | **PM only** — never flow-master |
+| **Board mechanics + flow** | read the board · explode PM-framed Epics into sub-issues · enforce WIP · sweep aging/blocked · post the snapshot · surface the 3 consult-exceptions to the PM | flow-master (SM, or PM inline) |
+| **Merge on a verified QA PASS** | validate the gate **state** (`Tested` + real QA verdict + CI green + PR clean) · squash-merge (4-eye: Engineer → QA → SM) · drive `Merged → Released` · route fails (QA-fail → `Scoped`; dirty PR → engineer) | flow-master (SM, or PM inline) |
+| **Adjudicate the AC / the product call** | verify the work vs pre-committed AC · the rare product/scope judgment | **QA seat** (AC) · **PM** (product/scope) — never flow-master |
 
-Flow-master does **not** push work to producers and does **not** wake seats — **producers pull their own `Scoped` work via `/check`**. It never touches `Delivered → Tested → Merged → Released`; those are the PM's adjudication path. This is invariant 3 kept intact even when a separate seat runs flow.
+Flow-master does **not** push work to producers and does **not** wake seats — **producers pull their own `Scoped` work via `/check`**. It does not run `Delivered → Tested` (the QA seat owns that AC verdict) and it does not re-judge the AC; on a QA PASS it validates the gate state and drives `Tested → Merged → Released`. Produce ≠ adjudicate stays intact: the SM merges because it did **not** author the code.
 
 ## 1. WIP-limit check — stop starting, start finishing
 
@@ -63,7 +65,7 @@ Forecast from recent-weeks throughput, not velocity points. Project Insights car
 3. **WIP check** — Active Epics ≤ 3 and no per-seat / gate limit breached? Breach → *stop starting, start finishing*; hold new `Scoped` from being started. **You do not dispatch — producers pull their own `Scoped` work via `/check`.**
 4. **Sweep** — flag aging items past threshold; list + route every `Blocked` item.
 5. **Metrics** — recompute throughput / cycle time / WIP / DORA; post the snapshot on its cadence.
-6. **Surface** — `Tested`-ready items, the 3 consult-exceptions, and owner touchpoints to the PM (never as a relay).
+6. **Merge + route** — for each QA PASS (`Tested`), validate the gate state (real QA verdict + CI green + PR clean) and squash-merge (4-eye: Engineer → QA → SM), then drive `Merged → Released`; route the rest, never force-merge (QA-fail → `Scoped` for the producer to re-pull; dirty PR → engineer; missing verdict → QA seat). Surface the 3 consult-exceptions + owner touchpoints to the PM (never as a relay).
 7. **Report + idle** — post the flow summary; the owner runs `/check` again when needed.
 
 ---

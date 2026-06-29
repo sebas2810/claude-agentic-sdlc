@@ -2,6 +2,19 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-06-29 — v1.1: merge authority PM → SM; QA-fail → Scoped (owner-directed)
+
+The routine merge moves off the PM. New role model (still operator-driven, single mode):
+- **The Scrum-Master is the merge authority.** On a QA PASS (`Delivered→Tested`), the SM validates the merge preconditions (a real QA verdict · CI green · PR mergeable/clean) and squash-merges, then drives `Merged→Released`. The SM did not author the code → produce≠adjudicate holds. On a precondition fail the SM **routes** (dirty PR → engineer rebase; no verdict → QA), never force-merges.
+- **The PM is oversight + product vision** — frames Epics + the pre-committed, falsifiable AC (the contract QA verifies against) + the roadmap + owner touchpoints; resolves only the rare product/scope judgment the QA seat surfaces; **out of the routine merge path**.
+- **4-eye is now Engineer builds → QA verifies → SM merges** (was Engineer→PM). produce≠adjudicate = producer ≠ verifier ≠ merger.
+- **QA-fail back-edge is `Delivered → Scoped`** (was `In Progress`) — the QA seat leaves per-criterion comments; the engineer re-pulls it on its next `/check` and fixes on the existing branch/PR.
+
+Why: the PM-merge + the consult-exception back-and-forth was redundant ceremony — the independent QA verification is the quality oracle, and the SM closes the circle. The PM is freed for product + oversight.
+
+### Files updated
+- spine (`agentic-operating-model.md` — invariants 1/3, phases 6/7) · `MODES.md` · `workflow/state-machine.md` · all seat KICKOFFs + templates · `SQUAD.md` · `commands/{check,workload}.md` · `onboarding/seat-launch.sh` (boot prompts) · `README.md` · `feedback/workflow/*` + `feedback/INDEX.md`.
+
 ## 2026-06-29 — Operator commands are framework-provided + auto-installed (drop-in across projects)
 
 The operator slash-commands now live **in the framework** at `commands/` (`check.md` · `board.md` · `workload.md`) — instance-agnostic (board id/owner come from the seat's `.env.local` env, no hardcoded project), and `onboarding/seat-launch.sh` **auto-installs** them to `~/.claude/commands/` on launch. So the framework is genuinely **drop-in**: vendor it into any project, launch a seat, and the operator surface is there and **consistent across every project** — `/board` (overview) → `/workload` (this seat's queue) → `/check` (take the next item). Previously these were hand-made machine-global files (not version-controlled, not portable).

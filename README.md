@@ -38,17 +38,23 @@ below). The reference instance lives under instance/<name>/.
 
 ## The seats
 
-- **PM-orchestrator** (terminal) — frames + steers EPICs, decomposes work,
-  pre-commits acceptance criteria, reviews + merges at the gate, owns docs +
-  the board. Does **not** write product code.
+- **PM-orchestrator** (terminal) — oversight + product vision: frames + steers
+  EPICs, decomposes work, pre-commits acceptance criteria, owns the roadmap +
+  owner touchpoints + docs + the board, and resolves the rare product/scope
+  judgment the QA seat surfaces. Does **not** write product code and is **not**
+  the routine merge gate.
 - **Engineer-Principal** (Claude Code panel) — architect-level design + build
   within an assigned EPIC; branch-per-EPIC; report-then-stop after each unit.
-  Does **not** touch the backlog / PM lane.
+  Does **not** touch the backlog / PM lane, and **never** self-merges.
 - **Quality Engineer** — independent verification at the `Delivered → Tested` gate
-  (produce ≠ adjudicate); reports a falsifiable verdict, never merges.
-- **Scrum-Master / Flow** *(optional)* — a board-mechanics helper: explodes Epics
-  into sub-issues, enforces WIP limits, sweeps, surfaces to the PM. Does **not**
-  auto-dispatch, adjudicate, merge, or code (producers pull their own work via `/check`).
+  (produce ≠ adjudicate); reports a falsifiable verdict (PASS → `Tested`; FAIL →
+  back to `Scoped` for the engineer to re-pull); never merges.
+- **Scrum-Master / Flow** — the merge authority + board-mechanics seat: on a QA
+  PASS it validates (real QA verdict, CI green, PR clean) and merges (squash) at
+  `Tested`, then drives `Merged → Released`; it also explodes Epics into
+  sub-issues, enforces WIP limits, sweeps, and surfaces to the PM. The SM didn't
+  author the work, so merging holds produce ≠ adjudicate. Does **not**
+  auto-dispatch or code (producers pull their own work via `/check`).
 
 The **Owner** frames master EPICs and owns PROD. The full roster (+ specialist
 build seats) is [`seats/SQUAD.md`](seats/SQUAD.md); the role model, the 8 SDLC

@@ -38,7 +38,7 @@ Rewritten or pointer-updated to the de-gated, one-PM-seat model.
 
 | Rule | One-liner | Reconciliation |
 |---|---|---|
-| [`workflow/finish-report-stop.md`](workflow/finish-report-stop.md) | Finish → one check → report → STOP and wait for the human (no loops, no polling); merge authority = 4-eye Engineer→PM (PM reviews + merges, no owner trigger; engineer never self-merges) | Light-confirm only on the no-loops part; merge-authority part refined 2026-06-15 to the 4-eye Engineer→PM model |
+| [`workflow/finish-report-stop.md`](workflow/finish-report-stop.md) | Finish → one check → report → STOP and wait for the human (no loops, no polling); merge authority = 4-eye Engineer builds → QA verifies → SM merges (the SM merges on the QA PASS; engineer never self-merges; PM is oversight, not the merge gate) | Light-confirm only on the no-loops part; merge authority moved to the SM in v1.1 (was Engineer→PM) |
 | [`workflow/engineer-ready-signal.md`](workflow/engineer-ready-signal.md) | After a unit lands, one report then continue the steered EPIC; no per-unit gate; no self-merge | Rewritten: per-unit "wait for next trigger" retired (steer-as-trigger) |
 | [`workflow/pm-routes-via-github.md`](workflow/pm-routes-via-github.md) | The shared GitHub thread is the bus; the owner is never the relay | Rewritten to spine invariant 7; one PM seat |
 

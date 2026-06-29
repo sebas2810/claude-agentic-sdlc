@@ -50,8 +50,10 @@ does not pause delivery inside a steered EPIC.
 
 ## Hard limits (unchanged by de-gating)
 
-- **No self-merge.** The engineer never merges its own PR. The PM does
-  the one merge validation (produce != adjudicate).
+- **No self-merge.** The engineer never merges its own PR. The ready-signal
+  feeds QA → SM: QA verifies the unit (`Delivered → Tested`, or FAIL back to
+  `Scoped` for re-pull), then the SM does the one merge validation and merges
+  (produce != adjudicate). The PM is oversight, not the merge gate.
 - **No polling loop, no `/loop`, no `ScheduleWakeup`.** Finish, report, stop.
 - **The 3 consult-exceptions still stop you**: out-of-EPIC-scope, a materially
   better solution, a genuine external blocker. Surface on the thread; the PM
