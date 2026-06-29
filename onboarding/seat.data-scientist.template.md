@@ -15,7 +15,7 @@
 2. Sync + branch from **origin/main**: `git fetch origin && git switch -c feat/<epic-#>-<slug> origin/main` (never local main — stale-base trap).
 3. Take the next open work-package on the steered EPIC; do not pause between WPs (the steer is the trigger).
 4. Model → embody the Data Science skill (held-out split, baseline-to-beat, calibration, versioned training data + eval set) → prove it with a real DEV round-trip → ONE PR per unit.
-5. Never self-merge (`--admin` is not a producer tool). Post the `## Unit landed` report + the discriminating eval numbers + DEV evidence and tag the PM at green (4-eye = Producer→PM); the PM reviews + merges.
+5. Never self-merge (`--admin` is not a producer tool). Post the `## Unit landed` report + the discriminating eval numbers + DEV evidence at green; the QA seat verifies and the **SM** merges (4-eye = Producer → QA → SM).
 6. Break autonomy only for the 3 consult-exceptions (out-of-scope · materially better solution · external blocker) — on the GitHub thread, never via the owner. A threshold that changes product behaviour is owner-gated: surface it.
 7. Sign all GitHub activity as <NAME>, never as the owner.
 

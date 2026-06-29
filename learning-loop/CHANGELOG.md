@@ -2,6 +2,22 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-06-29 — v1.2: engineer block-protocol · SM verifies/operationalizes Blocked · PM never edits the board · drain-the-queue (owner-directed)
+
+Refines the operator-driven loop and hardens the PM↔SM boundary. Four changes:
+
+- **Engineer block-protocol.** A genuine consult-exception (AC unmeetable as written · a real product fork · out-of-scope creep) is no longer a pane-local stop: the producer posts the **FULL consult-exception as a comment on the GitHub issue** (file-cited findings · the fork/options · a recommendation), sets `Status → Blocked`, **assigns itself**, and stops — does **not** build. The issue comment *is* the board item's context; the SM + PM read it **from the board, not the producer's pane**.
+- **SM verifies a Blocked item before surfacing.** On the `Blocked` sweep the SM does not relay: it **independently verifies the cited claims** against the codebase/board and hands the PM a **verdict** (legit blocker / avoidable / needs-PM-product-call), never a bare relay.
+- **PM decides, SM operationalizes the board.** The PM **frames/decides by posting a comment/AC and never edits the board `Status` field**. The SM performs every status transition — including flipping `Blocked → Scoped` after a PM re-frame (the trimmed AC + "approved → Scoped"). Producer ≠ verifier ≠ merger now extends to *decider ≠ board-operator*.
+- **Drain-the-queue.** A seat no longer stops after one item per `/check`. On an operator-initiated `/check` it **drains its queue** — handles an item, reports, immediately pulls its role's next eligible item, repeats (item → report → next) until none remain, then reports `queue clear — idle` and stops. **Rails preserved:** the drain is operator-initiated and bounded by the work that exists *now*, every unit still passes the per-unit gate (Engineer → QA → SM) — so it is **not** autonomous EPIC-draining; and **stop-at-empty is absolute** — once the queue is clear the seat does not keep re-reading the board (no self-loop, no board poll, no `/loop`/`ScheduleWakeup`/Stop-hook). Rate-cost is unchanged: **one** board read per `/check` (drain from that single snapshot; only cheap per-item ops between).
+
+Also a **merge-authority consistency sweep** caught + fixed pre-v1.1 remnants the earlier fan-outs missed: the `data-architect`/`data-scientist`/`cloud-architect` seats + their templates + `new-pair-setup.md` still said "the PM reviews + merges" / "4-eye = Producer → PM" / "PM staging ceremony" → now **Engineer → QA → SM** with the **SM** driving `Merged → Released` (the `<INSTANCE>_CEREMONY_OVERRIDE` note updated too).
+
+Why: the block-back-and-forth lost context (it lived in a pane, not the board); the PM was occasionally doing the SM's board mechanics (an owner-flagged overstep); and stopping per-item forced the operator to re-trigger `/check` on an obvious queue (e.g. a QA seat with two more `Delivered` items waiting).
+
+### Files updated
+- spine (`agentic-operating-model.md`) · `MODES.md` · `workflow/state-machine.md` · `commands/{check,workload}.md` · `onboarding/seat-launch.sh` (4 boot prompts) · all seat KICKOFFs (engineer/pm/quality-engineer/scrum-master + data-architect/data-scientist/cloud-architect) + `scrum-master/flow-master.md` · all seat templates · `SEAT.template.md` · `SQUAD.md` · `feedback/INDEX.md` + `feedback/workflow/{finish-report-stop,engineer-ready-signal,always-pr-never-push}.md` · `onboarding/new-pair-setup.md`.
+
 ## 2026-06-29 — v1.1: merge authority PM → SM; QA-fail → Scoped (owner-directed)
 
 The routine merge moves off the PM. New role model (still operator-driven, single mode):

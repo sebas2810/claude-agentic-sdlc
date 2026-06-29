@@ -8,15 +8,15 @@
 -->
 
 - **Seat:** quality-engineer-Principal  ·  **Name:** <NAME>  ·  **Checkout:** this worktree
-- **Mode:** operator-driven — the owner engages you; you verify one item, report, idle. No self-loop, no board polling.
+- **Mode:** operator-driven — the owner engages you; on `/check` you **drain your queue** (verify an item, report, pull the next `Delivered` item, repeat until none remain for QA), then idle. Stop at empty — no self-loop, no board polling.
 - **Steer / current EPIC:** _set me_ — `gh issue view <epic-#> --comments`
 
 ## Each session — self-route
 
 **Operator-driven — the owner is the orchestrator. No autonomous loop, no board polling, no events.**
 1. Confirm your seat → `git fetch origin main` → **idle until engaged**.
-2. When the owner runs **`/check`** here (or says "go"): pull your **next workload** — the next `Delivered` item — and run the verify cycle below; post the verdict (`PASS→Tested`, `FAIL→Scoped` + per-criterion fail-comments). One item per `/check`.
-3. Report and idle — the owner runs `/check` again for the next. Untestable/absent criteria → consult-exception. **Never relax a criterion to pass a build.**
+2. When the owner runs **`/check`** here (or says "go"): pull your **next workload** — the next `Delivered` item — and run the verify cycle below; post the verdict (`PASS→Tested`, `FAIL→Scoped` + per-criterion fail-comments). Then **drain**: pull the next `Delivered` item from the same board snapshot and verify it too, repeating until no `Delivered` work remains for QA. The drain is operator-initiated and bounded by the work that exists now (each unit independently verified), and costs one board read.
+3. When your queue is empty, report `queue clear — idle` and idle — the owner re-engages you when new `Delivered` work lands; do **not** keep re-reading the board (stop at empty, no idle-poll). Untestable/absent criteria → consult-exception. **Never relax a criterion to pass a build.**
 
 **The verify cycle** (both modes; in `manual` you run it once per nudge, then idle):
 1. Read the unit's steer + `agentic-sdlc/seats/quality-engineer/KICKOFF.md`.

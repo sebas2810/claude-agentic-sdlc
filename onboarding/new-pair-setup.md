@@ -14,12 +14,17 @@ the instance is an agentic platform built by an agentic SDLC, both on one root
 frames the master EPIC; the **PM-orchestrator** steers it (scope + WP
 decomposition + pre-committed acceptance criteria); the **Engineer-Principal**
 delivers the EPIC within that steer, embodying the Principal skills;
-deterministic evals are the oracle for "done"; the PM does **one** merge
-validation (produce != adjudicate); the PM runs the staging-promote ceremony;
+deterministic evals are the oracle for "done"; the QA seat verifies each unit
+against its pre-committed AC (produce != adjudicate); the **SM** merges on a QA
+PASS and runs the staging-promote ceremony (Merged → Released);
 the owner owns PROD. The framework is **operator-driven** (a single mode): the
 human is the orchestrator. Each seat is an interactive pane, idle until the
-operator runs `/check` in it; then it pulls its next workload from the board,
-does one item, reports, and idles — no self-loop, no board polling. The
+operator runs `/check` in it; then it **drains its queue** — reads the board
+once, then handles every item eligible for its role in that snapshot (item →
+report → next) until none remain, then idles. The drain is operator-initiated
+and bounded by the work that exists now (one board read per `/check`); once the
+queue is empty the seat stops re-reading the board — no self-loop, no board
+polling, no idle-poll. The
 pre-committed steer is what clears the build, so there is no per-unit "do X"
 micro-gate; the engineer stops to consult the PM only for the **3
 consult-exceptions** (out-of-scope, a better solution, an external blocker),
@@ -87,9 +92,10 @@ code ~/Code/<your-repo>
 ```
 
 Both sessions launch **interactive** and stay idle until you run `/check` in a
-seat — operator-driven: the seat then pulls its next workload from the board,
-does one item, reports, and idles (`/board` is your overview). They don't share
-memory - they coordinate via GitHub. The owner is never the relay between them
+seat — operator-driven: the seat then **drains its queue** — pulls its next
+workload from the board, does it, reports, pulls the next from the same snapshot,
+repeating until none remain for its role, then idles (`/board` is your overview).
+They don't share memory - they coordinate via GitHub. The owner is never the relay between them
 (spine invariant 7).
 
 ### Optional: one-click seat apps (instead of a bare `claude` window)
@@ -172,21 +178,22 @@ PR body template:
 - [ ] Deployed-env smoke evidence (DEV)
 ```
 
-**PM (Verify-as-oracle → Adjudicate → Release):**
+**QA verifies → SM merges → SM releases:**
 ```bash
 gh pr view <pr-#> --comments
 gh pr checks <pr-#> --watch
 
-# Phase 5/6: evals are the oracle; the PM validates ONCE at merge against the
-# pre-committed acceptance criteria. The PM did not author the code → it is
-# the independent check (produce != adjudicate). NEVER merge a PR you wrote.
-gh pr review <pr-#> --approve --body "Validated vs AC: <criteria checked>"
+# Phase 5/6: the QA seat verifies the item against the pre-committed acceptance
+# criteria on the deployed env (Delivered → Tested). The SM then validates the
+# gate STATE — item Tested, CI green, PR clean — and merges; the SM did not author
+# the code → the independent check holds (produce != adjudicate). On a QA FAIL the
+# item goes back Delivered → Scoped. NEVER merge a PR you wrote.
 gh pr merge <pr-#> --squash --delete-branch
 
-# Phase 7: staging-promote ceremony is the PM's. PROD is the owner's.
+# Phase 7: the SM drives Merged → Released (staging + canary). PROD is the owner's.
 ```
 
-The engineer does **not** merge its own PR. The PM does the one validation.
+The engineer does **not** merge its own PR — QA verifies and the **SM** merges (4-eye = Engineer → QA → SM).
 There is no per-unit gating between WPs on a steered EPIC.
 
 ## Step 7: Consult-exceptions (the only stops)
@@ -202,11 +209,15 @@ The PM resolves these on the thread. If the resolution is itself an
 owner-touchpoint (a product/strategic call), the PM surfaces it to the owner
 with a recommendation - it does not become a relay through the owner.
 
-## Step 8: Finish, report, stop
+## Step 8: Drain your queue, then stop
 
-When a unit lands or an EPIC completes: one GitHub check, report to the
-owner, **stop**. No polling loop, no `/loop`, no `ScheduleWakeup`, no
-self-merge. The human re-engaging is the system working. See
+When the operator runs `/check`, **drain your role's eligible queue** — handle
+each item, report, pull the next from the same board snapshot, repeating until
+none remain — then **stop and idle**. The drain is operator-initiated and
+bounded by the work that exists now (each unit still passes its gate). Stop at
+empty: no polling loop, no `/loop`, no `ScheduleWakeup`, no idle re-reading once
+your queue is clear, no self-merge. The human re-engaging for new work is the
+system working. See
 [`../feedback/workflow/finish-report-stop.md`](../feedback/workflow/finish-report-stop.md).
 
 ## Step 9: Learning loop

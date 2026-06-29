@@ -8,8 +8,12 @@ scope: all-seats
 
 The framework is **operator-driven**: the **human is the orchestrator**. There is **no autonomous
 self-loop, no board polling, no events, no inbox**. Each seat is an interactive, watchable pane that
-stays **idle until the operator engages it**, then **pulls its next workload from the board** with
-**`/check`** (role-aware), does that one item, reports, and idles. The operator conducts the cadence:
+stays **idle until the operator engages it**, then on **`/check`** (role-aware) **drains its queue** —
+it reads the board **once**, then handles every eligible item in that one snapshot (item → report →
+next-from-the-same-snapshot) until none remain for its role, then idles. The drain is bounded by the
+work that exists now and every unit still passes its normal gate; it costs **one** board read per
+`/check` (only cheap single-item mutations after), and once the queue is empty the seat does **not**
+keep re-reading the board (no idle-poll, no self-loop). The operator conducts the cadence:
 watch **`/board`** → run **`/check`** in the seat that should advance.
 
 > **History — what was removed and why.** An earlier "autonomous mode" had standing seats self-loop
@@ -24,11 +28,19 @@ watch **`/board`** → run **`/check`** in the seat that should advance.
 
 1. **`/board`** — the operator's one-shot overview (counts + in-flight items per state).
 2. **`/check`** in a seat pane → that seat pulls + does its **next workload**:
-   - **producer** (`engineer`) → next `Scoped` for its `seat:` lane → claim → build → `Delivered`
+   - **producer** (`engineer`) → next `Scoped` for its `seat:` lane → claim → build → `Delivered`. **Block protocol:** on a genuine consult-exception (AC unmeetable as written · a real product fork · out-of-scope creep) it does **not** build — it posts the **full context to the GitHub issue** (file-cited findings · options · recommendation), sets `Blocked` (+ assigns itself), and stops; the issue comment is the board item's context.
    - **quality-engineer** → next `Delivered` → verify on the deployed env → PASS `Tested` / FAIL `Scoped` (+ comments — the engineer re-pulls it)
-   - **scrum-master** → next `Tested` → validate (real QA verdict, CI green, PR clean) + merge (squash) → drive `Merged → Released`; plus board hygiene (explode Epics into sub-issues, WIP, sweep, surface to PM)
-   - **pm** → oversight + product: frame the next `Backlog` → `Scoped` with its pre-committed AC, own the roadmap + owner touchpoints, resolve the rare product/scope judgment the QA seat surfaces (not in the routine merge path)
-3. **One item per `/check`**, report, idle. The operator runs `/check` again for the next.
+   - **scrum-master** → next `Tested` → validate (real QA verdict, CI green, PR clean) + merge (squash) → drive `Merged → Released`; plus board hygiene (explode Epics into sub-issues, WIP, sweep). On `Blocked`: **operationalize PM re-frames** — flip `Blocked→Scoped` for any item the PM re-framed/approved — and for each `Blocked` consult-exception **verify the claims, then surface to the PM with a verdict** (legit / avoidable / needs-PM-call), never a bare relay.
+   - **pm** → oversight + product: frame the next `Backlog` → `Scoped` with its pre-committed AC, re-frame a `Blocked` consult-exception the SM surfaced, own the roadmap + owner touchpoints, resolve the rare product/scope judgment the QA seat surfaces (not in the routine merge path). The PM **frames/decides by posting a comment — it never edits the board `Status` field**; the SM operationalizes the transition.
+3. **Drain your queue per `/check`, then idle.** Don't stop after one item — read the board **once** at
+   the start of the engagement, then after each item (report posted, status flipped) immediately pull
+   your role's next eligible item **from that same snapshot** and handle it (item → report → next),
+   until none remain for your role; then report `queue clear — idle` and **stop**. The drain is
+   **operator-initiated** and **bounded by the work that exists now**, every unit still passes its
+   normal gate (per-unit 4-eye intact — not autonomous EPIC-draining), and it costs **one** board read
+   regardless of queue depth (only cheap per-item mutations after — the rate-limit fix stays intact).
+   Once empty, do **not** keep re-reading the board (no idle-poll, no self-loop); the operator
+   re-engages you when new work lands.
 
 ## What is unchanged (the spine)
 
@@ -43,6 +55,15 @@ watch **`/board`** → run **`/check`** in the seat that should advance.
   for the engineer to re-pull); the SM — who didn't author — validates and merges (squash) at
   `Tested → Merged` and drives `Merged → Released`. The PM frames + adjudicates product/scope but is
   out of the routine merge path. The operator triggering `/check` changes *when* a step runs, never *who* runs it.
+- **Role boundary — PM decides, SM operationalizes the board.** The **PM never edits the board `Status`
+  field**: it frames/decides (AC · product-scope judgment · re-frames) by **posting a comment/decision**.
+  The **SM performs the status transition** — e.g. for a re-framed `Blocked` item the PM posts the trimmed
+  AC + "approved → Scoped", and the SM flips `Blocked→Scoped` on its `/check`. (Other seats still flip
+  their *own* transitions — engineer claims `Scoped→In Progress`, QA sets `Tested`/`Scoped`, SM merges →
+  `Merged`/`Released`; only the PM is status-edit-free.) Two supporting protocols: a producer that hits a
+  consult-exception posts the **full context to the issue** and sets `Blocked` rather than building; and the
+  **SM verifies each `Blocked` consult-exception's claims before surfacing** to the PM with a verdict
+  (legit / avoidable / needs-PM-call), not a bare relay.
 - **Evals are the oracle (#2)** — `Tested` is gated by falsifiable QA verification, not opinion; that
   QA verification is the gate the SM merges on.
 - **Canary before irreversible (#4) + owner-only PROD/gated class (#1)** — `Merged → Released` to PROD,

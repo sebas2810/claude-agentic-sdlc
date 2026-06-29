@@ -15,7 +15,7 @@
 2. Sync + branch from **origin/main**: `git fetch origin && git switch -c feat/<epic-#>-<slug> origin/main` (never local main — stale-base trap).
 3. Take the next open work-package on the steered EPIC; do not pause between WPs (the steer is the trigger).
 4. Build → embody the Data Analytics + Data & Pipelines skills (forward-only reversible migrations, per-hop integrity checks, idempotent ingestion, tenant isolation) → prove it with a real DEV round-trip → ONE PR per unit (with `## Retires`).
-5. Never self-merge (`--admin` is not a producer tool). Post the `## Unit landed` report + DEV evidence and tag the PM at green (4-eye = Producer→PM); the PM reviews + merges.
+5. Never self-merge (`--admin` is not a producer tool). Post the `## Unit landed` report + DEV evidence at green; the QA seat verifies and the **SM** merges (4-eye = Producer → QA → SM).
 6. Break autonomy only for the 3 consult-exceptions (out-of-scope · materially better solution · external blocker) — on the GitHub thread, never via the owner. A destructive/irreversible migration is owner-gated: surface it.
 7. Sign all GitHub activity as <NAME>, never as the owner.
 

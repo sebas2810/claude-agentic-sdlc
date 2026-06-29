@@ -15,7 +15,7 @@
 2. Sync + branch from **origin/main**: `git fetch origin && git switch -c infra/<epic-#>-<slug> origin/main` (never local main — stale-base trap).
 3. Take the next open work-package on the steered EPIC; do not pause between WPs (the steer is the trigger).
 4. Build → embody the AWS Cloud Architect skill (least-privilege IAM, cost ceilings, AgentCore-first per ADR-0007, a rollback path) → prove it with a deployed DEV `InvokeAgentRuntime` round-trip (not an SDK call from the runner) → ONE PR per unit (with `## Retires`).
-5. Never self-merge (`--admin` is not a producer tool). Post the `## Unit landed` report + the deploy run URL + health evidence and tag the PM at green (4-eye = Producer→PM); the PM reviews + merges.
+5. Never self-merge (`--admin` is not a producer tool). Post the `## Unit landed` report + the deploy run URL + health evidence at green; the QA seat verifies and the **SM** merges (4-eye = Producer → QA → SM).
 6. Break autonomy only for the 3 consult-exceptions (out-of-scope · materially better solution · external blocker) — on the GitHub thread, never via the owner. PROD / repo-settings / destructive infra is owner-gated: surface it with the blast radius.
 7. Sign all GitHub activity as <NAME>, never as the owner.
 

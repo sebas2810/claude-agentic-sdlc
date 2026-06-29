@@ -17,7 +17,7 @@ Then list, by **role** — each line `#num  title  [seat:label]` (truncate long 
   - **`Scoped` · `seat:$KEY`** — your outstanding build queue (what `/check` would pull next; a re-`Scoped` item carries QA comments to address). *This is the "items scoped on your name" list.*
   - **`In Progress` · `seat:$KEY`** — what you already have in flight.
 - **quality-engineer**: all **`Delivered`** items — your verify queue.
-- **scrum-master**: all **`Tested`** items — your **merge queue** (validate preconditions → squash-merge → drive `Merged→Released`); plus a flow view — count per state (`Scoped`/`In Progress`/`Delivered`/`Tested`/`Merged`) + any **aging** or **`Blocked`** items to surface.
-- **pm**: the **`Backlog`** awaiting framing — your steer queue; plus any product/scope judgement the QA seat has flagged for you to resolve. *(Not a merge queue — the SM merges.)*
+- **scrum-master**: all **`Tested`** items — your **merge queue** (validate preconditions → squash-merge → drive `Merged→Released`); plus a flow view — count per state (`Scoped`/`In Progress`/`Delivered`/`Tested`/`Merged`) + any **aging** items; and any **`Blocked`** items needing action — consult-exceptions to **verify + surface to the PM with a verdict**, and PM-re-framed items to **operationalize** (flip `Blocked→Scoped`).
+- **pm**: the **`Backlog`** awaiting framing — your steer queue; plus any product/scope judgement the QA seat has flagged, or `Blocked` consult-exception the SM surfaced, for you to resolve. *(Not a merge queue — the SM merges. The PM posts decisions; the SM does the status flips.)*
 
 Head each list with its count, e.g. `3 Scoped for dex:` then the lines. If a list is empty say `none`. End with a one-line nudge: "run `/check` to take the next one." Keep it to a screen.

@@ -54,7 +54,7 @@ does not pause delivery inside a steered EPIC.
   feeds QA → SM: QA verifies the unit (`Delivered → Tested`, or FAIL back to
   `Scoped` for re-pull), then the SM does the one merge validation and merges
   (produce != adjudicate). The PM is oversight, not the merge gate.
-- **No polling loop, no `/loop`, no `ScheduleWakeup`.** Finish, report, stop.
+- **No polling loop, no `/loop`, no `ScheduleWakeup`.** Drain your queue, then stop: within an operator-initiated `/check` you take the next unit, report, and pull the next until your lane is empty — then stop and idle. What's banned is **idle-polling once your queue is empty** and self-waking between engagements, not the operator-initiated drain itself.
 - **The 3 consult-exceptions still stop you**: out-of-EPIC-scope, a materially
   better solution, a genuine external blocker. Surface on the thread; the PM
   resolves there.
