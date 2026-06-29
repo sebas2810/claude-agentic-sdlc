@@ -2,6 +2,19 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-06-29 — v1.4: dual-write is the single, mandatory sync mechanism (owner-directed)
+
+Simplifies the v1.3 label/field model to one rule and removes the alternatives.
+
+- **Every seat ALWAYS dual-writes both** on any state change — the `status:*` label (discovery mirror) **and** the board `Status` field (canonical record + visual kanban), together, every transition. A hard invariant for every seat; consistency is guaranteed at the point of write, by whoever writes.
+- **Removed: the optional label→board sync Action** (`sync-status-label.yml` + the `PROJECTS_TOKEN` PAT + the "field is a projection" framing). It was a second, divergent mechanism — and the owner-gated org-Projects PAT is no longer needed at all.
+- **Removed: any seat policing another's label/field parity** (no reconcile / validate-in-sync duty). The write-both invariant makes a sync-checker redundant. (A one-time reconcile to correct *existing* drift is a cleanup, not an ongoing duty — tracked on the product board-hygiene task.)
+
+Why: v1.3 offered dual-write *or* an Action *plus* an implied parity-check — three things to keep aligned, and the board drifted anyway (labels written, field not). One unconditional rule — write both, always — is simpler and self-enforcing.
+
+### Files updated
+- `commands/check.md` (the flip step) · `workflow/state-machine.md` (the label-index section) · `onboarding/board-label-sync.md` (dropped the Optional-Action section) · this CHANGELOG.
+
 ## 2026-06-29 — v1.3: rate-aware board access — the `status:*` label index + per-seat model tier (owner-directed)
 
 The board read was the rate-limit hog: `gh project item-list … --limit 300` (Projects-v2 GraphQL) has **no server-side `Status` filter**, so every `/check` pulled ~N items to use one — and N seats on a shared 5,000-pt/hr GraphQL budget exhausted it in 2–3 epics. Fix: **discover off a cheap `status:*` issue-label index (REST/Search), never the board read.**

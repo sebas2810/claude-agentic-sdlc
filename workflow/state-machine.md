@@ -169,13 +169,12 @@ seat drains its queue, and **nothing advances without an operator-initiated
   **never** `gh project item-list` (Projects v2 has no server-side `Status` filter,
   so the board read pulls all ~N items to use one — the call that exhausts the
   GraphQL budget). The board `Status` field stays the **canonical record + the
-  visual kanban**; the label is its read-replica. Every transition **dual-writes**:
-  set the `status:*` label (REST) **and** the board `Status` field (one cheap
-  single-item mutation). With the optional label→board sync Action
-  ([`../onboarding/board-label-sync.md`](../onboarding/board-label-sync.md))
-  enabled, seats write **only** the label and the board follows — zero GraphQL in
-  the loop. Either way `/check`, `/workload`, `/board`, `/backlog` all run off the
-  label index; the expensive read is never on the hot path.
+  visual kanban**; the label is its read-replica. Every transition **dual-writes
+  both** — set the `status:*` label (REST) **and** the board `Status` field (one
+  cheap single-item mutation) — together, always. A hard invariant for every seat:
+  no label-only mode, no projection Action, no reconcile/validate step; consistency
+  is guaranteed at the point of write. `/check`, `/workload`, `/board`, `/backlog`
+  all run discovery off the label index; the expensive read is never on the hot path.
 - An item **carries its Epic parent** (sub-issue link / `Epic` field) — every
   Story is parented per [`hierarchy.md`](hierarchy.md); an orphan Story has no
   steer to build from.

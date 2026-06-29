@@ -62,14 +62,16 @@ gh project item-list "$BOARD_ID" --owner "$BOARD_OWNER" --format json --limit 30
 After the backfill, discovery is fully label-driven and the expensive read is off
 the hot path for good.
 
-## The default: dual-write (no extra infra)
+## The rule: dual-write — always, both, every transition
 
-On every transition a seat **dual-writes**: set the `status:*` label (REST — the
+This is the **sole** sync mechanism, and it is non-negotiable. On every transition
+**every** seat **dual-writes both**: set the `status:*` label (REST — the
 discovery mirror) **and** the board `Status` field (one cheap single-item
 mutation — the canonical record + visual kanban). The field mutation is the cheap
 targeted `updateProjectV2ItemFieldValue` (look up the item's project-item id with
 a single-issue query, *never* the 300-item list) — a few points, not the ~30–90 of
-the full read. This keeps the visual board live with **no new infrastructure**.
+the full read. Consistency is guaranteed at the point of write, by whoever writes —
+there is no projection Action, and no seat polices another's parity.
 
 ```bash
 # label side of a flip (REST): e.g. claim Scoped -> In Progress
@@ -77,48 +79,8 @@ gh issue edit <n> --remove-label status:scoped --add-label status:in-progress --
 # field side: the cheap targeted board mutation (item-id lookup + updateProjectV2ItemFieldValue)
 ```
 
-## Optional upgrade: pure label-driven (one small Action)
-
-To drop even the cheap field mutation from the loop — **zero GraphQL in the seat
-loop** — enable a GitHub Action that projects `status:*` label changes onto the
-board `Status` field. (GitHub emits webhook events on **label** changes but not on
-Projects-field changes, so the sync only works in this direction — which is why
-labels are the writeable index and the field is the projection.)
-
-Needs a **project-scoped token** as a repo secret (`PROJECTS_TOKEN`) — the default
-`GITHUB_TOKEN` cannot write an **org-owned** project. One-time owner setup:
-`gh secret set PROJECTS_TOKEN` with a fine-grained PAT scoped to the org's
-Projects (read/write).
-
-Template — `.github/workflows/sync-status-label.yml` in the **product** repo:
-
-```yaml
-name: Sync status label -> board
-on:
-  issues:
-    types: [labeled, unlabeled]
-permissions:
-  issues: read
-jobs:
-  sync:
-    if: startsWith(github.event.label.name, 'status:')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Project the status:* label onto the board Status field
-        env:
-          GH_TOKEN: ${{ secrets.PROJECTS_TOKEN }}   # fine-grained PAT, org Projects read/write
-          BOARD_NUMBER: "1"                          # the org Project number
-          BOARD_OWNER: "Nestor-Software"             # the org
-          ISSUE_NODE: ${{ github.event.issue.node_id }}
-          LABEL: ${{ github.event.label.name }}
-        run: |
-          # map status:<x> -> the Status single-select option, then
-          # updateProjectV2ItemFieldValue on this issue's project item.
-          # (see scripts/sync-status-label.sh — resolve project/field/option ids once, cache as repo vars)
-          bash .github/scripts/sync-status-label.sh
-```
-
-When the Action is enabled, seats write **only** the label and the board follows;
-disable the dual-write field mutation in that case (the `/check` flip step notes
-this). Until it's enabled, the dual-write keeps the board correct — so the Action
-is a pure optimisation, never a prerequisite for the rate-limit fix.
+> **No projection Action.** An earlier draft offered an optional GitHub Action
+> (`sync-status-label.yml` + a `PROJECTS_TOKEN` PAT) to project labels onto the
+> board field. It was removed in v1.4: the write-both rule above is the single,
+> mandatory mechanism, so a second sync path (and the owner-gated org-Projects PAT)
+> is unnecessary.
