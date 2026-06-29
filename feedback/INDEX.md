@@ -28,7 +28,7 @@ These are the rules the spine **keeps**. Confirmed and retained in the
 | [`workflow/forward-port-release-hotfixes-same-day.md`](workflow/forward-port-release-hotfixes-same-day.md) | Release-line hotfixes forward-port to main same-day - ENFORCED by the FLOOR-4 gate (#1069) |
 | [`workflow/dont-block-on-irrelevant-ci.md`](workflow/dont-block-on-irrelevant-ci.md) | Don't artificially block on CI that doesn't affect the next step |
 | [`workflow/repo-settings-via-pr.md`](workflow/repo-settings-via-pr.md) | Repo settings changes need explicit owner approval (owner-touchpoint) |
-| [`workflow/milestone-shifts-user-facing.md`](workflow/milestone-shifts-user-facing.md) | Milestone shifts are owner-touchpoints (never autonomous) |
+| [`workflow/milestone-shifts-user-facing.md`](workflow/milestone-shifts-user-facing.md) | Milestone shifts are owner-touchpoints (owner-approved; never seat-initiated) |
 | [`workflow/run-oversight-gates-locally.md`](workflow/run-oversight-gates-locally.md) | Run local gates before push; never bypass |
 | [`workflow/verify-wrap-up-scope.md`](workflow/verify-wrap-up-scope.md) | Verify wrap-up scope concretely; don't estimate "small" without checking each step |
 
@@ -39,7 +39,7 @@ Rewritten or pointer-updated to the de-gated, one-PM-seat model.
 | Rule | One-liner | Reconciliation |
 |---|---|---|
 | [`workflow/finish-report-stop.md`](workflow/finish-report-stop.md) | Finish → one check → report → STOP and wait for the human (no loops, no polling); merge authority = 4-eye Engineer→PM (PM reviews + merges, no owner trigger; engineer never self-merges) | Light-confirm only on the no-loops part; merge-authority part refined 2026-06-15 to the 4-eye Engineer→PM model |
-| [`workflow/engineer-ready-signal.md`](workflow/engineer-ready-signal.md) | After a unit lands, one report then continue the steered EPIC; no per-unit gate; no autonomous merge | Rewritten: per-unit "wait for next trigger" retired (steer-as-trigger) |
+| [`workflow/engineer-ready-signal.md`](workflow/engineer-ready-signal.md) | After a unit lands, one report then continue the steered EPIC; no per-unit gate; no self-merge | Rewritten: per-unit "wait for next trigger" retired (steer-as-trigger) |
 | [`workflow/pm-routes-via-github.md`](workflow/pm-routes-via-github.md) | The shared GitHub thread is the bus; the owner is never the relay | Rewritten to spine invariant 7; one PM seat |
 
 ## Superseded (archived 2026-06-12 → [`docs/archive/agentic-sdlc/`](../../archive/agentic-sdlc/))

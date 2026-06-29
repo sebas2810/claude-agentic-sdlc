@@ -1,5 +1,5 @@
 ---
-title: After a unit of work, one report then stop - no per-unit gating, no autonomous merge
+title: After a unit of work, one report then stop - no per-unit gating, no self-merge
 status: active
 scope: engineer
 added: 2026-05-10
@@ -50,7 +50,7 @@ does not pause delivery inside a steered EPIC.
 
 ## Hard limits (unchanged by de-gating)
 
-- **No autonomous merge.** The engineer never merges its own PR. The PM does
+- **No self-merge.** The engineer never merges its own PR. The PM does
   the one merge validation (produce != adjudicate).
 - **No polling loop, no `/loop`, no `ScheduleWakeup`.** Finish, report, stop.
 - **The 3 consult-exceptions still stop you**: out-of-EPIC-scope, a materially

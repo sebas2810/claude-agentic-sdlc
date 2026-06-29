@@ -9,17 +9,15 @@
 
 - **Seat:** engineer-Principal  ·  **Name:** <NAME>  ·  **Checkout:** this worktree
 - **Domain:** _set me_ (e.g. `parent-app + agents`, or `teacher-app + api + infra`) — what you pull from the Execution board
-- **Mode:** `SDLC_MODE` (from `.env.local`) — `manual` (run once per nudge, then idle) or `autonomous` (self-loop, below)
-- **Steer / current EPIC:** _set me_ — `gh issue view <epic-#> --comments` (the steer is the trigger)
+- **Mode:** operator-driven — the owner engages you; you build one item, report, idle. No self-loop, no board polling.
+- **Steer / current EPIC:** _set me_ — `gh issue view <epic-#> --comments`
 
 ## Each session — self-route
 
-**You are EVENT-DRIVEN — you NEVER poll the board.** Your work arrives in your local **inbox**; the
-SM (the single board reader) or `/recheck` pushes it there. On boot (`agentic-sdlc/seats/engineer/autonomous-runner.md`):
-1. Confirm your seat → `git fetch origin main`.
-2. **Drain your inbox** — the Stop hook hands you any queued item (`{item, action:claim+build, ac_ref}`). Read the issue + its `## Steer` comment (the pre-committed AC) and run the build cycle below.
-3. When you finish a unit, the hook re-checks your inbox; another queued item → next unit.
-4. **Inbox empty → IDLE.** Do not poll the board; the SM/dispatch (or `/recheck`) wakes you. On a 3rd repeat of one item → `Blocked` + `## Consult-exception` (the dead-letter).
+**Operator-driven — the owner is the orchestrator. No autonomous loop, no board polling, no events.**
+1. Confirm your seat → `git fetch origin main` → **idle until engaged**.
+2. When the owner runs **`/check`** here (or says "go"): pull your **next workload** — the next `Scoped` item in your domain (your `seat:` label, unassigned) — read its issue + `## Steer` AC, and run the build cycle below. One unit per `/check`.
+3. Report (`## Unit landed` + the PR) and idle — the owner runs `/check` again for the next. On a blocker → `## Consult-exception` on the issue.
 
 **The build cycle** (both modes; in `manual` you run it once per nudge, then idle until re-engaged):
 1. Read your steer + `agentic-sdlc/seats/engineer/KICKOFF.md`.

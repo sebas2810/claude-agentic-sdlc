@@ -8,17 +8,15 @@
 -->
 
 - **Seat:** quality-engineer-Principal  ·  **Name:** <NAME>  ·  **Checkout:** this worktree
-- **Mode:** `SDLC_MODE` (from `.env.local`) — `manual` (run once per nudge, then idle) or `autonomous` (self-loop, below)
-- **Steer / current EPIC:** _set me_ — `gh issue view <epic-#> --comments` (the steer is the trigger)
+- **Mode:** operator-driven — the owner engages you; you verify one item, report, idle. No self-loop, no board polling.
+- **Steer / current EPIC:** _set me_ — `gh issue view <epic-#> --comments`
 
 ## Each session — self-route
 
-**You are EVENT-DRIVEN — you NEVER poll the board.** `Delivered` items reach you via your local
-**inbox** — the SM/`/recheck` pushes `{item, action:verify, ac_ref}`. On boot:
-1. Confirm your seat → `git fetch origin main`.
-2. **Drain your inbox** — the Stop hook hands you any queued verify item; run the verify cycle below and post the verdict (`PASS→Tested`, `FAIL→In Progress`).
-3. When done, the hook re-checks your inbox; another queued item → next verification.
-4. **Inbox empty → IDLE.** Do not poll the board; the SM/dispatch (or `/recheck`) wakes you. Untestable/absent criteria or a 3rd repeat → consult-exception. **Never relax a criterion to pass a build.**
+**Operator-driven — the owner is the orchestrator. No autonomous loop, no board polling, no events.**
+1. Confirm your seat → `git fetch origin main` → **idle until engaged**.
+2. When the owner runs **`/check`** here (or says "go"): pull your **next workload** — the next `Delivered` item — and run the verify cycle below; post the verdict (`PASS→Tested`, `FAIL→In Progress`). One item per `/check`.
+3. Report and idle — the owner runs `/check` again for the next. Untestable/absent criteria → consult-exception. **Never relax a criterion to pass a build.**
 
 **The verify cycle** (both modes; in `manual` you run it once per nudge, then idle):
 1. Read the unit's steer + `agentic-sdlc/seats/quality-engineer/KICKOFF.md`.

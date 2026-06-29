@@ -21,9 +21,9 @@ PR/issue. The owner appears only at the fixed owner-touchpoints
 ## Why
 
 - Searchable, auditable, async - replayable any time
-- The other seat reads the thread when the human re-engages it (per
+- The other seat reads the thread when the operator runs `/check` in it (per
   [`finish-report-stop.md`](finish-report-stop.md) - no
-  autonomous polling)
+  self-paced polling)
 - The owner's cycles go to owner-touchpoints, not routine routing
 - Future you, reviewing the EPIC, sees the FULL conversation in one timeline
 

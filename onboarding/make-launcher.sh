@@ -3,9 +3,9 @@
 # make-launcher.sh — generate a double-clickable launcher for a configured seat worktree.
 #
 # Emits <out>/<name>.command: a one-liner that runs seat-launch.sh against the worktree (which
-# titles the window, sets identity, wires the board-loop, and launches claude). The .command is
-# what you double-click; wrap it into a .app with build-apps.sh. All runtime logic stays in
-# seat-launch.sh — the generated file is intentionally trivial.
+# titles the window, sets identity, and launches an interactive claude — operator-driven: the seat
+# idles until you run /check). The .command is what you double-click; wrap it into a .app with
+# build-apps.sh. All runtime logic stays in seat-launch.sh — the generated file is intentionally trivial.
 #
 # Usage:
 #   make-launcher.sh --worktree ~/Code/nestor-sammy-dex [--out ~/Code/agents/sammy] \

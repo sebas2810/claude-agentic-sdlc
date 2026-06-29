@@ -28,7 +28,7 @@ below). The reference instance lives under instance/<name>/.
 1. `CLAUDE.md` (repo root, auto-loaded)
 2. `agentic-sdlc/README.md` — this file
 3. `agentic-sdlc/agentic-operating-model.md` — **the spine**; all seat authority derives from it
-   - `MODES.md` — manual vs **autonomous** mode (`SDLC_MODE`) · `workflow/state-machine.md` — the **stateless board state machine** both modes run on · autonomous PM runner: `seats/pm/autonomous-runner.md`
+   - `MODES.md` — the **operator-driven** operating model (the single mode: the human orchestrates; seats pull work with `/check`) · `workflow/state-machine.md` — the **stateless board state machine** the seats run on
    - `workflow/` — the **process layer**: [state-machine](workflow/state-machine.md) (the 7 states) · [definition-of-ready-done](workflow/definition-of-ready-done.md) · [prioritization (WSJF)](workflow/prioritization.md) · [hierarchy](workflow/hierarchy.md) (Initiative→Epic→Story→Task) · [naming-conventions](workflow/naming-conventions.md) · [flow-metrics](workflow/flow-metrics.md) · [project-boards](workflow/project-boards.md) (Program ⇄ Execution)
 4. Your seat file (authority + work cycle + report protocol in one):
    - **PM** → `seats/pm/KICKOFF.md`
@@ -46,8 +46,9 @@ below). The reference instance lives under instance/<name>/.
   Does **not** touch the backlog / PM lane.
 - **Quality Engineer** — independent verification at the `Delivered → Tested` gate
   (produce ≠ adjudicate); reports a falsifiable verdict, never merges.
-- **Scrum-Master / Flow** *(optional)* — runs the board flow + WIP limits + the
-  autonomous runner's dispatch step; never adjudicates, merges, or codes.
+- **Scrum-Master / Flow** *(optional)* — a board-mechanics helper: explodes Epics
+  into sub-issues, enforces WIP limits, sweeps, surfaces to the PM. Does **not**
+  auto-dispatch, adjudicate, merge, or code (producers pull their own work via `/check`).
 
 The **Owner** frames master EPICs and owns PROD. The full roster (+ specialist
 build seats) is [`seats/SQUAD.md`](seats/SQUAD.md); the role model, the 8 SDLC
@@ -87,7 +88,7 @@ boots with that identity injected — no manual re-brief. Full walkthrough:
 agentic-sdlc/
 ├── README.md                  ← this guide
 ├── agentic-operating-model.md ← the spine: roles · 8 phases · 8 invariants
-├── MODES.md                   ← manual vs autonomous mode (SDLC_MODE)
+├── MODES.md                   ← the operator-driven operating model (the single mode)
 ├── engineering-standard.md    ← the generic production-ready floor (instances add their tiered standard)
 ├── workflow/                  ← the process layer: state machine · DoR/DoD · WSJF · hierarchy · naming · flow metrics · project boards (+ project-templates/)
 ├── onboarding/                ← new-pair-setup + per-seat config · create-instance.sh (golden-path scaffolder) · setup-board.sh

@@ -1,17 +1,17 @@
 ---
 title: The SDLC State Machine — a stateless workflow over the GitHub board
 status: active
-scope: all-seats, both modes
+scope: all-seats
 ---
 
 # The SDLC State Machine
 
-> **The board *is* the state. The runner is a pure function of the board.**
-> No hidden state, no in-memory drift — interrupt the runner and it resumes from
-> the board; the owner watches the *same* board the runner reads.
+> **The board *is* the state. Each seat is a pure function of the board.**
+> No hidden state, no in-memory drift — interrupt a seat and it resumes from
+> the board; the operator watches the *same* board the seat reads.
 
-This is the foundation both operating modes (manual + autonomous, see
-[`MODES.md`](../MODES.md)) run on. The states live on the **GitHub Project `Status`
+This is the foundation the operator-driven model (see
+[`MODES.md`](../MODES.md)) runs on. The states live on the **GitHub Project `Status`
 field**; the transitions are the workflow. It makes invariant 7 ("the shared
 thread is the bus") literal — the board is the bus, and no seat holds a private
 copy of where the work is.
@@ -31,7 +31,7 @@ DoR gates the entry to `Scoped`, a per-state DoD gates every later transition.
 |---|---|---|---|---|
 | 1 | **Backlog** | exists, not yet steered (no committed AC) | issue created | — (DoR not yet met) |
 | 2 | **Scoped** | PM-steered — scope + **pre-committed acceptance criteria**; **DoR met** | the steer comment is posted | **Definition of Ready** (scope, AC, sized, parented to an Epic) |
-| 3 | **In Progress** | a seat/subagent is building it; a branch exists | dispatch | a free WIP slot (see *WIP limits*) |
+| 3 | **In Progress** | a seat is building it; a branch exists | the producer pulls it via `/check` | a free WIP slot (see *WIP limits*) |
 | 4 | **Delivered** | a PR is open + the ready-signal posted; awaiting verification | `gh pr ready` + `## Unit landed` | local gates green + a real DEV round-trip |
 | 5 | **Tested** | **independent** verification PASS against the pre-committed AC (Quality seat / evals) — the assurance gate | the verification report posts PASS | **evals are the oracle**, deployed-env, perturbed happy path |
 | 6 | **Merged** | adjudicated + squash-merged to `main` | PR merged | **produce ≠ adjudicate**, once, by the non-author at the gate |
@@ -62,9 +62,9 @@ or a met AC line with evidence.
 
 ## WIP limits (flow, not utilisation)
 
-Pull-based, not push-based: a seat pulls the next item only when it has a free
-slot. The limits are policy, enforced by the Flow seat / runner
-([`flow-metrics.md`](flow-metrics.md)):
+Pull-based, not push-based: a seat pulls its next item (via `/check`) only when it
+has a free slot. The limits are policy, surfaced by the scrum-master's board
+hygiene and the flow metrics ([`flow-metrics.md`](flow-metrics.md)):
 
 | Scope | Default limit | Why |
 |---|---|---|
@@ -72,77 +72,83 @@ slot. The limits are policy, enforced by the Flow seat / runner
 | **`In Progress`** per producer seat | **1–2** | one unit of focus; a second only if the first is genuinely blocked on review |
 | **`Delivered` + `Tested`** (awaiting the gate) | **≤ WIP of producers** | review/verify is not allowed to fall behind build — if it does, *stop starting, start finishing* |
 
-When a limit is hit the rule is **stop starting, start finishing**: the runner
-does not dispatch a new `Scoped` item; it drives the in-flight ones to `Released`
-first. Breaching a WIP limit is a flow defect, surfaced like any other.
+When a limit is hit the rule is **stop starting, start finishing**: a producer
+does not pull a new `Scoped` item via `/check`; the in-flight ones are driven to
+`Released` first. Breaching a WIP limit is a flow defect, surfaced like any other.
 
-## Transitions (who drives each — mode-aware *only* on dispatch)
+## Transitions (who drives each — operator-driven)
 
-| From → To | Driver — **manual** | Driver — **autonomous** | Gate |
-|---|---|---|---|
-| Backlog → Scoped | PM steer | PM steer | **DoR**: scope + pre-committed AC + sized + parented to an Epic |
-| Scoped → In Progress | human launches the engineer seat | runner **spawns the engineer subagent** | a free WIP slot |
-| In Progress → Delivered | engineer (PR + ready-signal) | subagent (PR + ready-signal) | local gates green + a real DEV round-trip |
-| Delivered → Tested | Quality seat verifies (or evals) | runner spawns the **assurance subagent** (or runs evals) | **evals (oracle) + AC, deployed-env, perturbed** |
-| Tested → Merged | PM adjudicates + merges | runner **adjudicates + merges** | **produce ≠ adjudicate**, once, at the gate |
-| Delivered/Tested → In Progress | PM/QE requests changes | runner posts the failure → re-dispatch | a failed gate is a blocker, not a note |
-| Merged → Released | PM deploys; PROD = owner | runner deploys (staging); PROD = owner | **canary before irreversible**; PROD owner-gated |
-| any → Blocked | engineer/QE surfaces | subagent surfaces (`## Consult-exception`) | the 3 consult-exceptions / owner-touchpoints |
-| Blocked → (prior) | PM / owner resolves on the thread | same | — |
+The operator runs `/check` in the seat that should advance; that seat does the
+**one** transition its role owns, then idles.
 
-**Everything except `Scoped → In Progress` is identical across modes.** That
-single difference is the whole of "manual vs autonomous" — so the two modes
-cannot diverge on any safety gate.
+| From → To | Driver (operator runs `/check` in the seat) | Gate |
+|---|---|---|
+| Backlog → Scoped | PM steers | **DoR**: scope + pre-committed AC + sized + parented to an Epic |
+| Scoped → In Progress | the producer pulls its next `Scoped` → claims + branches | a free WIP slot |
+| In Progress → Delivered | producer (PR + ready-signal) | local gates green + a real DEV round-trip |
+| Delivered → Tested | quality-engineer pulls its next `Delivered` → verifies on the deployed env (or runs evals) | **evals (oracle) + AC, deployed-env, perturbed** |
+| Tested → Merged | PM pulls its next `Tested` → adjudicates + merges | **produce ≠ adjudicate**, once, at the gate |
+| Delivered/Tested → In Progress | PM/QE requests changes (verification FAIL → back to `In Progress`) | a failed gate is a blocker, not a note |
+| Merged → Released | PM deploys (staging); PROD = owner | **canary before irreversible**; PROD owner-gated |
+| any → Blocked | the seat surfaces (`## Consult-exception`) | the 3 consult-exceptions / owner-touchpoints |
+| Blocked → (prior) | PM / owner resolves on the thread | — |
 
-## The stateless runner (the reducer over the board)
+**Every transition is operator-paced via `/check`, and every gate is the same
+regardless of when the operator triggers it.** The operator's pacing changes
+*when* a step runs, never *who* runs it or *whether* its gate holds — so a safety
+gate can never be skipped.
 
-The runner holds **no state**. Each tick it reads the board and acts on what the
-state dictates — a pure reduction:
+## The board as the reducer (one tick per `/check`)
+
+No seat holds **state between ticks**. Each `/check` reads the board and acts on
+what the state dictates — **one** pure-reduction tick, operator-triggered. There
+is no self-running loop and no poll; the operator re-runs `/check` to take the
+next tick.
 
 ```
-loop:
+on /check in <seat>:
   board = read(Project Status + issue/PR state)        # the ONLY source of truth
   if active_epics > 3 or wip_breached: finish_in_flight_first
-  acted = false
-  for item in board (most-advanced state first):       # drain, don't start
-    case item.status:
-      Scoped      -> if free_wip: dispatch(item); set In Progress   # spawn engineer subagent (autonomous)
-      Delivered   -> v = verify(item)                  # independent: Quality seat / evals, deployed-env
-                     v.pass ? set Tested : (comment; set In Progress)
-      Tested      -> a = adjudicate(item)              # produce != adjudicate, once
-                     a.pass ? (merge; set Merged) : (comment; set In Progress)
-      Merged      -> deploy(item); canary; set Released # PROD is owner-gated, never in the loop
-      Blocked     -> surface to PM/owner; skip          # do NOT advance
-    acted |= item_changed
-  if not acted: STOP        # explicit stop — the board is drained or only Blocked remains
+  item = next actionable item for <seat>'s role         # most-advanced state first
+  case item.status:
+    Scoped     (producer) -> if free_wip: claim(item); branch; build; set In Progress -> Delivered
+    Delivered  (quality)  -> v = verify(item)            # independent: Quality seat / evals, deployed-env
+                             v.pass ? set Tested : (comment; set In Progress)
+    Tested     (pm)       -> a = adjudicate(item)        # produce != adjudicate, once
+                             a.pass ? (merge; set Merged) : (comment; set In Progress)
+    Merged     (pm)       -> deploy(item); canary; set Released   # PROD is owner-gated, never automated
+    Blocked               -> surface to PM/owner          # do NOT advance
+  report; idle        # one item per /check — the operator re-runs /check for the next
 ```
 
-Process most-advanced-state-first so the loop **finishes work before starting
-new work** (WIP discipline falls out of the iteration order).
+Each `/check` takes the most-advanced actionable item first, so the system
+**finishes work before starting new work** (WIP discipline falls out of the
+ordering).
 
-What statelessness buys:
+What treating the board as the only state buys:
 
-- **Resumable.** Crash or interrupt mid-loop → the next read picks up exactly where the board is. There is nothing to "recover".
-- **Observable.** The owner watches the same board the runner reads — no opaque internal cursor.
+- **Resumable.** Crash or interrupt mid-`/check` → the next `/check` picks up exactly where the board is. There is nothing to "recover".
+- **Observable.** The operator watches the same board each `/check` reads — no opaque internal cursor.
 - **Idempotent.** Re-reading a board in a stable state produces no spurious action.
-- **Mode-shared.** Only `dispatch` differs by mode; every other transition + gate is the same code path, so a safety gate can never apply in one mode and not the other.
+- **Single mode.** There is no manual/autonomous duality — operator-driven is the one mode; every transition + gate is the same path no matter when the operator runs `/check`, so a safety gate can never be skipped.
 
-## The stop condition (principle 7, both modes)
+## The stop condition (principle 7)
 
-The loop's **explicit stop condition** is: *no actionable item remains* — the
-board is drained, or every remaining item is `Blocked` (awaiting a
-consult-exception or owner-touchpoint). This is the autonomous-mode form of
-"finish, report, stop": the runner does not poll on a self-paced timer and does
-not invent work — it acts only on what the board says is actionable, and stops
-when nothing is. (Manual mode's stop condition is the same shape: report, stop,
-idle until a human re-engages.)
+Each `/check` has an **explicit stop**: the seat does **one** actionable item,
+reports, and **idles**. It does not poll on a self-paced timer, does not loop the
+board, and does not invent work — it acts only on what the board says is
+actionable for its role. When no actionable item remains — the board is drained,
+or every remaining item is `Blocked` (awaiting a consult-exception or
+owner-touchpoint) — `/check` reports "nothing to do" and idles. This is "finish,
+report, stop" made literal: nothing advances on its own; the operator re-engages
+a seat with `/check` to take the next step.
 
 ## GitHub mapping (the concrete board)
 
 - The states are the **`Status` single-select** options, in the order above.
 - An item **carries its Epic parent** (sub-issue link / `Epic` field) — every
   Story is parented per [`hierarchy.md`](hierarchy.md); an orphan Story has no
-  steer to dispatch from.
+  steer to build from.
 - `Priority` (P0–P3), `WSJF` (number), and `Area` fields drive ordering within a
   state — see [`prioritization.md`](prioritization.md).
 - The board is provisioned from the **Execution-board template** by the
@@ -152,7 +158,7 @@ idle until a human re-engages.)
 ## Why stateless is the invariant
 
 A workflow whose state lives anywhere but the board can drift from it — the
-classic "the runner thinks it shipped but `main` says otherwise". By making the
-board the single source of truth and the runner a pure function of it, the system
-has **one** state, legible to human and machine alike. Resumability,
-observability, and the audit trail are then free, not bolted on.
+classic "a seat thinks it shipped but `main` says otherwise". By making the
+board the single source of truth and each seat a pure function of it at every
+`/check`, the system has **one** state, legible to human and machine alike.
+Resumability, observability, and the audit trail are then free, not bolted on.

@@ -2,20 +2,20 @@
 
 You are an **engineer** (architect + engineer combined) , paired with **one PM** (the old sub-PM split is retired). The **owner** (human) frames master EPICs and owns product/strategic + PROD.
 
-**Defaulting principle — the steer is your trigger.** Once the PM has steered an EPIC (scope + work packages + pre-committed acceptance criteria), you plan, build, verify, and ship the whole EPIC at architect level without a per-unit go-signal, and you do not pause between work packages. You break autonomy only for the **3 consult-exceptions** (§3).
+**Defaulting principle — operator-driven.** The framework is operator-driven: the owner engages you (runs `/check`, or says go). On `/check` you **pull your next `Scoped` item** for your seat off the board, then plan, build, verify, and ship that **one** work package at architect level against the PM's steer (scope + pre-committed acceptance criteria) — no per-step go-signal inside the item. You report and idle; the owner re-runs `/check` for the next. There is **no self-loop, no board polling, no autonomous EPIC-draining**. You break stride only for the **3 consult-exceptions** (§3).
 
 ## 1. Confirm your seat
 
 - ✅ Claude Code in **VS Code** (the PM is in a terminal)
 - ✅ Your own worktree, on the right branch
-- ✅ Run `source ./agentic-sdlc/onboarding/setup-seat.sh` — it sets your per-worktree git identity (NOT Sebastiaan's), exports AWS/gh, and injects your `.<instance>-seat.md` (identity + self-route) at every session start. Set its steer line to your current EPIC.
+- ✅ Run `source ./agentic-sdlc/onboarding/setup-seat.sh` — it sets your per-worktree git identity (NOT Sebastiaan's), exports AWS/gh, and injects your `.<instance>-seat.md` (identity + steer line) at every session start. Set its steer line to your current EPIC.
 
 ## 2. Read order (first session; refresh on demand)
 
 1. `CLAUDE.md` (auto-loaded)
 2. `agentic-sdlc/README.md`
 3. `agentic-sdlc/onboarding/new-pair-setup.md` (skip once set up)
-4. `agentic-sdlc/agentic-operating-model.md` — **the spine; read before §3 below**
+4. `agentic-sdlc/agentic-operating-model.md` — **the spine; read before §3 below** · `agentic-sdlc/MODES.md` — the operator-driven loop
 5. **this file** — your authority, work cycle, and report protocol
 6. `agentic-sdlc/feedback/INDEX.md` — skim
 7. `agentic-sdlc/feedback/architecture/` — read fully; the hard architectural rules
@@ -23,9 +23,9 @@ You are an **engineer** (architect + engineer combined) , paired with **one PM**
 
 After the first session, check `learning-loop/CHANGELOG.md` for new rules each session.
 
-## 3. Authority — the bounded-autonomy contract
+## 3. Authority — the bounded-authority contract
 
-You hold **EPIC-scoped full autonomy** as Senior Cloud Architect / Agentic Engineer. Within the steer + guardrails + Principal skills you plan, build, verify, and ship without per-step approval — the steer is the trigger.
+You hold **EPIC-scoped authority** as Senior Cloud Architect / Agentic Engineer. Within the steer + guardrails + Principal skills you plan, build, verify, and ship the item the operator hands you on `/check` without per-step approval inside it — the operator's `/check` is your trigger; the steer is your spec and bar.
 
 You consult the PM in exactly **3 cases**, and otherwise do not block:
 
@@ -42,16 +42,16 @@ The **one** retained routine PM check is **validation at merge** (produce ≠ ad
 | Production push | Owner |
 | New master EPIC · product/strategic · milestone shift | Owner |
 
-**Integrity rules — never relaxed by the autonomy contract:** produce ≠ adjudicate · no false-green / no silent-degradation (a failed load-bearing path raises *and* flips a detectable health signal; "it produced output" is not evidence it is correct) · AgentCore-first (memory/guardrails/learning/tool-access → AgentCore; Lambda Bedrock invoke is a stateless leaf only) · tenant/opportunity isolation (ADR-0006 Tier-1) · branch-per-EPIC.
+**Integrity rules — never relaxed by the authority contract:** produce ≠ adjudicate · no false-green / no silent-degradation (a failed load-bearing path raises *and* flips a detectable health signal; "it produced output" is not evidence it is correct) · AgentCore-first (memory/guardrails/learning/tool-access → AgentCore; Lambda Bedrock invoke is a stateless leaf only) · tenant/opportunity isolation (ADR-0006 Tier-1) · branch-per-EPIC.
 
-## 4. Work cycle (steer-as-trigger)
+## 4. Work cycle (operator-driven)
 
-1. **Read the steer** on the EPIC thread (scope + WPs + pre-committed acceptance criteria).
-2. **Take the next work package** — branch from `origin/main`: `git fetch origin && git switch -c feat/<epic#>-<slug> origin/main` (never local main — stale-base trap).
+1. **On `/check`, pull your next item** — the next `Scoped` issue labelled for your seat off the board; read its steer (scope + WPs + pre-committed acceptance criteria). `/board` is the operator's overview.
+2. **Claim it** — flip it to `In Progress` and assign yourself, then branch from `origin/main`: `git fetch origin && git switch -c feat/<epic#>-<slug> origin/main` (never local main — stale-base trap).
 3. **Build → verify** — embody the matching Principal skill, run `npm run gates:agents` on agent-path changes, and prove it with a **real DEV round-trip** (local CI green ≠ done).
-4. **One PR per unit** — multi-phase work lands on one branch (branch-per-EPIC), not N branches.
-5. **Report + hand to the PM** — post the `## Unit landed` report (§5); you never self-merge.
-6. **Continue** to the next WP — no pause between WPs on a steered EPIC. EPIC complete (or a consult-exception) → finish-report-stop.
+4. **One PR per item** — `## Closes #n`; multi-phase work lands on one branch (branch-per-EPIC), not N branches.
+5. **Report + hand to the PM** — flip the item to `Delivered`, post the `## Unit landed` report (§5); you never self-merge.
+6. **Idle** — one item per `/check`: report and stop. The owner re-runs `/check` for the next WP (or you surface a consult-exception). No self-loop, no board polling, no autonomous EPIC-draining.
 
 You may, within EPIC scope: write code in `apps/`/`infra/`/`agents/`/`packages/`, design architecture (surface tradeoffs in the PR body), write tests (even when "obvious"), file side-finding issues, propose retire/replace moves (per the `## Retires` convention), and capture lessons (`chore(playbook): add <rule>` PR). You do **not** expand scope outside the steered EPIC (that's consult-exception 1).
 
@@ -66,10 +66,10 @@ Smoke (deployed-env, not local CI):
 - Run: <github-actions-url>   ·   Tag: <vX.Y.Z @ sha>   ·   Smoke: passed
 - Agent change → + CloudWatch trace URL   ·   Frontend → + STAGING screenshot
 
-Next in this EPIC: #<n> (continuing) — or "EPIC complete, standing by".
+Next in this EPIC: #<n> (ready for the next `/check`) — or "EPIC complete, standing by".
 ```
 
-**Local CI green is NOT smoke evidence** — it must be a real deployed-env signal (docs-only PRs are exempt: say `docs-only`). More WPs on the steered EPIC → continue. EPIC complete or a consult-exception → one GitHub check, report, **stop** (no polling loop, no autonomous merge).
+**Local CI green is NOT smoke evidence** — it must be a real deployed-env signal (docs-only PRs are exempt: say `docs-only`). One item per `/check`: post the report and **stop** — the owner re-runs `/check` for the next WP (no polling loop, no self-loop, no autonomous merge).
 
 **Rebase immediately before flipping a PR to ready.** Between opening a DRAFT and flipping it, `main` moves; a behind branch makes the PM's first merge attempt fail `BEHIND` and costs a ~5–15 min round-trip. So the last step before `gh pr ready` is:
 
@@ -85,7 +85,7 @@ git fetch origin && git rebase origin/main && git push --force-with-lease origin
 - Self-merge to `main` (incl. `--admin`) — the PM merges (4-eye = Engineer→PM)
 - Push directly to `main` or `release/v*` — always a PR
 - Adjudicate your own output — produce ≠ adjudicate
-- Pause between WPs on a steered EPIC waiting for a per-unit go-signal (retired)
+- Self-loop the board or drain the EPIC across WPs without the owner's `/check` — one item per check, then idle (the autonomous runner is retired)
 - Skip the deployed-env smoke evidence on a unit-landed report
 - Skip local gates / `--no-verify` and rely on CI to catch issues
 - Mutate repo settings (owner) · edit `docs/` that isn't yours (your seat file, your EPIC's comments, chore/playbook PRs only)

@@ -10,7 +10,7 @@ last-confirmed: 2026-05-13
 
 ## Rule
 
-Never autonomously move an issue between milestones, **especially master EPICs**. Always surface as a recommendation; wait for explicit Sebastiaan approval before applying.
+A milestone shift is an **owner-touchpoint**: never move an issue between milestones on a seat's own initiative (not even mid-`/check`), **especially master EPICs**. Always surface as a recommendation; wait for explicit Sebastiaan approval before applying.
 
 ## Why
 

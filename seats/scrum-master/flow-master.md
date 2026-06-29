@@ -6,38 +6,39 @@ status: active
 
 # Flow-Master
 
-> Keep the board **truthful** and **moving**. This is the dispatch + flow half of
-> the [stateless runner](../pm/autonomous-runner.md); the **adjudicate + merge**
-> half stays the PM (produce ≠ adjudicate). Measure flow, not utilisation — a busy
-> board with nothing reaching `Released` is the failure these checks expose.
+> Keep the board **truthful** and **moving**. The SM runs this when the owner runs
+> **`/check`** ([`MODES.md`](../../MODES.md)); the **adjudicate + merge** path stays the
+> PM (produce ≠ adjudicate), and **producers pull their own `Scoped` work via `/check`** —
+> flow-master never dispatches. Measure flow, not utilisation — a busy board with
+> nothing reaching `Released` is the failure these checks expose.
 
 ## Who embodies this
 
 - **Scrum-Master / Flow seat staffed** → the SM runs it ([`KICKOFF.md`](KICKOFF.md)), taking flow/relay load off the PM so the PM stays Product-Owner + adjudicator.
-- **No SM staffed** → the **PM** embodies it inline. The duties are identical; only who sits the seat changes. Either way: flow-master **dispatches and facilitates**, it never adjudicates or merges.
+- **No SM staffed** → the **PM** embodies it inline. The duties are identical; only who sits the seat changes. Either way: flow-master **runs board mechanics + facilitates** when the owner runs `/check`; it never dispatches, adjudicates, or merges.
 
-## Relationship to the runner
+## Where flow-master stops (operator-driven)
 
-The [autonomous-runner](../pm/autonomous-runner.md) is one loop with two halves:
+Flow-master is the **board-mechanics** half of the work; the **adjudicate + merge** half stays the PM. The owner triggers a pass with **`/check`** — there is no self-loop and no auto-dispatch:
 
 | Half | What it does | Owner |
 |---|---|---|
-| **Dispatch + flow** (this skill) | read board · enforce WIP · spawn the engineer subagent for free-slot `Scoped` items · sweep aging/blocked · post the snapshot | flow-master (SM, or PM inline) |
+| **Board mechanics + flow** (this skill) | read the board · explode PM-framed Epics into sub-issues · enforce WIP · sweep aging/blocked · post the snapshot · surface to the PM | flow-master (SM, or PM inline) |
 | **Adjudicate + merge** | verify vs pre-committed AC · squash-merge · deploy/canary · set `Released` | **PM only** — never flow-master |
 
-Flow-master runs the **dispatch** step and stops there. It does **not** touch `Delivered → Tested → Merged → Released`; those are the PM's adjudication path. This is invariant 3 kept intact even when a separate seat runs flow.
+Flow-master does **not** push work to producers and does **not** wake seats — **producers pull their own `Scoped` work via `/check`**. It never touches `Delivered → Tested → Merged → Released`; those are the PM's adjudication path. This is invariant 3 kept intact even when a separate seat runs flow.
 
 ## 1. WIP-limit check — stop starting, start finishing
 
-Before dispatching anything, check the limits in [`../../workflow/state-machine.md`](../../workflow/state-machine.md):
+On each `/check` pass, check the limits in [`../../workflow/state-machine.md`](../../workflow/state-machine.md):
 
 | Scope | Limit | On breach |
 |---|---|---|
 | Active Epics (Program board) | ≤ 3 | do not activate a new Epic |
-| `In Progress` per producer seat | 1–2 | do not dispatch a new `Scoped` to that seat |
+| `In Progress` per producer seat | 1–2 | that seat should not pull a new `Scoped` item |
 | `Delivered` + `Tested` (awaiting the gate) | ≤ WIP of producers | review/verify fell behind build — **drive it to the gate first** |
 
-When any limit is hit: **stop starting, start finishing** — do **not** dispatch the next `Scoped` item; surface the in-flight work that needs to clear and let it drain toward `Released` before pulling anything new. A breached limit is a **flow defect**, posted on the thread — not a number averaged away.
+When any limit is hit: **stop starting, start finishing** — do **not** let a new `Scoped` item be started; surface the in-flight work that needs to clear and let it drain toward `Released` before any new work is pulled. A breached limit is a **flow defect**, posted on the thread — not a number averaged away.
 
 ## 2. Aging / blocked sweep
 
@@ -55,15 +56,15 @@ Compute from the board's transition stamps (no story points, no hand-entry) per 
 
 Forecast from recent-weeks throughput, not velocity points. Project Insights carries the live flow basics; per-state cycle time + the full DORA set ride the small metrics job layered on top (a tracked follow-up, not silent debt).
 
-## Per-tick checklist
+## On each `/check` pass
 
-1. **Read** the board (`Status` + issue/PR state) — the only state; no private cursor.
-2. **WIP check** — Active Epics ≤ 3 and no per-seat / gate limit breached? Breach → *stop starting, start finishing*; skip dispatch this tick.
-3. **Dispatch** — for each free-slot `Scoped` item, spawn the engineer subagent ([`../pm/autonomous-runner.md`](../pm/autonomous-runner.md)); set `In Progress`. **Dispatch only — do not adjudicate or merge.**
+1. **Read** the board once (`Status` + issue/PR state) — the only state; no private cursor.
+2. **Explode** — turn any PM-framed Epic (WP table) into nested sub-issues: copy each AC faithfully, set the `seat:` label, write the `#`s back; bounce gaps to the PM, **never invent**.
+3. **WIP check** — Active Epics ≤ 3 and no per-seat / gate limit breached? Breach → *stop starting, start finishing*; hold new `Scoped` from being started. **You do not dispatch — producers pull their own `Scoped` work via `/check`.**
 4. **Sweep** — flag aging items past threshold; list + route every `Blocked` item.
 5. **Metrics** — recompute throughput / cycle time / WIP / DORA; post the snapshot on its cadence.
-6. **Report** — post the flow summary; tag the PM/owner on anything needing a decision (the 3 consult-exceptions, never as a relay).
-7. **Stop** when the board is drained or only `Blocked` remains — no self-paced poll, no invented work.
+6. **Surface** — `Tested`-ready items, the 3 consult-exceptions, and owner touchpoints to the PM (never as a relay).
+7. **Report + idle** — post the flow summary; the owner runs `/check` again when needed.
 
 ---
-Seat: [`KICKOFF.md`](KICKOFF.md) · Runner: [`../pm/autonomous-runner.md`](../pm/autonomous-runner.md) · Spine: [`../../agentic-operating-model.md`](../../agentic-operating-model.md).
+Seat: [`KICKOFF.md`](KICKOFF.md) · Mode: [`../../MODES.md`](../../MODES.md) · Spine: [`../../agentic-operating-model.md`](../../agentic-operating-model.md).

@@ -13,13 +13,17 @@ the instance is an agentic platform built by an agentic SDLC, both on one root
 (Building Effective Agents). Delivery is a fixed-phase workflow: the **owner**
 frames the master EPIC; the **PM-orchestrator** steers it (scope + WP
 decomposition + pre-committed acceptance criteria); the **Engineer-Principal**
-delivers the whole EPIC autonomously within that steer, embodying the
-Principal skills; deterministic evals are the oracle for "done"; the PM does
-**one** merge validation (produce != adjudicate); the PM runs the
-staging-promote ceremony; the owner owns PROD. The steer is the trigger -
-there is no per-unit "do X" gate. The engineer breaks autonomy only for the
-**3 consult-exceptions** (out-of-scope, a better solution, an external
-blocker), resolved on the GitHub thread.
+delivers the EPIC within that steer, embodying the Principal skills;
+deterministic evals are the oracle for "done"; the PM does **one** merge
+validation (produce != adjudicate); the PM runs the staging-promote ceremony;
+the owner owns PROD. The framework is **operator-driven** (a single mode): the
+human is the orchestrator. Each seat is an interactive pane, idle until the
+operator runs `/check` in it; then it pulls its next workload from the board,
+does one item, reports, and idles — no self-loop, no board polling. The
+pre-committed steer is what clears the build, so there is no per-unit "do X"
+micro-gate; the engineer stops to consult the PM only for the **3
+consult-exceptions** (out-of-scope, a better solution, an external blocker),
+resolved on the GitHub thread.
 
 ## Prerequisites
 
@@ -82,8 +86,11 @@ code ~/Code/<your-repo>
 # Open the Claude Code panel → read the spine, then seats/engineer/KICKOFF.md
 ```
 
-The two sessions don't share memory - they coordinate via GitHub. The owner
-is never the relay between them (spine invariant 7).
+Both sessions launch **interactive** and stay idle until you run `/check` in a
+seat — operator-driven: the seat then pulls its next workload from the board,
+does one item, reports, and idles (`/board` is your overview). They don't share
+memory - they coordinate via GitHub. The owner is never the relay between them
+(spine invariant 7).
 
 ## Step 4: Read order (both seats, first session)
 
@@ -112,7 +119,7 @@ gh issue view <epic-#> --json assignees,milestone,labels
 
 ## Step 6: The delivery loop (phases 3-8)
 
-**Engineer (Plan → Build → Verify, autonomous within the steer):**
+**Engineer (Plan → Build → Verify, within the steer):**
 ```bash
 git fetch origin main
 git checkout -B feat/<epic-#>-<slug> origin/main
@@ -179,7 +186,7 @@ with a recommendation - it does not become a relay through the owner.
 
 When a unit lands or an EPIC completes: one GitHub check, report to the
 owner, **stop**. No polling loop, no `/loop`, no `ScheduleWakeup`, no
-autonomous merge. The human re-engaging is the system working. See
+self-merge. The human re-engaging is the system working. See
 [`../feedback/workflow/finish-report-stop.md`](../feedback/workflow/finish-report-stop.md).
 
 ## Step 9: Learning loop

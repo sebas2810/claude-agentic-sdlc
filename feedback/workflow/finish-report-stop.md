@@ -7,7 +7,7 @@ last-confirmed: 2026-06-15
 supersedes: the prior "standing by means polling" / autonomous-loop framing (removed 2026-05-19); the merge-authority part — "no merge without an explicit human 'do X' trigger; the owner is the merge trigger" — refined 2026-06-15 to the 4-eye Engineer→PM model (PM reviews + merges without an owner trigger; the no-loops/no-polling discipline below is unchanged)
 ---
 
-> Stands under the Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)). This rule is the spine's invariant 1 (fixed countable human touchpoints) + invariant 8 (deliberate, not burst) + Principle 7 (explicit stop condition: finish, report, stop). Already coherent with the spine; confirmed, not rewritten.
+> Stands under the Agentic SDLC spine ([`../../agentic-operating-model.md`](../../agentic-operating-model.md)). This rule is the spine's invariant 1 (fixed countable human touchpoints) + invariant 8 (deliberate, not burst) + Principle 7 (explicit stop condition: finish, report, stop). Already coherent with the spine; confirmed, not rewritten. Under the **operator-driven** model ([`../../MODES.md`](../../MODES.md) — the single mode; the human orchestrates), this rule is the stop condition between every `/check`: a seat acts only when the operator engages it, does one item, reports, and idles — it never self-paces, so the rule holds by construction.
 
 ## Rule
 

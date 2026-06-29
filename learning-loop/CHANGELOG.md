@@ -2,6 +2,17 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-06-29 — Autonomous approach REMOVED → operator-driven (`/check`), owner-directed
+
+The autonomous self-loop (the 2026-06-28 hardening below) was itself the problem: a standing seat that self-drives needs a *wake* an idle interactive pane can't give itself, and any board-reading driver (even one SM) spends GraphQL in bursts — the loop stalled repeatedly with work piled across every state, and re-engaging it was constant manual `/recheck`. **Owner decision: remove the whole autonomous approach, keep the logic.**
+
+**Removed:** `seat-loop-hook.sh` (the Stop-hook self-loop + board-read cache) · `inbox.sh` (the push bus) · `onboarding/github-app/` (the webhook App) · `feedback/architecture/event-driven-orchestration.md` + `onboarding/event-driven-dispatch.md` (the autonomous specs) · `SEAT_AUTONOMOUS` · the `/recheck`·`/dispatch`·`/wake`·`/pause`·`/resume` commands. **Kept:** the 7-state machine, the seat roles, AC / 4-eye / adjudication, board-as-record.
+
+**New model — operator-driven (semi-automated):** the human is the orchestrator. Each seat is an interactive pane, idle until engaged; the operator runs **`/check`** in a seat → it **pulls** its next workload from the board (producer builds next `Scoped`, QA verifies next `Delivered`, PM merges next `Tested`, SM does board hygiene), one item, report, idle. **`/board`** is the overview. No polling, no events, no inbox — GraphQL/tokens spent only per `/check`. See `MODES.md`.
+
+### Files updated
+- `MODES.md` (operator-driven, single mode) · `onboarding/seat-launch.sh` (operator-driven boot; strips any legacy Stop-hook on relaunch) · seat templates engineer/quality/scrum-master (→ `/check`) · `onboarding/.env.local.example`. New machine-global command `/check`.
+
 ## 2026-06-28 — Autonomous loop hardened: event-driven dispatch, no N-way poll (owner-directed)
 
 A GitHub GraphQL **rate-limit incident** stalled the autonomous loop: N standing seats (dex/sam/qa) each ran the `seat-loop-hook.sh` Stop hook, which does a full Projects-v2 board read on every turn-stop. All seats authenticate as one identity → one shared rate budget → exhaustion + idle seats burning tokens/CI on zero velocity. Root cause was a **contradiction in the framework**: `orchestrator-runner.md` already intended the SM to be the *single* poller, and the spine's `finish-report-stop.md` already forbids self-paced polling — but `MODES.md` + `seats/engineer/autonomous-runner.md` + `seat-loop-hook.sh` sanctioned a standing **self-looping** seat that polls. The poll was also **load-bearing** (the only dispatch path), so a bare disable would zero-out dispatch.

@@ -1,18 +1,21 @@
 #!/usr/bin/env bash
 #
-# seat-launch.sh — run an autonomous standing seat in THIS terminal.
+# seat-launch.sh — run an operator-driven SDLC seat in THIS terminal.
 #
-# The runtime behind every generated <seat>.command (and thus every .app). Given a worktree
-# with a .env.local (SEAT_ROLE/SEAT_NAME/... — see .env.local.example), it:
+# The runtime behind every generated <seat>.command (and thus every .app). Given a worktree with a
+# .env.local (SEAT_ROLE/SEAT_NAME/... — see .env.local.example), it:
 #   1. titles the terminal window           ("Engineer - Dex")
 #   2. runs setup-seat.sh                    (per-worktree git identity + creds + the seat brief +
 #                                             the SessionStart hook that injects it)
-#   3. (optional) mints a board-ops token    (own GraphQL quota — e.g. a GitHub App)
-#   4. exports the seat + inbox env + wires the Stop-hook re-engager (event-driven)
-#   5. launches `claude` in accept-edits      ("auto" mode) with a generic boot prompt
-# EVENT-DRIVEN (feedback/architecture/event-driven-orchestration.md): the SM is the single board
-# reader; every other seat is woken from its $0 local inbox via seat-loop-hook.sh — no board poll.
-# Generic across instances; names are free, SEAT_ROLE is the enforced type. PM self-drives (no loop).
+#   3. (optional) mints a board-ops token    (own GraphQL quota)
+#   4. exports the seat + board env          (so /check and /board resolve)
+#   5. launches an interactive `claude`      with a role-aware, operator-driven boot prompt
+#
+# OPERATOR-DRIVEN (semi-automated) — the HUMAN is the orchestrator. No autonomous self-loop, no
+# polling, no events, no inbox. Each seat is an interactive, watchable pane that stays INERT until the
+# operator engages it; then it PULLS its next workload from the board with /check (role-aware), does
+# that one item, reports, and idles. The operator conducts the cadence (watch /board → run /check in
+# the seat that should advance). Generic across instances; SEAT_ROLE is the enforced type.
 #
 set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -31,8 +34,6 @@ esac; done
 set -a; . "$WORKTREE/.env.local"; set +a
 : "${SEAT_ROLE:?.env.local needs SEAT_ROLE}" "${SEAT_NAME:?.env.local needs SEAT_NAME}"
 INSTANCE="${INSTANCE:-seat}"
-AUTONOMOUS="${SEAT_AUTONOMOUS:-1}"
-case "$SEAT_ROLE" in pm|orchestrator) AUTONOMOUS=0 ;; esac   # PM self-drives via its own runner
 TITLE="${SEAT_TITLE:-$(printf '%s' "$SEAT_ROLE" | awk '{print toupper(substr($0,1,1)) substr($0,2)}') - ${SEAT_NAME}}"
 
 # 1) window title (and stop claude overriding it)
@@ -52,46 +53,43 @@ if [ -n "$TOKEN_CMD" ]; then
   if T="$($TOKEN_CMD 2>/dev/null)" && [ -n "$T" ]; then export GH_TOKEN="$T"; fi
 fi
 
-# 4) seat runtime env (EVERY pane) + the Stop-hook re-engager (autonomous seats only).
-#    The inbox env is exported for every pane — incl. the PM — so the /recheck · /dispatch · /board
-#    slash-commands and inbox.sh resolve. seat key = a producer's seat:<x> label suffix, else the role.
+# 4) seat + board env (every pane) so the /check and /board slash-commands resolve.
+#    seat key = a producer's seat:<x> label suffix, else the role.
 case "${SEAT_LABEL:-}" in seat:*) SEAT_KEY="${SEAT_LABEL#seat:}" ;; *) SEAT_KEY="$SEAT_ROLE" ;; esac
 export SEAT_ROLE SEAT_NAME INSTANCE SEAT_KEY SEAT_LABEL="${SEAT_LABEL:-}" \
        BOARD_ID="${BOARD_ID:-}" BOARD_OWNER="${BOARD_OWNER:-}"
-export SAMMY_INBOX_ROOT="${SAMMY_INBOX_ROOT:-$HOME/.agentic-sdlc/${INSTANCE}/inbox}"
-mkdir -p "$SAMMY_INBOX_ROOT/$SEAT_KEY"   # this seat's inbox (the $0, API-free wake surface)
 
-# The SM reads the board (single reader); every other autonomous seat reads its inbox. PM self-drives
-# its own runner (no Stop-loop). The hook is a child of claude → inherits the env exported above.
-if [ "$AUTONOMOUS" = "1" ]; then
-  mkdir -p .claude
-  [ -f .claude/settings.local.json ] || printf '{}\n' > .claude/settings.local.json
+# 4b) Strip any legacy autonomous Stop-hook — the self-loop is removed (operator-driven now). A seat
+#     relaunched from an old autonomous session would otherwise keep its wired board-loop.
+if [ -f .claude/settings.local.json ] && command -v jq >/dev/null 2>&1; then
   tmp="$(mktemp)"
-  if jq --arg cmd "bash $FRAMEWORK/onboarding/seat-loop-hook.sh" \
-        '.hooks.Stop = [{"hooks":[{"type":"command","command":$cmd}]}]' \
-        .claude/settings.local.json > "$tmp" 2>/dev/null; then mv "$tmp" .claude/settings.local.json; else rm -f "$tmp"; fi
+  if jq 'del(.hooks.Stop)' .claude/settings.local.json > "$tmp" 2>/dev/null; then mv "$tmp" .claude/settings.local.json; else rm -f "$tmp"; fi
 fi
 
-# 5) boot prompt — role-aware; the full brief comes from the injected seat file.
+# 5) boot prompt — role-aware, operator-driven. The full brief comes from the injected seat file.
 case "$SEAT_ROLE" in
-  quality-engineer) DRAIN_LINE="VERIFY it against its pre-committed AC on the deployed env (perturb the happy path); post a per-criterion PASS/FAIL; PASS->Tested, FAIL->In Progress; you never merge." ;;
-  *)                DRAIN_LINE="CLAIM it (atomic flip Scoped->In Progress + assign), build per your KICKOFF, ONE PR with '## Closes #n', set Delivered; NEVER self-merge — the PM adjudicates." ;;
+  pm|orchestrator)
+    read -r -d '' PROMPT <<EOP || true
+You are ${SEAT_NAME}, the PM seat for ${INSTANCE} — the human's interface + prep + adjudication. The OWNER is the orchestrator (operator-driven, semi-automated): NO autonomous loop, no polling, no events — you act only when engaged. Confirm your seat + boot your read-order, then: git fetch origin main, then idle. When the owner runs /check here (or says go): pull your next workload — adjudicate the next \`Tested\` PR against its pre-committed AC + evidence and merge it (4-eye = producer->you; never merge what you authored); if none is Tested, frame the top \`Backlog\` item -> \`Scoped\` with falsifiable AC. Surface the owner touchpoints (roadmap/EPIC, strategic exceptions, PROD) with a recommendation. /board for the overview. Never self-loop or poll. Sign all activity as ${SEAT_NAME}, never as the owner.
+EOP
+    ;;
+  scrum-master)
+    read -r -d '' PROMPT <<EOP || true
+You are ${SEAT_NAME}, the Scrum-Master seat for ${INSTANCE} — board-mechanics helper, operator-driven (the OWNER orchestrates; you do NOT auto-dispatch). No loop, no polling, no events. Confirm your seat + boot your read-order, then: git fetch origin main, then idle. When the owner runs /check here: do ONE flow pass over board #${BOARD_ID:-?} — explode any newly-framed Epic into sub-issues (back-link the #s), enforce WIP, sweep aging/Blocked, and surface Tested-ready + the 3 consult-exceptions to the PM. Producers pull their own Scoped via /check, so you don't push work. You never merge, adjudicate, or write product code. Never self-loop or poll. Sign all activity as ${SEAT_NAME}.
+EOP
+    ;;
+  quality-engineer)
+    read -r -d '' PROMPT <<EOP || true
+You are ${SEAT_NAME}, the quality-engineer seat for ${INSTANCE} — operator-driven (the OWNER orchestrates; no loop, no polling, no events). Your full brief is injected at session start. Confirm your seat + boot your read-order, then: git fetch origin main, then idle. When the owner runs /check here (or says go): pull your next workload — the next \`Delivered\` item — and VERIFY it against its pre-committed AC on the deployed env (perturb the happy path); post a per-criterion PASS/FAIL; PASS->\`Tested\`, FAIL->\`In Progress\`. You never merge. Report + stop — one item per /check. Never self-loop or poll. Sign all activity as ${SEAT_NAME}.
+EOP
+    ;;
+  *)
+    read -r -d '' PROMPT <<EOP || true
+You are ${SEAT_NAME}, the ${SEAT_ROLE} seat for ${INSTANCE} — operator-driven (the OWNER orchestrates; no loop, no polling, no events). Your full brief is injected at session start. Confirm your seat + boot your read-order, then: git fetch origin main, then idle. When the owner runs /check here (or says go): pull your next workload — the next \`Scoped\` item carrying your \`seat:\` label — CLAIM it (flip Scoped->In Progress + assign), build per your KICKOFF (branch off origin/main, gates + a real deployed round-trip), ONE PR with '## Closes #n', set \`Delivered\`, post your ready-signal. NEVER self-merge — the PM adjudicates. Report + stop — one item per /check. Never self-loop or poll. Sign all activity as ${SEAT_NAME}.
+EOP
+    ;;
 esac
 
-if [ "$SEAT_ROLE" = "pm" ] || [ "$SEAT_ROLE" = "orchestrator" ]; then
-  read -r -d '' PROMPT <<EOP || true
-You are ${SEAT_NAME}, the PM seat for ${INSTANCE} — the human's interface + prep + adjudication (NOT the dispatch loop; the Scrum-Master orchestrates that). Confirm your seat + boot your read-order, then: git fetch origin main. Your work: (1) PREP — identify + prioritise new work and the roadmap; refine Backlog->Scoped with pre-committed, falsifiable AC (Definition of Ready). (2) ADJUDICATE — review Tested/green producer PRs against the AC you pre-committed, and merge (the merge authority; 4-eye = producer->you; never merge what you authored). (3) OWNER interface — surface the fixed touchpoints (roadmap/EPIC framing, strategic consult-exceptions, PROD) with a recommendation. Sign all activity as ${SEAT_NAME}, never as the owner.
-EOP
-elif [ "$SEAT_ROLE" = "scrum-master" ]; then
-  read -r -d '' PROMPT <<EOP || true
-You are ${SEAT_NAME}, the Scrum-Master seat for ${INSTANCE} (SDLC_MODE=autonomous) — the SINGLE board reader and the orchestrator. Confirm your seat + boot your read-order, then: git fetch origin main. Run your orchestrator-runner over the Execution board (#${BOARD_ID:-?}, owner ${BOARD_OWNER:-?}): read the board ONCE per tick (you are the only seat that touches it — no other seat polls), enforce WIP, then PUSH work to seats — dispatch each PM-approved Scoped item by writing the owning producer's inbox (\`bash ${FRAMEWORK}/onboarding/inbox.sh push --key <seat> --item <n> --action claim+build --by sm\`) and set In Progress; route each Delivered item to Quality's inbox (--action verify); drive Merged->deploy/canary->Released; sweep aging/Blocked; surface idle seats for relaunch (a stopped pane can't self-wake). Surface Tested-ready + the 3 consult-exceptions to the PM. You do NOT merge, adjudicate, or write product code. The Stop hook re-engages you while work is mid-pipeline; idle when only Released/Blocked/PM-pending Backlog remain. Sign all activity as ${SEAT_NAME}.
-EOP
-else
-  read -r -d '' PROMPT <<EOP || true
-You are ${SEAT_NAME}, the ${SEAT_ROLE} seat for ${INSTANCE} (SDLC_MODE=autonomous). Your full brief is injected at session start. You are EVENT-DRIVEN: you NEVER poll the board — you work from your local inbox. Confirm your seat + boot your read-order, then: git fetch origin main. Then DRAIN your inbox — the Stop hook hands you any queued item: ${DRAIN_LINE} When your inbox is empty you IDLE; the SM/dispatch (or /recheck) wakes you — do not poll. On a 3rd repeat of one item -> Blocked + a consult-exception. Sign all activity as ${SEAT_NAME}.
-EOP
-fi
-
-echo "== ${TITLE} · autonomous=${AUTONOMOUS} =="
+echo "== ${TITLE} · operator-driven (semi-automated) — /check to pull work, /board for the overview =="
 echo "worktree: $WORKTREE"
 exec claude --permission-mode acceptEdits "$PROMPT"

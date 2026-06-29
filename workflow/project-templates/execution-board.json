@@ -1,13 +1,13 @@
 {
   "kind": "execution",
   "title_suffix": "Delivery",
-  "description": "Story/Task execution board — the 7-state Kanban the engineers + Quality seat + runner operate. Provisioned by onboarding/setup-board.sh.",
+  "description": "Story/Task execution board — the 7-state Kanban the engineers + Quality seat + PM operate, operator-driven via /check. Provisioned by onboarding/setup-board.sh.",
   "statusField": {
     "name": "Status",
     "options": [
       { "name": "Backlog", "color": "GRAY", "description": "exists, not yet steered (no committed AC)" },
       { "name": "Scoped", "color": "BLUE", "description": "PM-steered; DoR met (scope + pre-committed AC)" },
-      { "name": "In Progress", "color": "YELLOW", "description": "a seat/subagent is building it; a branch exists" },
+      { "name": "In Progress", "color": "YELLOW", "description": "a seat is building it; a branch exists" },
       { "name": "Delivered", "color": "ORANGE", "description": "PR open + ready-signal; awaiting verification" },
       { "name": "Tested", "color": "PURPLE", "description": "independent verification PASS against the AC" },
       { "name": "Merged", "color": "PINK", "description": "adjudicated + squash-merged to main" },
