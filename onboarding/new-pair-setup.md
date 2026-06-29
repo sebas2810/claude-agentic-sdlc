@@ -92,6 +92,26 @@ does one item, reports, and idles (`/board` is your overview). They don't share
 memory - they coordinate via GitHub. The owner is never the relay between them
 (spine invariant 7).
 
+### Optional: one-click seat apps (instead of a bare `claude` window)
+
+Once a seat's worktree is configured (Step 2.5), you can generate a **double-clickable
+launcher + macOS `.app`** for it — a titled window ("Engineer - Dex"), the right
+worktree + git identity, the operator commands auto-installed, and an interactive
+operator-driven `claude`. You generate your **own** (the launchers hardcode local
+paths, so they're never shipped pre-built — but the generators below ship with the framework):
+
+```bash
+# one .command per seat (run once per configured seat worktree)
+agentic-sdlc/onboarding/make-launcher.sh --worktree ~/Code/<your-repo>-dex --out ~/Code/agents/<instance>
+# wrap every .command in that dir into a double-clickable .app (macOS)
+agentic-sdlc/onboarding/build-apps.sh --dir ~/Code/agents/<instance>
+```
+
+Double-click the `.app` (or `open <seat>.command`) to launch that seat. All runtime
+logic lives in `seat-launch.sh`, so the app **inherits every framework update for free**
+— no rebuild when the framework changes. (Drop a `icons/<seat>.icns` next to the `.command`
+and re-run `build-apps.sh` to brand it.)
+
 ## Step 4: Read order (both seats, first session)
 
 1. `CLAUDE.md` (auto-loaded)
