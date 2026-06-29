@@ -93,8 +93,8 @@ The operator runs `/check` in the seat that should advance; that seat does the
 | Tested → (routed) | SM finds a precondition unmet → routes, never force-merges: dirty/conflicting PR → engineer rebases; no QA verdict → back to QA | real QA PASS + CI green + PR clean |
 | Merged → Released | SM deploys (staging); PROD = owner | **canary before irreversible**; PROD owner-gated |
 | any → Blocked | the producer (on a **consult-exception**) — does not build; posts the **full context to the issue** (file-cited findings · the fork/options · its recommendation) + assigns itself; the SM then **verifies the claims before surfacing** to the PM with a verdict | the 3 consult-exceptions / owner-touchpoints |
-| Blocked → Scoped | **SM operationalizes a PM re-frame** — the PM posts the decision (trimmed AC + "approved → Scoped"); the SM flips the `Status` (the producer then re-pulls it) | the PM's re-frame/approval comment posted (PM never edits `Status`) |
-| Blocked → (other prior) | PM / owner resolves on the thread; the SM operationalizes the `Status` flip | — |
+| Blocked → Scoped | **PM re-frames + dual-writes it itself** — the PM posts the decision (trimmed AC + "approved → Scoped") and sets the `status:scoped` label + board `Status` field; the producer then re-pulls it | the PM's re-frame/approval posted + dual-written (the PM scopes its own items) |
+| Blocked → (other prior) | PM / owner resolves on the thread; the PM dual-writes the resulting `Status` flip | — |
 
 **Every transition is operator-paced via `/check`, and every gate is the same
 regardless of when the operator triggers it.** The operator's pacing changes
@@ -125,7 +125,7 @@ on /check in <seat>:
                                p.ok ? (squash-merge; -> merged) : route(item)   # dirty PR -> engineer rebase; no verdict -> back to QA; never force-merge
       merged     (sm)       -> deploy(item); canary; -> released   # PROD is owner-gated, never automated
       blocked    (producer) -> post full consult-exception to the ISSUE (findings·options·recommendation); -> blocked; assign self; do NOT build
-      blocked    (sm)       -> verify claims vs codebase/board; surface to PM with a verdict (legit/avoidable/needs-PM-call); operationalize a PM re-frame (-> scoped). PM posts decisions, never sets status
+      blocked    (sm)       -> verify claims vs codebase/board; surface to PM with a verdict (legit/avoidable/needs-PM-call). The PM re-frames AND dual-writes (-> scoped) itself; the SM does not operationalize scoping
     # every transition DUAL-WRITES: set the status:* label (REST, the discovery mirror) + the board Status field
     #   (one cheap single-item mutation, the canonical record) — or label-only if the sync Action is enabled
   report "queue clear — idle"; idle   # queue drained — stop at empty; operator re-engages (no idle-poll; the expensive read is never run)

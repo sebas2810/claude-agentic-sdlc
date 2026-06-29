@@ -24,7 +24,7 @@ Flow-master runs **board mechanics** and **merges on a verified QA PASS**; **AC 
 
 | Half | What it does | Owner |
 |---|---|---|
-| **Board mechanics + flow** | read the board · explode PM-framed Epics into sub-issues · enforce WIP · sweep aging/blocked (**verify** each `Blocked` claim → a verdict before surfacing; **operationalize** PM re-frames: flip `Blocked → Scoped`) · post the snapshot · surface the 3 consult-exceptions to the PM | flow-master (SM, or PM inline) |
+| **Board mechanics + flow** | read the board · explode PM-framed Epics into sub-issues · enforce WIP · sweep aging/blocked (**verify** each `Blocked` claim → a verdict before surfacing) · post the snapshot · surface the 3 consult-exceptions to the PM | flow-master (SM, or PM inline) |
 | **Merge on a verified QA PASS** | validate the gate **state** (`Tested` + real QA verdict + CI green + PR clean) · squash-merge (4-eye: Engineer → QA → SM) · drive `Merged → Released` · route fails (QA-fail → `Scoped`; dirty PR → engineer) | flow-master (SM, or PM inline) |
 | **Adjudicate the AC / the product call** | verify the work vs pre-committed AC · the rare product/scope judgment | **QA seat** (AC) · **PM** (product/scope) — never flow-master |
 
@@ -45,7 +45,7 @@ When any limit is hit: **stop starting, start finishing** — do **not** let a n
 ## 2. Aging / blocked sweep
 
 - **Aging** — for each in-flight item compute `now − last-transition stamp` ([`../../workflow/flow-metrics.md`](../../workflow/flow-metrics.md)); flag any item past its per-state threshold. A stale `Delivered` item means review fell behind build — surface it.
-- **Blocked** — list every `Blocked` item and *why* it is blocked (consult-exception vs owner-touchpoint). For each `Blocked` consult-exception, **independently verify the engineer's claims before surfacing** — sanity-check them against the codebase/board (a legit blocker? avoidable? a genuine PM product-call?) — and hand the PM a **verdict** (legit / avoidable / needs-PM-product-call), never a bare relay. Tag the PM/owner on the ones awaiting a decision; clear/serve the ones that are just waiting on you (re-link, unblock a dependency, nudge the thread). Never advance a `Blocked` item yourself — surface it. **Operationalize the PM's re-frame:** the PM does not touch the Status field, so when the PM re-frames a `Blocked` item (a trimmed AC + "approved → `Scoped`"), **you flip `Blocked → Scoped`** so the producer can pull it.
+- **Blocked** — list every `Blocked` item and *why* it is blocked (consult-exception vs owner-touchpoint). For each `Blocked` consult-exception, **independently verify the engineer's claims before surfacing** — sanity-check them against the codebase/board (a legit blocker? avoidable? a genuine PM product-call?) — and hand the PM a **verdict** (legit / avoidable / needs-PM-product-call), never a bare relay. Tag the PM/owner on the ones awaiting a decision; clear/serve the ones that are just waiting on you (re-link, unblock a dependency, nudge the thread). Never advance a `Blocked` item yourself — surface it. When the PM re-frames a `Blocked` item (a trimmed AC + "approved → `Scoped`"), **the PM dual-writes `Blocked → Scoped` itself** and the producer pulls it — you do not operationalize scoping.
 
 ## 3. Weekly flow snapshot
 
@@ -63,7 +63,7 @@ Forecast from recent-weeks throughput, not velocity points. Project Insights car
 1. **Read** the board once (`Status` + issue/PR state) — the only state; no private cursor.
 2. **Explode** — turn any PM-framed Epic (WP table) into nested sub-issues: copy each AC faithfully, set the `seat:` label, write the `#`s back; bounce gaps to the PM, **never invent**.
 3. **WIP check** — Active Epics ≤ 3 and no per-seat / gate limit breached? Breach → *stop starting, start finishing*; hold new `Scoped` from being started. **You do not dispatch — producers pull their own `Scoped` work via `/check`.**
-4. **Sweep** — flag aging items past threshold; list + route every `Blocked` item. For each `Blocked` consult-exception, **verify the engineer's claims and surface a verdict** (legit / avoidable / needs-PM-product-call), never a bare relay; **operationalize PM re-frames** by flipping `Blocked → Scoped` (the PM doesn't touch the Status field).
+4. **Sweep** — flag aging items past threshold; list + route every `Blocked` item. For each `Blocked` consult-exception, **verify the engineer's claims and surface a verdict** (legit / avoidable / needs-PM-product-call), never a bare relay. PM re-frames are **dual-written by the PM itself** (`Blocked → Scoped`) — you do not operationalize scoping.
 5. **Metrics** — recompute throughput / cycle time / WIP / DORA; post the snapshot on its cadence.
 6. **Merge + route** — for each QA PASS (`Tested`), validate the gate state (real QA verdict + CI green + PR clean) and squash-merge (4-eye: Engineer → QA → SM), then drive `Merged → Released`; route the rest, never force-merge (QA-fail → `Scoped` for the producer to re-pull; dirty PR → engineer; missing verdict → QA seat). Surface the 3 consult-exceptions + owner touchpoints to the PM (never as a relay).
 7. **Report + idle** — post the flow summary; the owner runs `/check` again when needed.

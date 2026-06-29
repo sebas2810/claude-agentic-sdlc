@@ -15,9 +15,9 @@ gh issue list --search "is:open label:status:backlog sort:created-asc" -L 60 --j
 ```
 Each line: `#num  title  [epic / seat label if set]` (truncate long titles). Head with the count, e.g. `7 in backlog:`.
 
-**Hygiene flag** — a freshly-filed issue with **no `status:*` label** isn't on the index yet and won't surface to `/check`. Surface any you spot so the SM labels it `status:backlog` (the PM frames → SM operationalizes → `status:scoped`):
+**Hygiene flag** — a freshly-filed issue with **no `status:*` label** isn't on the index yet and won't surface to `/check`. Surface any you spot so the SM labels it `status:backlog` (the PM then frames it → dual-writes `status:scoped` itself):
 ```
 gh issue list --search "is:open is:issue -label:status:backlog -label:status:scoped -label:status:in-progress -label:status:delivered -label:status:tested -label:status:merged -label:status:released -label:status:blocked sort:created-asc" -L 30 --json number,title
 ```
 
-Keep it to a screen. The PM frames the top item (posts AC) on its `/check`; the SM then flips it `status:backlog → status:scoped`.
+Keep it to a screen. The PM frames the top item (posts AC) on its `/check` and **dual-writes it `status:backlog → status:scoped`** itself (label + board Status field).

@@ -2,6 +2,19 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-06-29 — v1.5: the PM scopes its own items — SM out of the scoping path (owner-directed)
+
+Removes the SM as the middleman for `Backlog → Scoped`. Reverses the v1.1/v1.2 "PM never edits the board" rule **for scoping only** (merge authority is untouched).
+
+- **The PM dual-writes its own scoping transitions** — `Backlog → Scoped` (framing) and `Blocked → Scoped` (re-framing): set the `status:*` label **and** the board `Status` field together (the v1.4 write-both rule applies to the PM too). Producers then pull `status:scoped` directly.
+- **The SM no longer operationalizes scoping.** The SM keeps: merge authority (`Tested → Merged → Released`, squash, 4-eye), verifying `Blocked` consult-exception claims before surfacing to the PM, and board hygiene (explode PM-framed Epics, WIP, sweep aging).
+- **produce ≠ adjudicate unchanged** — scoping is not adjudication; the PM still never merges. The merge stays with the independent SM.
+
+Why: the PM framed by comment and the SM had to *notice and flip* it, but no `/check` query routed a fresh PM framing to the SM — so a human had to bridge every one. Letting the PM set its own `status:scoped` (per v1.4 dual-write) makes framed work an immediately-discoverable `status:scoped` item; the SM is purely the merge authority + flow.
+
+### Files updated
+- `commands/check.md` · `commands/workload.md` · `commands/backlog.md` · `MODES.md` · `workflow/state-machine.md` · `feedback/INDEX.md` · `seats/SQUAD.md` · `seats/SEAT.template.md` · `seats/pm/KICKOFF.md` · `seats/scrum-master/KICKOFF.md` · `seats/scrum-master/flow-master.md` · `onboarding/seat-launch.sh` · `onboarding/seat.pm.template.md` · `onboarding/seat.scrum-master.template.md` · this CHANGELOG.
+
 ## 2026-06-29 — v1.4: dual-write is the single, mandatory sync mechanism (owner-directed)
 
 Simplifies the v1.3 label/field model to one rule and removes the alternatives.
