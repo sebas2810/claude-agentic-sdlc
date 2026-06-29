@@ -2,6 +2,13 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-06-29 — Operator commands are framework-provided + auto-installed (drop-in across projects)
+
+The operator slash-commands now live **in the framework** at `commands/` (`check.md` · `board.md` · `workload.md`) — instance-agnostic (board id/owner come from the seat's `.env.local` env, no hardcoded project), and `onboarding/seat-launch.sh` **auto-installs** them to `~/.claude/commands/` on launch. So the framework is genuinely **drop-in**: vendor it into any project, launch a seat, and the operator surface is there and **consistent across every project** — `/board` (overview) → `/workload` (this seat's queue) → `/check` (take the next item). Previously these were hand-made machine-global files (not version-controlled, not portable).
+
+### Files updated
+- **new** `commands/{check,board,workload}.md` · `onboarding/seat-launch.sh` (the auto-install step).
+
 ## 2026-06-29 — Autonomous approach REMOVED → operator-driven (`/check`), owner-directed
 
 The autonomous self-loop (the 2026-06-28 hardening below) was itself the problem: a standing seat that self-drives needs a *wake* an idle interactive pane can't give itself, and any board-reading driver (even one SM) spends GraphQL in bursts — the loop stalled repeatedly with work piled across every state, and re-engaging it was constant manual `/recheck`. **Owner decision: remove the whole autonomous approach, keep the logic.**

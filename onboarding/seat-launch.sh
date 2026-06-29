@@ -66,6 +66,14 @@ if [ -f .claude/settings.local.json ] && command -v jq >/dev/null 2>&1; then
   if jq 'del(.hooks.Stop)' .claude/settings.local.json > "$tmp" 2>/dev/null; then mv "$tmp" .claude/settings.local.json; else rm -f "$tmp"; fi
 fi
 
+# 4c) provision the operator slash-commands (machine-global) from the framework — so /check · /board
+#     · /workload work in every pane of every project that vendors this framework. Idempotent copy;
+#     instance-agnostic (board id/owner come from this seat's env, exported above).
+if [ -d "$FRAMEWORK/commands" ]; then
+  mkdir -p "$HOME/.claude/commands"
+  cp -f "$FRAMEWORK/commands/"*.md "$HOME/.claude/commands/" 2>/dev/null || true
+fi
+
 # 5) boot prompt — role-aware, operator-driven. The full brief comes from the injected seat file.
 case "$SEAT_ROLE" in
   pm|orchestrator)
