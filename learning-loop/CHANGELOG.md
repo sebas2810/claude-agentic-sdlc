@@ -2,6 +2,18 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-06-30 — v1.8: branch hygiene — SM deletes on merge + sweeps stale branches (owner-reported)
+
+A repo with `delete_branch_on_merge` off had **~85 merged branches lingering** (every merged PR left its head branch). The playbook never told the SM to clean up. Two changes:
+
+- **SM merges with `gh pr merge --squash --delete-branch`** — `--delete-branch` is now mandatory in the merge step, so the head branch is removed at the merge regardless of repo settings (don't rely on `delete_branch_on_merge` alone — it can be off, and it only covers merged PRs).
+- **SM stale-branch sweep** — added to the SM's "sweep aging" hygiene: branches with **no open/merged PR**, **>14 days**, whose work is verified in main (or dead) → delete. This catches the rarer class the merge-delete misses: **abandoned/superseded forks that never had a merged PR** (these don't auto-delete from any setting).
+
+Why: branch residue was a real workflow smell — the cleanup is the symptom; this closes the cause. (Repo-side, `delete_branch_on_merge` was also enabled as the automatic backstop.)
+
+### Files updated
+- `commands/check.md` — SM merge step (`--delete-branch`) + stale-branch sweep in board hygiene.
+
 ## 2026-06-30 — v1.7: prioritised pull + targeted `/check #<n>` — reuse existing labels, one cheap call (owner-directed)
 
 `/check` was pure FIFO (`sort:created-asc`) — it ignored priority, even though `priority:P0` is documented as *"preempts WSJF order."* Two changes, **reusing the labels we already have** (`priority:P0–P3`, `type:*`) — no new labels:
