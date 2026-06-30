@@ -118,8 +118,8 @@ on /check in <seat>:
   if active_epics > 3 or wip_breached: finish_in_flight_first
   while (item = next actionable item for <seat>'s role) is not EMPTY:   # one cheap label query per pull; most-advanced first
     case item.status:
-      scoped     (producer) -> rework? (status:scoped + assignee:@me) fix EXISTING branch/PR -> re-deliver   # rework BEFORE new work
-                             else if free_wip: claim(item); branch; build; -> in-progress -> delivered
+      scoped     (producer) -> pick = order(scoped@seat): P0 > assigned(rework) > P1 > P2 > P3 > none  # ONE search, sort in memory
+                             pick.assigned ? fix EXISTING branch/PR -> re-deliver : (if free_wip: claim; branch; build -> in-progress -> delivered)
       delivered  (quality)  -> v = verify(item)            # independent: Quality seat / evals, deployed-env
                                v.pass ? -> tested : (comment per-criterion; -> scoped, KEEP assignee)   # FAIL: engineer re-pulls rework first (assignee:@me)
       tested     (sm)       -> p = check_preconditions(item)   # real QA PASS + CI green + PR clean; SM did not author -> produce != adjudicate
