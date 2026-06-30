@@ -89,7 +89,7 @@ The operator runs `/check` in the seat that should advance; that seat does the
 | In Progress → Delivered | producer (PR + ready-signal) | local gates green + a real DEV round-trip |
 | Delivered → Tested | quality-engineer pulls its next `Delivered` → verifies on the deployed env (or runs evals) | **evals (oracle) + AC, deployed-env, perturbed** |
 | Tested → Merged | SM pulls its next `Tested` → validates preconditions (real QA PASS + CI green + PR mergeable/clean) → squash-merges | **produce ≠ adjudicate**, once, by the non-author at the gate |
-| Delivered → Scoped | quality-engineer verification FAIL → back to `Scoped` with per-criterion comments (the engineer re-pulls it via `/check`) | a failed gate is a blocker, not a note |
+| Delivered → Scoped | quality-engineer verification FAIL → back to `Scoped` with per-criterion comments, **left assigned to the engineer** (QA does not unassign); the engineer's `/check` **rework query** (`status:scoped` + `assignee:@me`) re-pulls it **first** | a failed gate is a blocker, not a note — and must not be re-`delivered` without a fix |
 | Tested → (routed) | SM finds a precondition unmet → routes, never force-merges: dirty/conflicting PR → engineer rebases; no QA verdict → back to QA | real QA PASS + CI green + PR clean |
 | Merged → Released | SM deploys (staging); PROD = owner | **canary before irreversible**; PROD owner-gated |
 | any → Blocked | the producer (on a **consult-exception**) — does not build; posts the **full context to the issue** (file-cited findings · the fork/options · its recommendation) + assigns itself; the SM then **verifies the claims before surfacing** to the PM with a verdict | the 3 consult-exceptions / owner-touchpoints |
@@ -118,9 +118,10 @@ on /check in <seat>:
   if active_epics > 3 or wip_breached: finish_in_flight_first
   while (item = next actionable item for <seat>'s role) is not EMPTY:   # one cheap label query per pull; most-advanced first
     case item.status:
-      scoped     (producer) -> if free_wip: claim(item); branch; build; -> in-progress -> delivered
+      scoped     (producer) -> rework? (status:scoped + assignee:@me) fix EXISTING branch/PR -> re-deliver   # rework BEFORE new work
+                             else if free_wip: claim(item); branch; build; -> in-progress -> delivered
       delivered  (quality)  -> v = verify(item)            # independent: Quality seat / evals, deployed-env
-                               v.pass ? -> tested : (comment per-criterion; -> scoped)   # FAIL: engineer re-pulls it
+                               v.pass ? -> tested : (comment per-criterion; -> scoped, KEEP assignee)   # FAIL: engineer re-pulls rework first (assignee:@me)
       tested     (sm)       -> p = check_preconditions(item)   # real QA PASS + CI green + PR clean; SM did not author -> produce != adjudicate
                                p.ok ? (squash-merge; -> merged) : route(item)   # dirty PR -> engineer rebase; no verdict -> back to QA; never force-merge
       merged     (sm)       -> deploy(item); canary; -> released   # PROD is owner-gated, never automated

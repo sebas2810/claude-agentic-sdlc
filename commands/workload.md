@@ -13,7 +13,9 @@ Discovery runs against THIS worktree's repo (`gh` resolves it from cwd). Each li
 List, by **role** — each line `#num  title  [labels]` (truncate long titles), oldest-first, with a **count** header:
 
 - **engineer** (KEY = `dex`/`sam`/…):
-  - **`status:scoped` · `seat:$KEY` · `no:assignee`** — your outstanding build queue (what `/check` pulls next; a re-`status:scoped` item carries QA comments). *This is the "items scoped on your name" list.*
+  - **`status:scoped` · `seat:$KEY` · `assignee:@me`** — **rework: QA-failed items bounced back to you** (a `scoped` item still assigned to you = a QA **FAIL**, since a claimed item is `in-progress`). `/check` reconsiders these **first**. *Before the `no:assignee` fix these were silently invisible to both `/check` and this list.*
+    `gh issue list --search "is:open label:status:scoped label:seat:$KEY assignee:@me sort:created-asc" -L 30 --json number,title`
+  - **`status:scoped` · `seat:$KEY` · `no:assignee`** — your outstanding **fresh** build queue (what `/check` pulls *after* rework). *This is the "items scoped on your name" list.*
     `gh issue list --search "is:open label:status:scoped label:seat:$KEY no:assignee sort:created-asc" -L 30 --json number,title`
   - **`status:in-progress` · `seat:$KEY`** — what you already have in flight.
 - **quality-engineer**: all **`status:delivered`** — your verify queue. `gh issue list --search "is:open label:status:delivered sort:created-asc" -L 30`
