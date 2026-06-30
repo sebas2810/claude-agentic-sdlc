@@ -2,6 +2,21 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-06-30 — v1.7: prioritised pull + targeted `/check #<n>` — reuse existing labels, one cheap call (owner-directed)
+
+`/check` was pure FIFO (`sort:created-asc`) — it ignored priority, even though `priority:P0` is documented as *"preempts WSJF order."* Two changes, **reusing the labels we already have** (`priority:P0–P3`, `type:*`) — no new labels:
+
+- **Prioritised pull, one Search call.** The producer fetches its scoped items in a **single** `gh issue list --search "...status:scoped...seat:$KEY..." -L 30 --json number,title,labels,assignees` and orders them **in memory** — **`priority:P0` → assigned (rework) → `P1` → `P2` → `P3` → unlabelled (default P2)**, `created-asc` within a tier. This *replaces* v1.6's two-query rework split, so it's **one call, not several** — no per-tier round-trips, no GraphQL board read. (Discovery stays on the REST/Search budget; the only GraphQL is the single-item field write on a transition.)
+- **`/check #<n>` — targeted mode.** Pass an issue number to focus that one item: act on it only if its `status:*` matches your role's gate (producer→scoped, QA→delivered, SM→tested, PM→backlog/blocked); otherwise report why it isn't yours and stop. No number → drain the queue as before.
+- **Priority is a PM framing decision** — set `priority:*` (and `type:*`) at `Backlog → Scoped`; unlabelled items fall to the P2 default so nothing is stranded.
+
+Why: "always prioritise" + the ability to point a seat at a specific issue, without adding query cost (it's one call, fewer than v1.6).
+
+### Files updated
+- `commands/check.md` — single-query prioritised pull; `/check #<n>` targeted mode.
+- `commands/workload.md` — same one-call ordered view.
+- `workflow/state-machine.md` — producer pick = ordered(P0 > rework > P1..P3 > none).
+
 ## 2026-06-30 — v1.6: QA-failed items are re-pulled (the `no:assignee` trap) — bugfix (owner-reported)
 
 A QA **FAIL** routed `Delivered → Scoped` but **never cleared the engineer's self-assignment**, while the producer's `/check` (and `/workload`) discovery query filtered on **`no:assignee`**. Result: a rejected delivery was `status:scoped` **+ still assigned** → **invisible to `/check`** → never reconsidered. The framework *intended* the re-pull (`engineer/KICKOFF.md`: "Re-pulling a QA-failed item? …fix the existing PR") but the filter made it impossible — an internal contradiction. Symptom seen in the wild: an engineer seat stumbled on the stuck items manually and re-flipped them to `delivered` **without a fix**.
