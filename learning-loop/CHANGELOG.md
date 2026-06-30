@@ -2,6 +2,22 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-06-30 — v1.6: QA-failed items are re-pulled (the `no:assignee` trap) — bugfix (owner-reported)
+
+A QA **FAIL** routed `Delivered → Scoped` but **never cleared the engineer's self-assignment**, while the producer's `/check` (and `/workload`) discovery query filtered on **`no:assignee`**. Result: a rejected delivery was `status:scoped` **+ still assigned** → **invisible to `/check`** → never reconsidered. The framework *intended* the re-pull (`engineer/KICKOFF.md`: "Re-pulling a QA-failed item? …fix the existing PR") but the filter made it impossible — an internal contradiction. Symptom seen in the wild: an engineer seat stumbled on the stuck items manually and re-flipped them to `delivered` **without a fix**.
+
+- **Producer `/check` now runs two queries, rework first:** (1) `status:scoped` + `seat:$KEY` + **`assignee:@me`** = a QA-failed bounce-back (a claimed item is `in-progress`, not `scoped`, so this is unambiguous) → reconsider + **fix the existing branch/PR**, re-deliver; then (2) `no:assignee` = fresh build.
+- **QA leaves a FAIL assigned to the engineer** (does not unassign) — that assignment is the signal the rework query re-pulls.
+- **Hard rule:** never re-`deliver` a QA-failed item without a fix that addresses the failing criteria.
+- `/workload` gains the matching `assignee:@me` rework line; `state-machine.md` updated (Delivered → Scoped + the loop pseudo-code).
+
+Why: closes the gap where QA rejections weren't reconsidered by the agents. Merge authority + scoping ownership unchanged.
+
+### Files updated
+- `commands/check.md` — producer two-query (rework-first); QA FAIL keeps the assignee.
+- `commands/workload.md` — `assignee:@me` rework line.
+- `workflow/state-machine.md` — Delivered → Scoped row + loop pseudo-code.
+
 ## 2026-06-29 — v1.5: the PM scopes its own items — SM out of the scoping path (owner-directed)
 
 Removes the SM as the middleman for `Backlog → Scoped`. Reverses the v1.1/v1.2 "PM never edits the board" rule **for scoping only** (merge authority is untouched).
