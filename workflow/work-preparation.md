@@ -16,7 +16,7 @@ other's authority: **the PM owns intent + AC; the SM owns readiness + flow.**
 
 | # | Step | Owner | Board move |
 |---|---|---|---|
-| 1 | **Frame the Epic** — outcome · why · scope · success, and a **WP table** (one row per Work Package: title · intent · **AC** · priority). | **PM** | Epic on the Program board |
+| 1 | **Frame the Epic** — outcome · why · scope · success, and a **WP table** (one row per Work Package: title · intent · **AC** · priority). | **PM** | Epic in the EPICS view |
 | 2 | **Explode → nest** — read the WP table; for each WP create a **sub-issue** nested under the Epic, capture the Definition of Ready (routing/`seat:` label · dependencies · context + links · the AC copied faithfully from the WP) — then **write the Issue # back into the Epic's WP table**. | **SM** | sub-issues created in `Backlog` |
 | 3 | **Review → approve → Ready** — check each issue against the Epic's intent + AC; approve, or bounce a gap back to step 2. | **PM** | `Backlog → Scoped` |
 | 4 | **Dispatch** — assign each Scoped issue to the producer seat for its label. | **SM** | `Scoped → In Progress` |

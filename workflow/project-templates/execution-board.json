@@ -1,7 +1,7 @@
 {
   "kind": "execution",
   "title_suffix": "Delivery",
-  "description": "Story/Task execution board — the 7-state Kanban the engineers + Quality seat + PM operate, operator-driven via /check. Provisioned by onboarding/setup-board.sh.",
+  "description": "The single Delivery project for the instance — epics + stories + tasks together. Two VIEWS serve the two audiences (not two projects): a Board view (7-state Kanban · Status × Seat) and an EPICS view (Table · filter label:level:epic · Sub-issues progress). Operator-driven via /check. Provisioned by onboarding/setup-board.sh.",
   "statusField": {
     "name": "Status",
     "options": [
@@ -18,7 +18,9 @@
   "fields": [
     { "name": "WSJF", "dataType": "NUMBER" },
     { "name": "Priority", "dataType": "SINGLE_SELECT", "options": ["P0", "P1", "P2", "P3"] },
-    { "name": "Level", "dataType": "SINGLE_SELECT", "options": ["epic", "story", "task"] },
+    { "name": "Level", "dataType": "SINGLE_SELECT", "options": ["initiative", "epic", "story", "task"] },
+    { "name": "Seat", "dataType": "TEXT" },
+    { "name": "Target", "dataType": "DATE" },
     { "name": "Area", "dataType": "TEXT" }
   ]
 }

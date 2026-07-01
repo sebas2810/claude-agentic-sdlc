@@ -4,7 +4,7 @@
 # agentic-SDLC framework in one run:
 #   1. scaffold the instance overlay skeleton (instance/<name>/)
 #   2. create the portable label taxonomy in the product repo
-#   3. provision the two-tier boards — a Program project + an Execution board
+#   3. provision one Delivery project (carries both an EPICS view + a Board view)
 #   4. seed the standing epics (so nothing is ever orphaned — workflow/hierarchy.md)
 #
 # Idempotent-ish: label/issue creation tolerate "already exists". Board creation
@@ -90,11 +90,17 @@ for(const l of labels) console.log([l.name,l.color,l.description||""].join("\t")
     && echo "  + $NAME" || echo "  · $NAME (exists)"
 done
 
-# ── 3. boards ─────────────────────────────────────────────────────────────────
+# ── 3. board ──────────────────────────────────────────────────────────────────
+# ONE project per instance. Epics + stories + tasks all live here; the two audiences
+# are served by two VIEWS on this single project, not two projects:
+#   • Board view  — the 7-state Kanban (Status × Seat), the execution surface;
+#                   filter: has:status -status:Backlog,Merged,Released (active flow only)
+#   • EPICS view  — a Table filtered to label:level:epic, with Sub-issues progress (the
+#                   owner+PM strategic roll-up that the old Program project used to be)
+# The Projects API can't create/configure views, so the two views are applied from a
+# golden template (copyProjectV2) or once in the UI — see workflow/project-boards.md.
 TITLE_CASE="$(printf '%s' "$INSTANCE" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
-echo "→ provisioning Program board"
-bash "$HERE/setup-board.sh" --owner "$OWNER" --title "$TITLE_CASE — Program" --template "$TPL/program-board.json" --repo "$REPO"
-echo "→ provisioning Execution board"
+echo "→ provisioning Delivery board (one project · EPICS view + Board view)"
 bash "$HERE/setup-board.sh" --owner "$OWNER" --title "$TITLE_CASE — Delivery" --template "$TPL/execution-board.json" --repo "$REPO"
 
 # ── 4. standing epics ─────────────────────────────────────────────────────────
@@ -108,4 +114,4 @@ for(const e of eps) console.log([e.title,(e.labels||[]).join(","),e.body||""].jo
 done
 
 echo "✓ instance '$INSTANCE' provisioned."
-echo "  next: add the Program epics to the Program project, set the Execution board as the repo's default, and steer the first epic (workflow/state-machine.md)."
+echo "  next: on the Delivery project, apply the two views — an EPICS view (Table · filter label:level:epic · Sub-issues progress) + a Board view (kanban · Status × Seat · filter has:status -status:Backlog,Merged,Released) — from the golden template or the UI (the Projects API can't create views); set it as the repo's default; then steer the first epic (workflow/state-machine.md)."

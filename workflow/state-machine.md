@@ -17,9 +17,9 @@ thread is the bus") literal — the board is the bus, and no seat holds a privat
 copy of where the work is.
 
 The state machine governs **Stories and Tasks** (the execution items). Epics and
-Initiatives have their own coarser lifecycle on the **Program board**
-([`project-boards.md`](project-boards.md)); the hierarchy that connects them is
-[`hierarchy.md`](hierarchy.md).
+Initiatives don't run the 7 states — they're tracked by **sub-issue progress** in
+the **EPICS view** of the same project ([`project-boards.md`](project-boards.md));
+the hierarchy that connects them is [`hierarchy.md`](hierarchy.md).
 
 ## The 7 states (+ Blocked)
 
@@ -69,7 +69,7 @@ hygiene and the flow metrics ([`flow-metrics.md`](flow-metrics.md)):
 
 | Scope | Default limit | Why |
 |---|---|---|
-| **Active Epics** (Program board) | **≤ 3** in `Active` | bounds context-switching at the program level (the "defined amount of active epics") |
+| **Active Epics** (with in-flight work) | **≤ 3** | bounds context-switching at the program level (the "defined amount of active epics"); an epic is "active" when it has a branch / children in flight, read off the EPICS view |
 | **`In Progress`** per producer seat | **1–2** | one unit of focus; a second only if the first is genuinely blocked on review |
 | **`Delivered` + `Tested`** (awaiting the gate) | **≤ WIP of producers** | review/verify is not allowed to fall behind build — if it does, *stop starting, start finishing* |
 
@@ -183,7 +183,7 @@ seat drains its queue, and **nothing advances without an operator-initiated
   state — see [`prioritization.md`](prioritization.md).
 - The board is provisioned from the **Execution-board template** by the
   scaffolder ([`../onboarding/create-instance.sh`](../onboarding/create-instance.sh));
-  the two-tier Program ⇄ Execution layout is [`project-boards.md`](project-boards.md).
+  the one-project / two-view (Board + EPICS) layout is [`project-boards.md`](project-boards.md).
 
 ## Why stateless is the invariant
 
