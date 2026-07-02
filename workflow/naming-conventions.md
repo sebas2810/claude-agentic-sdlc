@@ -96,5 +96,6 @@ each landing as a PR against it.
 | `chore(ci): pin pnpm version in workflow` | `level:task`, `type:chore`, `priority:P3`, `area:ci` |
 | `fix(api): null tenant bypasses scope (P0)` | `level:story`, `type:fix`, `priority:P0`, `area:api` |
 
-The first is an Epic on the Program board; the rest are Stories/Tasks on the
-Execution board, each parented per [`hierarchy.md`](hierarchy.md).
+The first is an Epic (surfaced in the EPICS view); the rest are Stories/Tasks on
+the Board view — all on the one project, each parented per
+[`hierarchy.md`](hierarchy.md).

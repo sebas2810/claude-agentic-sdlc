@@ -1,106 +1,98 @@
 ---
-title: Project boards — the Program ⇄ Execution two-tier
+title: Project board — one project, two views
 status: active
 scope: all-seats, both modes
 ---
 
-# Project Boards
+# Project Board
 
-> **Two tiers, two granularities.** A **Program (Master) project** tracks the
-> Epic/Initiative level; per-instance **Execution boards** track the Story level.
-> They are separate projects with **different `Status` fields and different
-> views** — strategy rolls up, execution rolls down, and neither is forced
-> through the other's lifecycle.
+> **One project per instance, two views.** A single GitHub Project holds the whole
+> hierarchy — Initiative ▸ Epic ▸ Story ▸ Task. Two **views** on that one project
+> serve the two audiences: a **Board view** (the 7-state execution Kanban) and an
+> **EPICS view** (the epic roll-up the old Program project used to be). No second
+> project, no mirrored status.
 
-The [state machine](state-machine.md) governs the Execution tier (Stories +
-Tasks). Epics and Initiatives have their own coarser lifecycle on the Program
-tier. The [hierarchy](hierarchy.md) — Initiative ▸ Epic ▸ Story ▸ Task — is what
-binds the two.
+The [state machine](state-machine.md) governs execution (Stories + Tasks). Epics
+don't run through the 7 states — they're tracked by **sub-issue progress** (child
+Stories `Released` ÷ total), surfaced in the EPICS view. The
+[hierarchy](hierarchy.md) — Initiative ▸ Epic ▸ Story ▸ Task — binds it all via
+GitHub sub-issues.
 
-## Program (Master) project
+## The one project
 
-One org-level project; the owner + PM strategic surface. Items are **Epics and
-Initiatives** only.
+One project **per instance**, linked to the product repo. It holds **everything** —
+epics, stories, tasks. Canonical `Status` (the 7-state Kanban + `Blocked`) plus
+custom fields (`WSJF`, `Priority`, `Level`, `Seat`, `Target`, `Area`).
 
-| View | Shows |
-|---|---|
-| **Program Roadmap** | epics on a timeline (target dates, dependencies) |
-| **Epic Board** | the epic lifecycle `Proposed → Steered → Active → Done`; the `Active` set is WIP-limited **≤ 3** ([`state-machine.md`](state-machine.md)) |
-| **Portfolio Table** | WSJF, target date, % complete per epic ([`prioritization.md`](prioritization.md)) |
-| **Insights** | epic burn-up (child Stories `Released` ÷ total); program velocity = epics completed over time |
+## The two views
 
-The Epic Board's four states are the program-level analogue of the execution
-states — coarser, slower, owned by Frame + Steer.
+### Board view — the execution surface
+The **7-state Kanban** — `Backlog → Scoped → In Progress → Delivered → Tested →
+Merged → Released` (+ `Blocked`) from [`state-machine.md`](state-machine.md),
+grouped **Status × Seat** (a swim-lane per producer), filtered to live work with
+the canonical Board filter:
 
-## Execution (Team) board
+```
+has:status -status:Backlog,Merged,Released
+```
 
-One project **per instance**. Items are **Stories and Tasks**. This is the working
-**7-state Kanban** — `Backlog → Scoped → In Progress → Delivered → Tested → Merged
-→ Released` (+ `Blocked`) from [`state-machine.md`](state-machine.md).
+— i.e. require a Status, and hide `Backlog` (not yet steered), `Merged`, and
+`Released` (done). What's left is the active flow: `Scoped → In Progress →
+Delivered → Tested` (+ `Blocked`). The SM/runner, the engineer seats, and the
+Quality seat operate here.
 
-| View | Shows |
-|---|---|
-| **Kanban** | the 7 states, in board order — the runner's primary surface |
-| **Roadmap** | stories on a timeline within the active epics |
-| **Table** | `Priority`, `WSJF`, `Area`, `Epic` parent for ordering |
-| **Insights** | flow metrics — throughput, burn-up, status-over-time ([`flow-metrics.md`](flow-metrics.md)) |
+### EPICS view — the strategic roll-up
+A **Table** filtered to **`label:level:epic`**, with the **Sub-issues progress**
+column — every epic with a live % -done bar. This is the owner + PM surface the old
+Program *project* used to be, now just a view on the same project. `Target` gives a
+date column; `Priority` / `WSJF` order it.
 
-The SM / runner, the engineer seats, and the Quality seat all operate **here**.
-The Program tier is read-mostly for them; this board is where work moves.
+## How the hierarchy rolls up
 
-## How the tiers link
-
-GitHub **sub-issues** give the parent chain Initiative ▸ Epic ▸ Story ▸ Task. A
-single issue can live in **multiple projects** at once: the **Epic** is an item on
-the Program project *and* its child **Stories** are items on the Execution board.
-Because "every Story under an Epic" is enforced by the [hierarchy](hierarchy.md),
-the epic burn-up rolls up **automatically** — no manual status mirroring, the
-child Stories' `Released` count *is* the epic's progress.
+GitHub **sub-issues** give the parent chain Initiative ▸ Epic ▸ Story ▸ Task. Because
+"every Story under an Epic" is enforced by the [hierarchy](hierarchy.md), the epic
+burn-up rolls up **automatically** — the child Stories' `Released` count *is* the
+epic's progress in the EPICS view. No manual status mirroring, no second project to
+keep in sync.
 
 ## Map to the SDLC phases
 
-Frame (owner) and Steer (PM) happen on the **Program** tier; `Scoped → … →
-Released` happens on the **Execution** tier. Epics roll up from the Stories
-beneath them:
+Frame (owner) and Steer (PM) happen in the **EPICS view**; `Scoped → … → Released`
+happens in the **Board view**. Same project, same items — only the lens changes.
 
 ```
-PROGRAM tier        Initiative
-                       │
-                    ┌──┴──┐
-                  Epic   Epic     ← Frame (owner) · Steer (PM)
-                    │              ← Active set WIP ≤ 3
-        ════════════╪════════════  roll-up: Stories Released ÷ total
-                    │
-EXECUTION tier   Story Story Task ← Scoped → In Progress → Delivered →
-                                     Tested → Merged → Released
+        Initiative
+           │
+        ┌──┴──┐
+      Epic   Epic        ← EPICS view  (label:level:epic · Sub-issues progress)
+        │                   Frame (owner) · Steer (PM)
+   ═════╪═════  roll-up: child Stories Released ÷ total
+        │
+   Story Story Task       ← Board view (Status × Seat)
+                            Scoped → In Progress → Delivered → Tested → Merged → Released
 ```
-
-A Story closing on the Execution board ticks its Epic's burn-up on the Program
-board through the sub-issue link — one event, both tiers.
 
 ## Portfolio across instances
 
 For 2–3 instances at once, add an **org-level Portfolio project** that aggregates
-issues **across the instance repos** — the cross-project review lens. It sits
-above even the Program tier: one place the owner sees every instance's epics and
-their roll-up side by side, without opening each repo.
+issues across the instance repos — the cross-project review lens, above any single
+instance's board.
 
 ## Built by the scaffolder
 
-Both projects are provisioned by
-[`../onboarding/create-instance.sh`](../onboarding/create-instance.sh) →
-[`setup-board.sh`](../onboarding/setup-board.sh) from the JSON
-[templates](project-templates/) — not hand-built per instance. The script creates
-each project, sets the canonical `Status` options + custom fields (`WSJF`,
-`Priority`, `Level`, `Area`) the [state machine](state-machine.md) expects, and
-**links the project to the product repo** (`gh project link`) so it appears in the
-repo's Projects tab and issues/PRs can be added to it from the repo. The default
-**Board + Table** views ship automatically.
+The project is provisioned by
+[`create-instance.sh`](../onboarding/create-instance.sh) →
+[`setup-board.sh`](../onboarding/setup-board.sh) from
+[`execution-board.json`](project-templates/execution-board.json) — **one** project,
+not two. The script sets the canonical `Status` + custom fields (`WSJF`, `Priority`,
+`Level`, `Seat`, `Target`, `Area`) and **links the project to the product repo**
+(`gh project link`) so it shows in the repo's Projects tab. The default **Board +
+Table** views ship automatically.
 
-> **Two GitHub realities to know.** (1) The Projects v2 API **cannot create
-> views** — Roadmap + Insights are added once from a golden template via
-> `copyProjectV2`, or in the UI. (2) Adding an Epic that **already has sub-issues**
-> to a project **auto-adds its children** — so when seeding the Program project
-> from an existing repo, **prune to epics-only** afterwards (the Program tier holds
-> Epics + Initiatives, never Stories). Seeding fresh standing epics avoids this:
-> they have no children yet.
+> **Two GitHub realities.** (1) The Projects v2 API **cannot create or configure
+> views** — so the two views (Board: group `Status × Seat`; EPICS: filter
+> `label:level:epic` + Sub-issues-progress column) are applied once from a **golden
+> template via `copyProjectV2`**, or set in the UI. (2) Adding an Epic that
+> **already has sub-issues** to a project **auto-adds its children** — which is
+> exactly what we want now (one project holds the whole tree); no epics-only pruning
+> anymore.

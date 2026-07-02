@@ -12,19 +12,19 @@ scope: all-seats, both modes
 > [`state-machine.md`](state-machine.md) to pull. The runner cannot dispatch
 > what it cannot trace.
 
-Four levels, two boards. The coarse levels (Initiative, Epic) set direction and
-live on the **Program board**; the execution levels (Story, Task) flow the
-7 states and live on the **Execution board**
+Four levels, one project, two views. The coarse levels (Initiative, Epic) set
+direction and surface in the **EPICS view**; the execution levels (Story, Task)
+flow the 7 states in the **Board view** — both views on the one project
 ([`project-boards.md`](project-boards.md)). The connective tissue is the
-parent link.
+parent link (and the epic roll-up rides it).
 
 ## The four levels
 
 | Level | Is | Horizon / framing | Lives on | Lifecycle |
 |---|---|---|---|---|
-| **Initiative** | a strategic outcome | quarters; owner-framed | Program board | coarse Program lifecycle |
-| **Epic** | a shippable capability; **branch-per-Epic**; the **unit of steering**; WIP-limited active set **≤ 3** | weeks; one branch | Program board | coarse (`Proposed → Active → Done`) |
-| **Story** | one outcome; **fits a PR**; flows the 7 states | days; one PR | Execution board | the [7 states](state-machine.md) |
+| **Initiative** | a strategic outcome | quarters; owner-framed | EPICS view | sub-issue roll-up (no status) |
+| **Epic** | a shippable capability; **branch-per-Epic**; the **unit of steering**; WIP-limited active set **≤ 3** | weeks; one branch | EPICS view | sub-issue progress (child Stories `Released` ÷ total) |
+| **Story** | one outcome; **fits a PR**; flows the 7 states | days; one PR | Board view | the [7 states](state-machine.md) |
 | **Task** | a sub-unit of a Story, when a Story needs decomposition | a Story-slice | Execution board | the [7 states](state-machine.md) |
 
 The Epic is where steering happens: scope, pre-committed acceptance-criteria

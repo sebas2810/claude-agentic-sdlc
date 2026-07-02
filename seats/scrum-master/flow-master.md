@@ -36,7 +36,7 @@ On each `/check` pass, check the limits in [`../../workflow/state-machine.md`](.
 
 | Scope | Limit | On breach |
 |---|---|---|
-| Active Epics (Program board) | ≤ 3 | do not activate a new Epic |
+| Active Epics (in-flight, EPICS view) | ≤ 3 | do not activate a new Epic |
 | `In Progress` per producer seat | 1–2 | that seat should not pull a new `Scoped` item |
 | `Delivered` + `Tested` (awaiting the gate) | ≤ WIP of producers | review/verify fell behind build — **drive it to the gate first** |
 
