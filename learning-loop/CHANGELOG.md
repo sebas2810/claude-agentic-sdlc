@@ -436,4 +436,13 @@ textual seat/name pointers in `CLAUDE.md`).
 - `reference/release-strategy.md`
 - `reference/gh-cli.md`
 
-These can move to the new home as their existing content gets touched (any session editing the corresponding `~/.claude/projects/.../memory/` file should move it instead — adds the rule to the shared store).
+These can move to the new home as their existing content gets touched (any session editing the corresponding `~/.claude/projects/.../memory/` file should move it instead — adds the rule to the shared store).## v1.10 — 2026-07-05 — seat-label mirror: routing never reads the assignee
+
+- NEW rule `feedback/workflow/seat-label-mirror.md`: every Agent-field seat gets a
+  `seat:<key>` label; scoping is a QUADRUPLE write (status label + Status field +
+  Agent field + seat label); the GitHub assignee is never seat routing (seats share
+  one account) — assignee = claim-marker or QA-rework exclusively; owner assignment
+  on EPICs only. Trigger: a producer idled on its own freshly-scoped queue after
+  falling back to assignee (2026-07-05).
+
+
