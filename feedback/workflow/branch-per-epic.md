@@ -29,6 +29,29 @@ last-confirmed: 2026-05-13
 
 EPIC #683 (Discovery work) shipped as 4 separate PRs back-to-back. Each one fired a full CI cycle. Each one had its own merge-conflict drama. The squash-merges produced 4 commits on main that *should* have been one. The lesson: branch-per-EPIC is faster overall, even when "one PR per sub-issue feels more atomic."
 
+## Create the branch UP-FRONT — before the first sub-PR
+
+The failure mode isn't just "N PRs" — it's **N PRs to `main`**. Merging each
+sub-PR to `main` bumps `main`, so every *other* open PR goes `BEHIND` →
+`update-branch` → full CI re-run → poll → repeat. That "chase-main storm" is
+dozens of wasted git actions per batch.
+
+So: **the SM (or PM) creates `feat/<epic-#>-<slug>` the moment the EPIC goes
+`In Progress` — before anyone opens the first sub-PR.** For a multi-phase EPIC
+that genuinely needs per-phase PRs (Pattern B), those sub-PRs target the EPIC
+branch (`--base feat/<epic-#>-<slug>`), NOT `main`. `main` moves exactly once,
+at EPIC acceptance. On this model the chase-main storm **cannot happen**.
+
+## Cautionary tale 2 (the chase-main storm)
+
+2026-07-02, ORBIS substrate EPIC #2494: ~20 sub-PRs were merged **per-PR
+directly to `main`** with no integration branch. Every merge sent the other
+open PRs `BEHIND`; each needed `update-branch` + a fresh full CI run + a poll
+loop before it could merge — an entire session of churn. Owner correctly
+diagnosed it: *"we should have worked on a feature branch, not merged to main
+directly."* See [`minimize-git-actions.md`](minimize-git-actions.md) for the
+full four-source breakdown.
+
 ## Multi-phase signals (not multi-PR)
 
 Within a long-lived EPIC branch, post progress signals as comments on the EPIC issue:
