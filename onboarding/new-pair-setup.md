@@ -30,6 +30,25 @@ micro-gate; the engineer stops to consult the PM only for the **3
 consult-exceptions** (out-of-scope, a better solution, an external blocker),
 resolved on the GitHub thread.
 
+## Quickstart — one command
+
+Forked/cloned the repo? Stand up the **entire instance** in one interactive
+command — the label taxonomy, one Delivery project (Board + EPICS views), the
+standing epics, one isolated git **worktree + seat identity per role**, and a
+double-clickable **seat app** per role:
+
+```bash
+bash agentic-sdlc/onboarding/bootstrap.sh
+```
+
+It asks for your repo, owner, instance name, seats, git identity, and (optionally)
+an AWS profile; prints a summary; and on your typed `yes` provisions everything.
+When it finishes, open a seat (double-click its `.app`, or `cd` its worktree and
+run `claude`) and type `/check` to pull the first work item from the board.
+
+**Steps 1–9 below are exactly what `bootstrap.sh` automates** — read them to
+customize, to do it by hand, or to understand what got set up.
+
 ## Prerequisites
 
 | Tool | Version | How |
