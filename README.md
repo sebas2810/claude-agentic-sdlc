@@ -23,6 +23,19 @@ below). The reference instance lives under instance/<name>/.
 > This folder is the single source for how the SDLC works. Everything here is
 > live — no history, no old versions.
 
+## Quickstart
+
+Stand up a whole instance — labels, board, standing epics, a worktree + seat
+identity per role, and double-clickable seat apps — with one interactive command:
+
+```bash
+bash agentic-sdlc/onboarding/bootstrap.sh
+```
+
+It prompts for the repo, owner, seats, and git identity, then provisions
+everything and prints how to start. Full walkthrough + the manual/by-hand steps:
+[`onboarding/new-pair-setup.md`](onboarding/new-pair-setup.md).
+
 ## First thing every session does (read order)
 
 1. `CLAUDE.md` (repo root, auto-loaded)
