@@ -30,15 +30,25 @@ micro-gate; the engineer stops to consult the PM only for the **3
 consult-exceptions** (out-of-scope, a better solution, an external blocker),
 resolved on the GitHub thread.
 
-## Quickstart — one command
+## Quickstart — two commands
 
-Forked/cloned the repo? Stand up the **entire instance** in one interactive
-command — the label taxonomy, one Delivery project (Board + EPICS views), the
-standing epics, one isolated git **worktree + seat identity per role**, and a
-double-clickable **seat app** per role:
+**Starting a new product?** Vendor the framework into it first (from a clone of
+the framework repo — creates + inits the product repo if needed, stamps a root
+`CLAUDE.md`):
 
 ```bash
-bash agentic-sdlc/onboarding/bootstrap.sh
+bash onboarding/vendor-framework.sh --into ~/Code/<your-product>
+```
+
+Then stand up the **entire instance** in one interactive command — the label
+taxonomy (incl. the `status:*` routing index + per-seat `seat:*` lanes), one
+Delivery project (Board + EPICS views), the standing epics, an optional guided
+**first epic**, the **enforcement hooks** (PreToolUse git guard: no-push-to-main
+· no-AI-attribution · rebase-before-push), one isolated git **worktree + seat
+identity per role**, and a double-clickable **seat app** per role:
+
+```bash
+cd ~/Code/<your-product> && bash agentic-sdlc/onboarding/bootstrap.sh
 ```
 
 It asks for your repo, owner, instance name, seats, git identity, and (optionally)
@@ -58,6 +68,7 @@ customize, to do it by hand, or to understand what got set up.
 | `gh` CLI | latest | `brew install gh` |
 | `node` | 22.x | `nvm install 22` |
 | `git` | 2.40+ | `brew install git` |
+| `jq` | 1.6+ | `brew install jq` — setup-seat's hook wiring + the git guard need it |
 | AWS CLI | v2 | for ECS / CloudWatch diagnostics |
 
 ## Step 1: Clone

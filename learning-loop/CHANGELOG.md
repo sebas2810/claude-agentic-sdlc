@@ -2,6 +2,25 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-07-15 — v1.11: seamless bootstrap — vendor step, shipped gates, routing labels, guided first epic (owner-directed)
+
+A from-zero walkthrough for the startup-guide blog surfaced six onboarding seams — each one a place where a fresh adopter would stall. All closed:
+
+- **`vendor-framework.sh` (new)** — the missing mechanical first step of "Fork it". `bootstrap.sh` assumes it runs at `<product>/agentic-sdlc/`, but nothing produced that layout; run from the framework clone itself, `ROOT` resolved to the clone's *parent*. The script copies the framework's tracked files into `<product>/agentic-sdlc/` (git-archive, so no `.git`/cruft), `git init`s a new product dir, and stamps a root `CLAUDE.md`. Bootstrap now also **dies early with a pointer to it** when run outside a vendored product repo.
+- **The enforcement hooks now ship** — README claimed gates under `.claude/hooks/` but the framework contained none; a fresh instance ran on prose, not machinery. `onboarding/hooks/guard-git.sh` (PreToolUse, Bash matcher) blocks push-to-main/master/release, AI attribution in commits, and (best-effort, cached refs) pushing behind `origin/main`; fails open without `jq`. `bootstrap.sh` installs it into the product root `.claude/` and wires `settings.json`.
+- **`CLAUDE.md` template (new)** — read-order step 1 was "CLAUDE.md (auto-loaded)" yet nothing created one. `onboarding/CLAUDE.template.md` is stamped by both `vendor-framework.sh` and `bootstrap.sh` when absent.
+- **The `status:*` routing index + `seat:*` lanes are now provisioned** — the entire `/check` discovery runs on these labels, but `labels.json` shipped only level/type/priority (its header even said "never a label", stale since v1.3); a fresh instance's dual-writes would fail out of the box. The 8 `status:*` labels moved into `labels.json` (colors from `board-label-sync.md`); `bootstrap.sh` creates a `seat:<role>` lane per chosen seat.
+- **Guided first epic (optional, default y)** — bootstrap ended at "frame your first epic" + a doc pointer. It now seeds `onboarding/first-epic.md` as a `level:epic status:backlog` issue: a product-agnostic PRODUCT.md one-pager with pre-committed falsifiable AC, sized so a brand-new team runs Frame → Released once in ~30 minutes.
+- **Preflight hardening** — `jq` added to the required-bins check (it was a silent dependency of setup-seat's hook wiring) + the prerequisites table; best-effort `project`-scope check on the gh token (warn + fix command) instead of a mid-run failure.
+
+Why: the blog's bar is "one command, no caveats" — these six made that claim true instead of aspirational.
+
+### Files updated
+- `onboarding/vendor-framework.sh`, `onboarding/CLAUDE.template.md`, `onboarding/hooks/guard-git.sh`, `onboarding/first-epic.md` — new.
+- `onboarding/bootstrap.sh` — preflight (jq · scope warn · layout guard) + seat labels + first-epic seed + gates step + summary/next-steps.
+- `workflow/project-templates/labels.json` — `status:*` set + un-staled header.
+- `README.md`, `onboarding/new-pair-setup.md`, `onboarding/board-label-sync.md` — two-command quickstart, jq prereq, automation note.
+
 ## 2026-06-30 — v1.8: branch hygiene — SM deletes on merge + sweeps stale branches (owner-reported)
 
 A repo with `delete_branch_on_merge` off had **~85 merged branches lingering** (every merged PR left its head branch). The playbook never told the SM to clean up. Two changes:

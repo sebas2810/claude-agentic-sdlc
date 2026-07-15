@@ -6,9 +6,13 @@
 # already contains agentic-sdlc/). Answer the prompts and it stands up the whole
 # thing end-to-end:
 #
-#   • GitHub  — the portable label taxonomy, ONE Delivery project (Board + EPICS
-#               views), the standing epics, and the instance overlay skeleton.
-#                                                          (create-instance.sh)
+#   • GitHub  — the portable label taxonomy (incl. the status:* routing index),
+#               ONE Delivery project (Board + EPICS views), the standing epics,
+#               the per-seat seat:* lane labels, an optional guided first epic,
+#               and the instance overlay skeleton.          (create-instance.sh)
+#   • Gates   — the PreToolUse git guard (no-push-to-main · no-AI-attribution ·
+#               rebase-before-push) wired into the product root .claude/, and a
+#               root CLAUDE.md stamped if absent.        (hooks/guard-git.sh)
 #   • Local   — one isolated git worktree per seat, each with its own identity
 #               written to .env.local + the seat file scaffolded.
 #                                          (git worktree + setup-seat.sh)
@@ -19,7 +23,7 @@
 # Nothing here is irreversible without confirmation; it prints a summary and
 # asks you to type "yes" before it touches GitHub or your disk.
 #
-# Requires: git · gh (authenticated, with `project` scope) · node.
+# Requires: git · gh (authenticated, with `project` scope) · node · jq.
 #           macOS only for the optional .app step.
 #
 set -euo pipefail
@@ -38,10 +42,18 @@ ask(){ # ask "Prompt:" "default" -> echoes answer (or default if blank)
 
 # ── 0. preflight ──────────────────────────────────────────────────────────────
 c_head "▶ Agentic SDLC — instance bootstrap"
-for bin in git gh node; do
+for bin in git gh node jq; do
   command -v "$bin" >/dev/null 2>&1 || die "missing '$bin' — install it first."
 done
 gh auth status >/dev/null 2>&1 || die "gh is not authenticated — run 'gh auth login' (it needs the 'project' scope)."
+# scope check (best-effort — classic tokens report X-OAuth-Scopes; fine-grained/App tokens don't)
+GH_SCOPES="$(gh api -i user 2>/dev/null | tr -d '\r' | awk -F': ' 'tolower($1)=="x-oauth-scopes"{print $2}')"
+if [ -n "$GH_SCOPES" ] && ! printf '%s' "$GH_SCOPES" | grep -qw 'project'; then
+  c_info "⚠ your gh token lists no 'project' scope — board provisioning will fail. Fix: gh auth refresh -s project"
+fi
+# layout check — this script must run from INSIDE a product repo that vendors the framework
+[ -d "$ROOT/agentic-sdlc" ] && git -C "$ROOT" rev-parse --show-toplevel >/dev/null 2>&1 \
+  || die "not a product repo (no $ROOT/agentic-sdlc). Vendor the framework first: bash onboarding/vendor-framework.sh --into <your-product-repo>"
 
 # ── 1. prompts (sensible defaults, all overridable) ───────────────────────────
 DEF_OWNER="$(gh api user --jq .login 2>/dev/null || true)"
@@ -62,6 +74,8 @@ GIT_NAME="$(ask  'Git commit name for these seats:'  "$(git config --global user
 GIT_EMAIL="$(ask 'Git commit email:'                 "$(git config --global user.email 2>/dev/null || echo '')")"
 AWS_PROFILE="$(ask 'AWS profile (optional, blank to skip):' '')"
 
+SEED_EPIC="$(ask 'Seed the guided first epic (one full pass through the loop)? (y/n):' 'y')"
+
 BUILD_APPS='n'
 [ "$(uname)" = "Darwin" ] && BUILD_APPS="$(ask 'Build a double-clickable macOS .app per seat? (y/n):' 'y')"
 
@@ -78,6 +92,7 @@ cat <<SUMMARY
   seats       $SEATS
   worktrees   $BASE/${REPONAME}-<seat>
   apps        $APPS_DIR   (build .app: $BUILD_APPS)
+  first epic  $SEED_EPIC
   commit as   ${GIT_NAME:-<unset>} <${GIT_EMAIL:-unset}>
   ────────────────────────────────────────────────
 SUMMARY
@@ -86,6 +101,45 @@ SUMMARY
 # ── 3. GitHub: labels · Delivery board · standing epics · overlay ─────────────
 c_head "▶ Provisioning GitHub (labels · Delivery board · standing epics · overlay)"
 bash "$HERE/create-instance.sh" --instance "$INSTANCE" --owner "$OWNER" --repo "$REPO"
+
+# seat:* lane labels — the routing lane each producer's /check pulls on
+for role in $SEATS; do
+  gh label create "seat:$role" --repo "$REPO" --color "0E8A16" \
+    --description "Routing lane: work for the $role seat" --force >/dev/null 2>&1 \
+    && c_ok "label seat:$role" || c_info "label seat:$role (exists)"
+done
+
+# optional guided first epic — one full pass through the loop on day one
+if [ "$SEED_EPIC" = "y" ]; then
+  gh issue create --repo "$REPO" \
+    --title "EPIC: Hello, Agentic SDLC — first pass through the loop" \
+    --label "level:epic,type:chore,status:backlog" \
+    --body-file "$HERE/first-epic.md" >/dev/null 2>&1 \
+    && c_ok "guided first epic seeded (PM: /check frames it; SM: /check explodes it)" \
+    || c_info "first-epic seeding skipped (exists, or labels missing)"
+fi
+
+# ── 3.5 gates: git guard + root CLAUDE.md ─────────────────────────────────────
+c_head "▶ Wiring the gates (.claude/hooks/guard-git.sh + CLAUDE.md)"
+mkdir -p "$ROOT/.claude/hooks"
+cp "$HERE/hooks/guard-git.sh" "$ROOT/.claude/hooks/guard-git.sh"
+chmod +x "$ROOT/.claude/hooks/guard-git.sh"
+SETTINGS="$ROOT/.claude/settings.json"
+[ -f "$SETTINGS" ] || printf '{}\n' > "$SETTINGS"
+if grep -q 'guard-git\.sh' "$SETTINGS" 2>/dev/null; then
+  c_ok "PreToolUse git guard already wired"
+else
+  _tmp="$(mktemp)"
+  jq '.hooks.PreToolUse = ((.hooks.PreToolUse // []) + [{"matcher":"Bash","hooks":[{"type":"command","command":"\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-git.sh"}]}])' \
+    "$SETTINGS" > "$_tmp" && mv "$_tmp" "$SETTINGS"
+  c_ok "PreToolUse git guard wired (no-push-to-main · no-attribution · rebase-before-push)"
+fi
+if [ ! -f "$ROOT/CLAUDE.md" ]; then
+  cp "$HERE/CLAUDE.template.md" "$ROOT/CLAUDE.md"
+  c_ok "CLAUDE.md stamped at the product root (fill in the product-context section)"
+else
+  c_info "CLAUDE.md already present (kept)"
+fi
 
 # Best-effort: discover the Delivery project number just created (for .env.local).
 BOARD_ID="$(gh project list --owner "$OWNER" --format json --limit 100 2>/dev/null \
@@ -140,9 +194,13 @@ cat <<DONE
     Board    https://github.com/users/$OWNER/projects/${BOARD_ID:-?}
              (one-time: apply the EPICS + Board views — workflow/project-boards.md)
     Seats    $SEATS
+    Gates    .claude/hooks/guard-git.sh (PreToolUse) + root CLAUDE.md
+             (commit both: git add .claude CLAUDE.md)
     Apps     $APPS_DIR/
     Start    open a seat (double-click its .app, or 'cd' its worktree and run 'claude'),
              then type  /check  to pull the next work item from the board.
 
-  Next: frame your first epic — workflow/state-machine.md.
+  Next: $( [ "$SEED_EPIC" = "y" ] \
+    && echo "run the guided first epic — /check in the PM seat frames it (onboarding/first-epic.md)." \
+    || echo "frame your first epic — workflow/state-machine.md." )
 DONE
