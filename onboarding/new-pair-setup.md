@@ -63,13 +63,15 @@ customize, to do it by hand, or to understand what got set up.
 
 | Tool | Version | How |
 |---|---|---|
-| Claude Code | latest | https://claude.com/claude-code |
-| VS Code | latest | https://code.visualstudio.com/ |
+| Claude Code | latest | `curl -fsSL https://claude.ai/install.sh \| bash` (https://claude.com/claude-code) |
 | `gh` CLI | latest | `brew install gh` |
-| `node` | 22.x | `nvm install 22` |
+| `node` | 22.x | `nvm install 22` (or `brew install node`) |
 | `git` | 2.40+ | `brew install git` |
 | `jq` | 1.6+ | `brew install jq` — setup-seat's hook wiring + the git guard need it |
-| AWS CLI | v2 | for ECS / CloudWatch diagnostics |
+| AWS CLI | v2 | optional — for cloud diagnostics / the Bedrock route |
+| VS Code | latest | **optional** — every seat runs in a terminal; an IDE is for the human reading code, never required by a seat |
+
+Windows: run everything in WSL (Ubuntu) — the framework's scripts are bash.
 
 ## Step 1: Clone
 
@@ -108,17 +110,21 @@ EPIC when you pick one up. The file is gitignored (per-worktree, never shared).
 
 ## Step 3: Two Claude Code sessions
 
-**Terminal (PM seat):**
+Every seat is a terminal pane — one `claude` per seat worktree. (Prefer an IDE?
+The Claude Code panel in VS Code works identically; optional, never required.)
+
+**Terminal 1 (PM seat):**
 ```bash
-cd ~/Code/<your-repo>
+cd ~/Code/<your-repo>-pm
 claude
 # Auto-loads CLAUDE.md → read the spine, then seats/pm/KICKOFF.md
 ```
 
-**VS Code (Engineer seat):**
+**Terminal 2 (Engineer seat):**
 ```bash
-code ~/Code/<your-repo>
-# Open the Claude Code panel → read the spine, then seats/engineer/KICKOFF.md
+cd ~/Code/<your-repo>-engineer
+claude
+# Auto-loads CLAUDE.md → read the spine, then seats/engineer/KICKOFF.md
 ```
 
 Both sessions launch **interactive** and stay idle until you run `/check` in a

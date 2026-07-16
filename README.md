@@ -28,10 +28,11 @@ below). The reference instance lives under instance/<name>/.
 Two commands from a clone of this repo to a running instance.
 
 **1. Vendor the framework into your product repo** (creates + `git init`s it if
-new, stamps a root `CLAUDE.md`):
+new, stamps a root `CLAUDE.md`; with `--repo` it also publishes the repo to
+GitHub, which bootstrap needs — the labels, issues, and board live there):
 
 ```bash
-bash onboarding/vendor-framework.sh --into ~/Code/my-product
+bash onboarding/vendor-framework.sh --into ~/Code/my-product --repo <you>/my-product
 ```
 
 **2. Stand up the whole instance** — labels (incl. the `status:*` routing index
