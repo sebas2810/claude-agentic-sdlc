@@ -2,6 +2,28 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-07-18 — New terminal status: `Cancelled` (≠ `Released`) + seeded epics land ON the board
+
+Two changes surfaced by the first koiPond stand-up (the second one a straight port
+from the reference instance, where it was captured 2026-07-12 but never made it back
+into the framework):
+
+- **`Cancelled` terminal status** — the board mirror of GitHub's `NOT_PLANNED` close
+  reason, for work that closes **without shipping** (duplicate · won't-do · obsolete ·
+  premise-invalidated). Previously such closes had no board home and got parked in
+  `Released`, corrupting throughput/cycle-time and any cost-per-outcome analytics keyed
+  on it. `Released` now means *shipped*; `Cancelled` means *closed, nothing shipped*.
+  Added across the taxonomy: `execution-board.json` Status option + `status:cancelled`
+  in `labels.json` + state-machine row/transition + the Board-view filter (now
+  `-status:Backlog,Merged,Released,Cancelled`) + SM flow-master sweep note.
+  Rule: [`../feedback/workflow/cancelled-status-state.md`](../feedback/workflow/cancelled-status-state.md).
+- **Seeded epics now land ON the board** — `create-instance.sh` created the standing
+  epics and `bootstrap.sh` the guided first epic with `gh issue create` but neither ran
+  `gh project item-add`, so every fresh instance started with an **empty** Delivery
+  project (observed on koiPond day one: 5 epics in the repo, 0 on board #17). Both
+  scripts now capture the created issue URL + the board number and add each seeded epic
+  to the project.
+
 ## 2026-07-15 — v1.11: seamless bootstrap — vendor step, shipped gates, routing labels, guided first epic (owner-directed)
 
 A from-zero walkthrough for the startup-guide blog surfaced six onboarding seams — each one a place where a fresh adopter would stall. All closed:

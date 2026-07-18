@@ -21,7 +21,7 @@ Initiatives don't run the 7 states — they're tracked by **sub-issue progress**
 the **EPICS view** of the same project ([`project-boards.md`](project-boards.md));
 the hierarchy that connects them is [`hierarchy.md`](hierarchy.md).
 
-## The 7 states (+ Blocked)
+## The 7 states (+ Blocked · Cancelled)
 
 The canonical `Status` options, in board order. The entry gate of each is its
 slice of the [Definition of Ready / Definition of Done](definition-of-ready-done.md) —
@@ -37,6 +37,7 @@ DoR gates the entry to `Scoped`, a per-state DoD gates every later transition.
 | 6 | **Merged** | adjudicated + squash-merged to `main` | PR merged | **produce ≠ adjudicate**, once, by the non-author at the gate |
 | 7 | **Released** | deployed to the target env + verified there (canary → promote); issue closed | deploy + post-deploy check green | **canary before irreversible**; PROD is owner-gated |
 | — | **Blocked** | a consult-exception or owner-touchpoint is pending | `## Consult-exception` / owner-tag | the 3 consult-exceptions / the owner-gated class |
+| — | **Cancelled** | closed **without shipping** — duplicate · won't-do · obsolete · premise-invalid; the board mirror of GitHub's `NOT_PLANNED` close | `gh issue close --reason "not planned"` | the non-success terminal — never parked in `Released` ([rule](../feedback/workflow/cancelled-status-state.md)) |
 
 Two deliberate properties of this ordering:
 
@@ -94,6 +95,7 @@ The operator runs `/check` in the seat that should advance; that seat does the
 | Merged → Released | SM deploys (staging); PROD = owner | **canary before irreversible**; PROD owner-gated |
 | any → Blocked | the producer (on a **consult-exception**) — does not build; posts the **full context to the issue** (file-cited findings · the fork/options · its recommendation) + assigns itself; the SM then **verifies the claims before surfacing** to the PM with a verdict | the 3 consult-exceptions / owner-touchpoints |
 | Blocked → Scoped | **PM re-frames + dual-writes it itself** — the PM posts the decision (trimmed AC + "approved → Scoped") and sets the `status:scoped` label + board `Status` field; the producer then re-pulls it | the PM's re-frame/approval posted + dual-written (the PM scopes its own items) |
+| any → Cancelled | the adjudicator of the close (PM for product calls; SM at the `Blocked` sweep) — closes as `NOT_PLANNED` + dual-writes (`status:cancelled` label + board `Cancelled`) in the same write | duplicate · won't-do · obsolete · premise-invalid — **never** `Released`, which stays *shipped-only* ([the rule](../feedback/workflow/cancelled-status-state.md)) |
 | Blocked → (other prior) | PM / owner resolves on the thread; the PM dual-writes the resulting `Status` flip | — |
 
 **Every transition is operator-paced via `/check`, and every gate is the same

@@ -110,13 +110,15 @@ for role in $SEATS; do
 done
 
 # optional guided first epic — one full pass through the loop on day one
+# (URL kept: it goes ON the board once the board number is discovered below)
+FIRST_EPIC_URL=""
 if [ "$SEED_EPIC" = "y" ]; then
-  gh issue create --repo "$REPO" \
+  FIRST_EPIC_URL="$(gh issue create --repo "$REPO" \
     --title "EPIC: Hello, Agentic SDLC — first pass through the loop" \
     --label "level:epic,type:chore,status:backlog" \
-    --body-file "$HERE/first-epic.md" >/dev/null 2>&1 \
+    --body-file "$HERE/first-epic.md" 2>/dev/null)" \
     && c_ok "guided first epic seeded (PM: /check frames it; SM: /check explodes it)" \
-    || c_info "first-epic seeding skipped (exists, or labels missing)"
+    || { FIRST_EPIC_URL=""; c_info "first-epic seeding skipped (exists, or labels missing)"; }
 fi
 
 # ── 3.5 gates: git guard + root CLAUDE.md ─────────────────────────────────────
@@ -145,6 +147,13 @@ fi
 BOARD_ID="$(gh project list --owner "$OWNER" --format json --limit 100 2>/dev/null \
   | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const j=JSON.parse(s);const p=(j.projects||[]).filter(p=>/Delivery/i.test(p.title||"")).sort((a,b)=>b.number-a.number)[0];process.stdout.write(p?String(p.number):"")}catch(e){}})' 2>/dev/null || true)"
 [ -n "$BOARD_ID" ] && c_ok "Delivery board is project #$BOARD_ID" || c_info "(couldn't auto-detect the board number — set BOARD_ID in each .env.local afterwards)"
+
+# the first epic lives ON the board (create-instance.sh adds the standing epics itself)
+if [ -n "$FIRST_EPIC_URL" ] && [ -n "$BOARD_ID" ]; then
+  gh project item-add "$BOARD_ID" --owner "$OWNER" --url "$FIRST_EPIC_URL" >/dev/null 2>&1 \
+    && c_ok "first epic added to board #$BOARD_ID" \
+    || c_info "couldn't add the first epic to the board — add it by hand: gh project item-add $BOARD_ID --owner $OWNER --url $FIRST_EPIC_URL"
+fi
 
 # ── 4. one isolated worktree + identity per seat ──────────────────────────────
 for role in $SEATS; do

@@ -32,6 +32,7 @@ These are the rules the spine **keeps**. Confirmed and retained in the
 | [`workflow/repo-settings-via-pr.md`](workflow/repo-settings-via-pr.md) | Repo settings changes need explicit owner approval (owner-touchpoint) |
 | [`workflow/milestone-shifts-user-facing.md`](workflow/milestone-shifts-user-facing.md) | Milestone shifts are owner-touchpoints (owner-approved; never seat-initiated) |
 | [`workflow/run-oversight-gates-locally.md`](workflow/run-oversight-gates-locally.md) | Run local gates before push; never bypass |
+| [`workflow/cancelled-status-state.md`](workflow/cancelled-status-state.md) | `Cancelled` is the terminal state for closed-but-not-shipped work (duplicate/won't-do/obsolete) — distinct from `Released`; keeps release/cost-per-outcome metrics clean |
 | [`workflow/verify-wrap-up-scope.md`](workflow/verify-wrap-up-scope.md) | Verify wrap-up scope concretely; don't estimate "small" without checking each step |
 
 ## Workflow rules reconciled to the spine (2026-05-19)
