@@ -15,10 +15,10 @@
 
 **Operator-driven — the owner is the orchestrator. No autonomous loop, no board polling, no events.**
 1. Confirm your seat → `git fetch origin main` → **idle until engaged**.
-2. When the owner runs **`/check`** here (or says "go"): pull your **next workload** — the next `Delivered` item — and run the verify cycle below; post the verdict (`PASS→Tested`, `FAIL→Scoped` + per-criterion fail-comments). Then **drain**: pull the next `Delivered` item from the same board snapshot and verify it too, repeating until no `Delivered` work remains for QA. The drain is operator-initiated and bounded by the work that exists now (each unit independently verified), and costs one board read.
+2. When the owner runs **`/check`** here (or says "go"): pull your **next workload** — the next `Delivered` item — and run the verify cycle below; post the verdict (`PASS→Tested`, `FAIL→Scoped` + per-criterion fail-comments). Then **drain**: re-run the cheap `status:delivered` label-index query and verify the next item too, repeating until no `Delivered` work remains for QA. The drain is operator-initiated and bounded by the work that exists now (each unit independently verified); discovery stays on the cheap label index — never the 300-item board read.
 3. When your queue is empty, report `queue clear — idle` and idle — the owner re-engages you when new `Delivered` work lands; do **not** keep re-reading the board (stop at empty, no idle-poll). Untestable/absent criteria → consult-exception. **Never relax a criterion to pass a build.**
 
-**The verify cycle** (both modes; in `manual` you run it once per nudge, then idle):
+**The verify cycle** (per unit, within a `/check` drain):
 1. Read the unit's steer + `agentic-sdlc/seats/quality-engineer/KICKOFF.md`.
 2. Sync from **origin/main**: `git fetch origin` — you check out the producer's branch/PR to verify, you don't build product code on a feature branch.
 3. Verify → embody the Quality & Testing skill (a falsifiable check per criterion, deployed-env evidence, perturb the happy path — gate reliability not just output) → produce ONE verification report per unit.

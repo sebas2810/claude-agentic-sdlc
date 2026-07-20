@@ -6,7 +6,7 @@ scope: workflow
 
 # Work preparation — from Epic to Ready
 
-How a strategic intent becomes dispatch-ready, nested issues. The PM **book-ends** the
+How a strategic intent becomes pull-ready, nested issues. The PM **book-ends** the
 pipeline (authors the Epic + approves Ready); the **SM does the middle** (explodes the
 Epic into nested, detailed issues). The split exists so the PM stays on roadmap +
 adjudication while the SM does the issue-shaping toil — without either touching the
@@ -19,7 +19,7 @@ other's authority: **the PM owns intent + AC; the SM owns readiness + flow.**
 | 1 | **Frame the Epic** — outcome · why · scope · success, and a **WP table** (one row per Work Package: title · intent · **AC** · priority). | **PM** | Epic in the EPICS view |
 | 2 | **Explode → nest** — read the WP table; for each WP create a **sub-issue** nested under the Epic, capture the Definition of Ready (routing/`seat:` label · dependencies · context + links · the AC copied faithfully from the WP) — then **write the Issue # back into the Epic's WP table**. | **SM** | sub-issues created in `Backlog` |
 | 3 | **Review → approve → Ready** — check each issue against the Epic's intent + AC; approve, or bounce a gap back to step 2. | **PM** | `Backlog → Scoped` |
-| 4 | **Dispatch** — assign each Scoped issue to the producer seat for its label. | **SM** | `Scoped → In Progress` |
+| 4 | **Pull** — no dispatch: each producer pulls its own `Scoped` work via `/check` (its discovery query filters on the `seat:<name>` lane label the SM set at explode time) and **claims** it itself — self-assign + dual-write. The SM routes only via the lane label, never via assignment. | **Producer** | `Scoped → In Progress` |
 
 The **Epic's WP table is the contract and the index**: the PM authors its rows; the SM fills
 the `Issue #` column as it creates each sub-issue. One glance at the Epic shows every WP and
@@ -44,11 +44,11 @@ its issue, with live status.
   ([state machine](state-machine.md), produce ≠ adjudicate). The SM **copies** the AC into the
   issue faithfully and may flag it as untestable — but never **authors or rewrites** it. A product
   or AC gap is **bounced to the PM**, not invented by the SM.
-- **Readiness is the SM's.** Everything that makes an issue dispatchable but isn't product intent —
+- **Readiness is the SM's.** Everything that makes an issue claimable but isn't product intent —
   routing, dependencies, sizing, context, links, the nesting — is the SM completing the
   [Definition of Ready](definition-of-ready-done.md).
 - **The Ready gate (`Backlog → Scoped`) is the PM's.** The SM prepares; the PM approves. So no work
-  becomes dispatchable without the PM's sign-off, and the PM is freed from authoring every issue by
+  becomes claimable without the PM's sign-off, and the PM is freed from authoring every issue by
   hand.
 
 ## Boundaries (the bounce rules)

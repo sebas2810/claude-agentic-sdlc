@@ -1,7 +1,7 @@
 ---
 title: Prioritization — WSJF ordering of the Ready backlog
 status: active
-scope: all-seats, both modes
+scope: all-seats
 ---
 
 # Prioritization
@@ -12,7 +12,7 @@ scope: all-seats, both modes
 
 Once an item passes the [Definition of Ready](definition-of-ready-done.md) it
 enters the Ready queue. **Weighted Shortest Job First (WSJF)** decides which Ready
-item the stateless runner dispatches next (`Scoped → In Progress`). Ordering is
+item a producer pulls next (`Scoped → In Progress`, claimed via `/check`). Ordering is
 recomputed from board fields, so it is legible to human and machine alike — the
 same property the [state machine](state-machine.md) gets from statelessness.
 
@@ -53,7 +53,7 @@ Two fields on the GitHub Project drive ordering within a state:
 
 | Field | Type | Use |
 |---|---|---|
-| **WSJF** | number | the computed score; **sort Ready desc** to pick the next dispatch |
+| **WSJF** | number | the computed score; **sort Ready desc** to pick the next pull |
 | **Priority** | single-select `P0`–`P3` | class override; `P0` is the **interrupt class** |
 
 - **`P0` preempts WSJF.** P0 is incidents / hotfixes — it interrupts the normal

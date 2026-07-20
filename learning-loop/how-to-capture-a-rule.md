@@ -10,10 +10,10 @@ When you discover something worth preserving across sessions — capture it as a
 |---|---|---|
 | PR rolled back / required hotfix | #743 → #746 edge-runtime; #820 slug conflict | `feedback/architecture/` |
 | Same correction twice in a session | "again, smoke evidence needs the deploy URL not just CI green" | `feedback/workflow/` |
-| Cross-tool gotcha | AWS Health AGW stage tags; ECR auth flake | `feedback/operational/` |
+| Cross-tool gotcha (stack-specific) | AWS Health AGW stage tags; ECR auth flake | instance overlay: `instance/<you>/rules/` |
 | Workflow refinement that worked unexpectedly well | "branch-per-EPIC saved 5× CI cost" | `feedback/workflow/` |
 | Authority calibration discovered | "PM may build + merge its own low-stakes docs/config" | `seats/<role>/KICKOFF.md` |
-| Known false-positive that fooled someone | DEV scale-to-zero smoke probe | `feedback/operational/` |
+| Known false-positive that fooled someone (env-specific) | DEV scale-to-zero smoke probe | instance overlay: `instance/<you>/rules/` |
 
 ## The format
 
@@ -74,20 +74,20 @@ PRs that:
 - Only touch `agentic-sdlc/`
 - Have CI green
 
-→ Auto-merge after CI passes. No PM review click needed (the lightweight pattern Sebastiaan called for: "no bureaucracy").
+→ Auto-merge after CI passes. No PM review click needed (the lightweight "no bureaucracy" pattern the owner called for).
 
 PRs touching anything outside `agentic-sdlc/` use normal review flow.
 
-**Implemented 2026-06-12** by [`.github/workflows/playbook-auto-merge.yml`](../../../.github/workflows/playbook-auto-merge.yml) — the workflow verifies the title prefix + docs-only file list and enables squash auto-merge (which fires once required checks pass). Before that date this section described intended behaviour that was never wired up; merges were manual.
+**Auto-merge is instance-wired, not framework-shipped.** The framework does not ship the workflow; an instance that wants it adds its own `.github/workflows/` job that verifies the title prefix + docs-only file list and enables squash auto-merge (which fires once required checks pass) — the reference instance wired one on 2026-06-12 as `playbook-auto-merge.yml`. Without it, `chore(playbook):` merges are manual (via the SM, as usual).
 
 ## Where the rule goes
 
 | Type | Folder |
 |---|---|
 | Workflow rules (PR conventions, signal protocols, etc.) | `feedback/workflow/` |
-| Hard architectural constraints | `feedback/architecture/` |
-| Day-to-day operational practices | `feedback/operational/` |
-| Rules that only apply to one seat | `feedback/seat-specific/` |
+| Hard architectural constraints (portable) | `feedback/architecture/` |
+| Stack/env-specific practices (operational gotchas, deploy quirks) | instance overlay: `instance/<you>/rules/` |
+| Rules that only apply to one seat | the matching `feedback/<area>/`, with `scope:` frontmatter naming the seat |
 | Authority calibration (what a seat can/cannot do) | `seats/<role>/KICKOFF.md` (edit, not add) |
 | Escalation protocol changes | `seats/<role>/KICKOFF.md` (edit, not add) |
 | Onboarding flow refinements | `onboarding/` |

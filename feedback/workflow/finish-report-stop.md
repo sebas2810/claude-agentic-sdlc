@@ -11,7 +11,7 @@ supersedes: the prior "standing by means polling" / autonomous-loop framing (rem
 
 ## Rule
 
-When the operator engages you with `/check`, you **drain your queue**: handle a unit, report what you found, then pull your role's next eligible item from the same board snapshot and handle it too — repeating (item → report → next) until your queue is empty, at which point you do **one** GitHub check for anything obviously blocked, report, and **stop**. The stop is **queue-level** — you stop when the queue is drained, not after one item — but the drain is **operator-initiated and bounded by the work that exists now** (every unit still passes its normal gate). You do not run unattended. You do not poll on a cadence. Once the queue is empty you do not start a loop or keep re-reading the board (no idle-poll, no self-pacing between engagements). Merge authority follows the Engineer-builds → QA-verifies → SM-merges model (see below) — it does not require an owner "do X" trigger for the routine DEV→main flow.
+When the operator engages you with `/check`, you **drain your queue**: handle a unit, report what you found, then re-run your role's cheap `status:*` label-index query and handle the next eligible item too — repeating (item → report → next) until your queue is empty, at which point you do **one** GitHub check for anything obviously blocked, report, and **stop**. The stop is **queue-level** — you stop when the queue is drained, not after one item — but the drain is **operator-initiated and bounded by the work that exists now** (every unit still passes its normal gate). You do not run unattended. You do not poll on a cadence. Once the queue is empty you do not start a loop or keep re-reading the board (no idle-poll, no self-pacing between engagements). Merge authority follows the Engineer-builds → QA-verifies → SM-merges model (see below) — it does not require an owner "do X" trigger for the routine DEV→main flow.
 
 There is no self-paced loop, no autonomous handoff, no loop-driven merge — the drain lives **inside** an operator-initiated `/check` and stops at empty. (The old `seat-coordination-loop.md` pattern was removed 2026-05-19; this file was named `standing-by-means-polling.md` until 2026-06-12, when it was renamed to match the rule it actually carries — see `learning-loop/CHANGELOG.md`.)
 
@@ -27,7 +27,7 @@ The human being the coordination point is **the system working**, not toil to en
 
 When you finish a unit of work, within the same operator-initiated `/check`:
 
-1. **Drain** — pull your role's next eligible item from the board snapshot and handle it; keep going (item → report → next) until none remain for your role.
+1. **Drain** — pull your role's next eligible item via the cheap `status:*` label-index query and handle it; keep going (item → report → next, re-querying per item) until none remain for your role.
 2. When the queue is empty, run **one** check for obvious blockers, e.g.:
    ```bash
    gh pr list --state open

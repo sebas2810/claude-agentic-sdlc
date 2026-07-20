@@ -56,7 +56,7 @@ Don't claim "smoke passed" when it actually didn't run on the surface in questio
 
 ## When the smoke step fails on something unrelated to your work
 
-E.g., DEV's scale-to-zero frontend pattern causes the SHA wait to fail per [`../../instance/<your-instance>/rules/dev-ecs-scale-to-zero.md`](../../instance/<your-instance>/rules/dev-ecs-scale-to-zero.md). Don't pretend smoke passed — explicitly note:
+E.g., in the reference instance, DEV's scale-to-zero frontend pattern causes the SHA wait to fail (documented in `instance/orbis/rules/dev-ecs-scale-to-zero.md`). Don't pretend smoke passed — explicitly note:
 
 ```
 Smoke step: DEV frontend SHA wait failed (scale-to-zero false-positive, known pattern). 

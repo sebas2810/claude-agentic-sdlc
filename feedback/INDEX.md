@@ -4,13 +4,13 @@ Accumulated rules. Each is a short markdown file with a clear "why" and "how
 to apply" so future sessions can apply them without re-deriving.
 
 **The root every rule stands under** is the spine,
-[`../agentic-operating-model.md`](../agentic-operating-model.md) (the the instance
-Agentic SDLC). When a rule conflicts with the spine, the spine wins - raise a
+[`../agentic-operating-model.md`](../agentic-operating-model.md).
+When a rule conflicts with the spine, the spine wins - raise a
 `chore(playbook):` PR rather than diverging silently.
 
 **To add a rule:** see [`../learning-loop/how-to-capture-a-rule.md`](../learning-loop/how-to-capture-a-rule.md).
 
-**the instance-specific rules** (AgentCore-first, the AWS/Next.js gotchas, dev-environment practices, the Project-#4 status flip) live in the instance overlay: [`../instance/<your-instance>/rules/`](../instance/<your-instance>/rules/INDEX.md). This index lists the **portable framework** rules a fork keeps.
+**Instance-specific rules** (e.g., the reference instance's AgentCore-first, AWS/Next.js gotchas, dev-environment practices, Delivery-project status flip) live in the instance overlay: `instance/<you>/rules/` (the reference instance's are under `instance/orbis/rules/`). This index lists the **portable framework** rules a fork keeps.
 
 ## Integrity / workflow rules (kept - load-bearing under the spine)
 
@@ -22,7 +22,7 @@ These are the rules the spine **keeps**. Confirmed and retained in the
 | [`workflow/always-pr-never-push.md`](workflow/always-pr-never-push.md) | All changes go through PRs; never push directly to `main` |
 | [`workflow/no-claude-attribution.md`](workflow/no-claude-attribution.md) | Drop `Co-Authored-By: Claude` and "Generated with Claude Code" footers |
 | [`workflow/branch-per-epic.md`](workflow/branch-per-epic.md) | One branch per EPIC; multi-phase work lands on one branch |
-| [`workflow/seat-label-mirror.md`](workflow/seat-label-mirror.md) | Seat labels mirror the Agent field; scoping is a quadruple write; assignee is never seat routing |
+| [`workflow/seat-label-mirror.md`](workflow/seat-label-mirror.md) | Seat labels mirror the board `Seat` field; scoping is a quadruple write; assignee is never seat routing |
 | [`workflow/minimize-git-actions.md`](workflow/minimize-git-actions.md) | ~3 git actions per unit, not 15–20 — EPIC branch, auto-merge, `Refs` on prereq PRs, PM never merges |
 | [`workflow/deployed-env-smoke-before-ready.md`](workflow/deployed-env-smoke-before-ready.md) | Ready/landed report MUST include deployed-env smoke evidence |
 | [`workflow/audit-pr-history-before-pickup.md`](workflow/audit-pr-history-before-pickup.md) | Check `gh pr list` before declaring an issue "unstarted" |
@@ -45,7 +45,7 @@ Rewritten or pointer-updated to the de-gated, one-PM-seat model.
 | [`workflow/engineer-ready-signal.md`](workflow/engineer-ready-signal.md) | After a unit lands, one report then continue the steered EPIC; no per-unit gate; no self-merge | Rewritten: per-unit "wait for next trigger" retired (steer-as-trigger) |
 | [`workflow/pm-routes-via-github.md`](workflow/pm-routes-via-github.md) | The shared GitHub thread is the bus; the owner is never the relay | Rewritten to spine invariant 7; one PM seat |
 
-## Superseded (archived 2026-06-12 → [`docs/archive/agentic-sdlc/`](../../archive/agentic-sdlc/))
+## Superseded (removed 2026-06-12; the framework repo ships no archive)
 
 | Rule | Superseded by |
 |---|---|
@@ -62,10 +62,10 @@ Violating these creates real bugs / outages. Each stands under the spine
 |---|---|
 | [`architecture/no-silent-degradation-on-load-bearing-paths.md`](architecture/no-silent-degradation-on-load-bearing-paths.md) | Load-bearing swallow = defect: surface + health signal; schema-validate structured output pre-persist (FLOOR-2/3) |
 
-the instance's stack-specific architecture rules (AgentCore-first, the `auth.ts` edge-runtime + Next.js slug gotchas) are in the instance overlay: [`../instance/<your-instance>/rules/`](../instance/<your-instance>/rules/INDEX.md).
+An instance's stack-specific architecture rules (e.g., the reference instance's AgentCore-first, `auth.ts` edge-runtime + Next.js slug gotchas) are in the instance overlay: `instance/<you>/rules/`.
 
 ## Operational rules
 
-All operational rules are the instance-specific (DEV credentials, ECS scale-to-zero, the deploy circuit breaker) and live in the instance overlay: [`../instance/<your-instance>/rules/`](../instance/<your-instance>/rules/INDEX.md).
+All operational rules are instance-specific (e.g., the reference instance's DEV credentials, ECS scale-to-zero, deploy circuit breaker) and live in the instance overlay: `instance/<you>/rules/`.
 
 _(removed 2026-05-19: the autonomous seat-coordination-loop pattern — see `learning-loop/CHANGELOG.md` and `workflow/finish-report-stop.md`.)_

@@ -1,7 +1,7 @@
 ---
 title: Project board — one project, two views
 status: active
-scope: all-seats, both modes
+scope: all-seats
 ---
 
 # Project Board

@@ -130,7 +130,7 @@ on /check in <seat>:
       blocked    (producer) -> post full consult-exception to the ISSUE (findings·options·recommendation); -> blocked; assign self; do NOT build
       blocked    (sm)       -> verify claims vs codebase/board; surface to PM with a verdict (legit/avoidable/needs-PM-call). The PM re-frames AND dual-writes (-> scoped) itself; the SM does not operationalize scoping
     # every transition DUAL-WRITES: set the status:* label (REST, the discovery mirror) + the board Status field
-    #   (one cheap single-item mutation, the canonical record) — or label-only if the sync Action is enabled
+    #   (one cheap single-item mutation, the canonical record) — always both; no label-only mode, no projection Action
   report "queue clear — idle"; idle   # queue drained — stop at empty; operator re-engages (no idle-poll; the expensive read is never run)
 ```
 
