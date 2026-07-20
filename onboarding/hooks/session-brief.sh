@@ -14,4 +14,9 @@ ENV_FILE="$ROOT/.env.local"
 INSTANCE="$(sed -n 's/^INSTANCE=//p' "$ENV_FILE" | head -1 | tr -d '"')"
 [ -n "$INSTANCE" ] || exit 0
 cat "$ROOT/.${INSTANCE}-seat.md" 2>/dev/null || true
+# model tier — configured per seat in sdlc.config, applied by seat-launch.sh in
+# the terminal (--model); surfaced here so a desktop-app/web/IDE session knows
+# what tier this seat is meant to run (pick it in the UI there).
+MODEL="$(sed -n 's/^SEAT_MODEL=//p' "$ENV_FILE" | head -1 | tr -d '"')"
+[ -n "$MODEL" ] && printf '\nSeat model tier: %s (terminal launches pass --model %s; in the desktop app / web / IDE, select this tier in the UI).\n' "$MODEL" "$MODEL"
 exit 0

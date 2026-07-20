@@ -44,7 +44,9 @@ cd ~/Code/my-product && bash agentic-sdlc/onboarding/bootstrap.sh
 ```
 
 All bespoke choices live in **one committed file, `sdlc.config`** (instance ·
-repo · seats as `role:Name` pairs · git identity · AWS profile — never secrets;
+repo · seats as `role:Name` pairs — optionally `role:Name:model` to pin a
+seat's Claude tier (defaults: pm + quality-engineer → opus, others → sonnet) ·
+git identity · AWS profile — never secrets;
 tokens stay in each worktree's gitignored `.env.local`). First run: a wizard
 asks, **suggests seat names** (Pim · Finn · Cas · Noor · Vera · …), and writes
 the file; each seat's checkout, branch, and `.app` are named after it
