@@ -1,7 +1,7 @@
 {
   "name": "agentic-sdlc",
   "displayName": "Agentic SDLC",
-  "version": "1.11.0",
+  "version": "1.11.1",
   "description": "Operator-driven agentic SDLC seats: /check · /board · /workload · /backlog, the git guard (no-push-to-main · no-AI-attribution · rebase-before-push), and per-worktree seat-brief injection — on every Claude Code surface (terminal, desktop app, web, IDE).",
   "author": {
     "name": "Sebastiaan van Wijngaarden",
