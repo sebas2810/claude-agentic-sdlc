@@ -19,18 +19,43 @@
 # Requires: gh (with `project` scope) + node.
 set -euo pipefail
 
-OWNER="" ; TITLE="" ; TEMPLATE="" ; REPO=""
+OWNER="" ; TITLE="" ; TEMPLATE="" ; REPO="" ; COPY_FROM=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    --owner)    OWNER="$2"; shift 2 ;;
-    --title)    TITLE="$2"; shift 2 ;;
-    --template) TEMPLATE="$2"; shift 2 ;;
-    --repo)     REPO="$2"; shift 2 ;;
+    --owner)     OWNER="$2"; shift 2 ;;
+    --title)     TITLE="$2"; shift 2 ;;
+    --template)  TEMPLATE="$2"; shift 2 ;;
+    --repo)      REPO="$2"; shift 2 ;;
+    --copy-from) COPY_FROM="$2"; shift 2 ;;
     *) echo "unknown arg: $1" >&2; exit 1 ;;
   esac
 done
-[ -n "$OWNER" ] && [ -n "$TITLE" ] && [ -n "$TEMPLATE" ] || {
-  echo "usage: setup-board.sh --owner <login> --title <title> --template <path.json> [--repo <owner/repo>]" >&2; exit 1; }
+[ -n "$OWNER" ] && [ -n "$TITLE" ] || {
+  echo "usage: setup-board.sh --owner <login> --title <title> (--template <path.json> | --copy-from <project-number>) [--repo <owner/repo>]" >&2; exit 1; }
+
+if [ -n "$COPY_FROM" ]; then
+  # ── golden-template path: copyProjectV2 — VIEWS + fields travel with the copy
+  #    (the one thing the raw API cannot create), so a configured board begets
+  #    configured boards and no UI step remains.
+  echo "→ copying project #$COPY_FROM → '$TITLE'  (owner: $OWNER)"
+  OWNER_ID=$(gh api graphql -f query='query($l:String!){repositoryOwner(login:$l){id}}' -f l="$OWNER" --jq .data.repositoryOwner.id)
+  SRC_ID=$(gh project view "$COPY_FROM" --owner "$OWNER" --format json \
+    | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).id))')
+  COPY=$(gh api graphql \
+    -f query='mutation($p:ID!,$o:ID!,$t:String!){copyProjectV2(input:{projectId:$p,ownerId:$o,title:$t,includeDraftIssues:false}){projectV2{number url}}}' \
+    -f p="$SRC_ID" -f o="$OWNER_ID" -f t="$TITLE" --jq .data.copyProjectV2.projectV2)
+  NUM=$(printf '%s' "$COPY" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).number))')
+  URL=$(printf '%s' "$COPY" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).url))')
+  echo "  created project #$NUM — $URL  (views + fields copied from #$COPY_FROM)"
+  if [ -n "$REPO" ]; then
+    gh project link "$NUM" --owner "$OWNER" --repo "$REPO" >/dev/null 2>&1 \
+      && echo "  linked to $REPO" \
+      || echo "  ! link to $REPO failed (check the repo + project scope)"
+  fi
+  echo "✓ done: project #$NUM"
+  exit 0
+fi
+
 [ -f "$TEMPLATE" ] || { echo "template not found: $TEMPLATE" >&2; exit 1; }
 
 echo "→ creating project: $TITLE  (owner: $OWNER)"

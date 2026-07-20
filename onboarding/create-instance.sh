@@ -20,12 +20,13 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"
 TPL="$ROOT/workflow/project-templates"
 
-INSTANCE="" ; OWNER="" ; REPO="" ; BOARDS_ONLY=0 ; SKELETON_ONLY=0
+INSTANCE="" ; OWNER="" ; REPO="" ; BOARDS_ONLY=0 ; SKELETON_ONLY=0 ; GOLDEN=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --instance) INSTANCE="$2"; shift 2 ;;
     --owner)    OWNER="$2"; shift 2 ;;
     --repo)     REPO="$2"; shift 2 ;;
+    --golden)   GOLDEN="$2"; shift 2 ;;   # existing configured project to copyProjectV2 (views travel)
     --boards-only)   BOARDS_ONLY=1; shift ;;
     --skeleton-only) SKELETON_ONLY=1; shift ;;
     *) echo "unknown arg: $1" >&2; exit 1 ;;
@@ -110,7 +111,11 @@ if [ -n "$BOARD_NUM" ]; then
 else
   echo "→ provisioning Delivery board (one project · EPICS view + Board view)"
   BOARD_LOG="$(mktemp)"
-  bash "$HERE/setup-board.sh" --owner "$OWNER" --title "$BOARD_TITLE" --template "$TPL/execution-board.json" --repo "$REPO" | tee "$BOARD_LOG"
+  if [ -n "$GOLDEN" ]; then
+    bash "$HERE/setup-board.sh" --owner "$OWNER" --title "$BOARD_TITLE" --copy-from "$GOLDEN" --repo "$REPO" | tee "$BOARD_LOG"
+  else
+    bash "$HERE/setup-board.sh" --owner "$OWNER" --title "$BOARD_TITLE" --template "$TPL/execution-board.json" --repo "$REPO" | tee "$BOARD_LOG"
+  fi
   # the board number, for putting the seeded epics ON the board (setup-board prints "project #N")
   BOARD_NUM="$(sed -n 's/.*project #\([0-9][0-9]*\).*/\1/p' "$BOARD_LOG" | tail -1)"
   rm -f "$BOARD_LOG"
