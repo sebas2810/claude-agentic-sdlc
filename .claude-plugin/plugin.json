@@ -1,0 +1,16 @@
+{
+  "name": "agentic-sdlc",
+  "displayName": "Agentic SDLC",
+  "version": "1.11.0",
+  "description": "Operator-driven agentic SDLC seats: /check · /board · /workload · /backlog, the git guard (no-push-to-main · no-AI-attribution · rebase-before-push), and per-worktree seat-brief injection — on every Claude Code surface (terminal, desktop app, web, IDE).",
+  "author": {
+    "name": "Sebastiaan van Wijngaarden",
+    "email": "sebastiaan.van.wijngaarden@capgemini.com"
+  },
+  "homepage": "https://github.com/sebas2810/claude-agentic-sdlc",
+  "repository": "https://github.com/sebas2810/claude-agentic-sdlc",
+  "license": "Apache-2.0",
+  "keywords": ["sdlc", "workflow", "kanban", "seats", "operator-driven"],
+  "commands": "./commands",
+  "hooks": "./onboarding/hooks/hooks.json"
+}

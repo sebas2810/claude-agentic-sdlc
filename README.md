@@ -57,6 +57,37 @@ It prompts for the repo, owner, seats, and git identity, then provisions
 everything and prints how to start. Full walkthrough + the manual/by-hand steps:
 [`onboarding/new-pair-setup.md`](onboarding/new-pair-setup.md).
 
+### The seat tooling as a Claude Code plugin
+
+This repo is also a **plugin marketplace**: the plugin ships the seat commands
+(`/check` · `/board` · `/workload` · `/backlog`), the **git guard** (PreToolUse),
+and **seat-brief injection** (SessionStart, reads the worktree's `.env.local`) —
+versioned, on **every Claude Code surface**: terminal, the desktop app, web
+(claude.ai/code), and IDE panels. Whoever prefers the Claude app over a terminal
+just opens the seat's worktree there and has the full seat. Install once:
+
+```
+/plugin marketplace add sebas2810/claude-agentic-sdlc
+/plugin install agentic-sdlc@agentic-sdlc
+```
+
+…or pin it per product repo so every seat gets prompted automatically —
+`.claude/settings.json`:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "agentic-sdlc": { "source": { "source": "github", "repo": "sebas2810/claude-agentic-sdlc" } }
+  },
+  "enabledPlugins": { "agentic-sdlc@agentic-sdlc": true }
+}
+```
+
+The legacy paths (commands copied to `~/.claude/commands`, the bootstrap-wired
+guard hook) keep working and are superseded by the plugin where it is enabled;
+updates flow by plugin version bump instead of re-vendoring. Provisioning
+(`bootstrap.sh`) stays a shell script — the plugin is distribution, not setup.
+
 ## First thing every session does (read order)
 
 1. `CLAUDE.md` (repo root, auto-loaded)
