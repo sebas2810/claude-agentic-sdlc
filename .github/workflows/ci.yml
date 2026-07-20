@@ -17,3 +17,10 @@ jobs:
         run: |
           set -euo pipefail
           git ls-files -z '*.sh' | xargs -0 shellcheck -S warning
+
+  bootstrap-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: offline bootstrap smoke test (stubbed gh, fake product repo)
+        run: bash onboarding/tests/smoke-bootstrap.sh
