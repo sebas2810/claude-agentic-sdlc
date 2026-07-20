@@ -6,7 +6,14 @@ Show — don't take — every outstanding item **this seat** owns, by role, off 
 
 Resolve once:
 ```
-ROLE="${SEAT_ROLE:?run /workload inside a seat pane}"; KEY="${SEAT_KEY:-$ROLE}"
+# seat identity: env first (terminal seat-launch), else the worktree's .env.local
+# (the desktop-app / plugin path has no seat-launch, only the file).
+if [ -z "${SEAT_ROLE:-}" ] && [ -f .env.local ]; then
+  SEAT_ROLE="$(sed -n 's/^SEAT_ROLE=//p' .env.local | head -1)"
+  SEAT_LABEL="$(sed -n 's/^SEAT_LABEL=//p' .env.local | head -1)"
+fi
+ROLE="${SEAT_ROLE:?not a seat worktree — no SEAT_ROLE in env or ./.env.local}"
+case "${SEAT_LABEL:-}" in seat:*) KEY="${SEAT_LABEL#seat:}" ;; *) KEY="${SEAT_KEY:-$ROLE}" ;; esac
 ```
 Discovery runs against THIS worktree's repo (`gh` resolves it from cwd). Each list is one cheap `gh issue list --search "...status:* label..."` — list, don't act.
 

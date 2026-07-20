@@ -6,7 +6,16 @@ You **drain your queue**, role-aware, off the cheap `status:*` **label index** �
 
 **Discovery is a cheap REST/Search query on the `status:*` label index — never `gh project item-list`.** The board's Status field is the canonical record + the visual kanban; the matching `status:*` **issue label** is its discovery mirror, so you find work server-filtered on the **REST budget** (the 300-item Projects-v2 GraphQL read is what exhausts the rate limit — it has no server-side Status filter, so it pulls everything to use one). Resolve once:
 ```
-ROLE="${SEAT_ROLE:?run /check inside a seat pane}"; KEY="${SEAT_KEY:-$ROLE}"
+# seat identity: env first (terminal seat-launch exports it), else the worktree's
+# .env.local — the desktop-app / plugin path has no seat-launch, only the file.
+if [ -z "${SEAT_ROLE:-}" ] && [ -f .env.local ]; then
+  SEAT_ROLE="$(sed -n 's/^SEAT_ROLE=//p' .env.local | head -1)"
+  SEAT_LABEL="$(sed -n 's/^SEAT_LABEL=//p' .env.local | head -1)"
+  BOARD_ID="${BOARD_ID:-$(sed -n 's/^BOARD_ID=//p' .env.local | head -1)}"
+  BOARD_OWNER="${BOARD_OWNER:-$(sed -n 's/^BOARD_OWNER=//p' .env.local | head -1)}"
+fi
+ROLE="${SEAT_ROLE:?not a seat worktree — no SEAT_ROLE in env or ./.env.local}"
+case "${SEAT_LABEL:-}" in seat:*) KEY="${SEAT_LABEL#seat:}" ;; *) KEY="${SEAT_KEY:-$ROLE}" ;; esac
 # discovery runs against THIS worktree's repo (gh resolves it from cwd — no hardcode);
 # BOARD_ID/BOARD_OWNER are only needed for the dual-write field flip below.
 BOARD_ID="${BOARD_ID:-}"; BOARD_OWNER="${BOARD_OWNER:-}"
