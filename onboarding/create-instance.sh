@@ -94,14 +94,27 @@ done
 # ONE project per instance. Epics + stories + tasks all live here; the two audiences
 # are served by two VIEWS on this single project, not two projects:
 #   • Board view  — the 7-state Kanban (Status × Seat), the execution surface;
-#                   filter: has:status -status:Backlog,Merged,Released (active flow only)
+#                   filter: has:status -status:Backlog,Merged,Released,Cancelled (active flow only)
 #   • EPICS view  — a Table filtered to label:level:epic, with Sub-issues progress (the
 #                   owner+PM strategic roll-up that the old Program project used to be)
 # The Projects API can't create/configure views, so the two views are applied from a
 # golden template (copyProjectV2) or once in the UI — see workflow/project-boards.md.
 TITLE_CASE="$(printf '%s' "$INSTANCE" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')"
-echo "→ provisioning Delivery board (one project · EPICS view + Board view)"
-bash "$HERE/setup-board.sh" --owner "$OWNER" --title "$TITLE_CASE — Delivery" --template "$TPL/execution-board.json" --repo "$REPO"
+BOARD_TITLE="$TITLE_CASE — Delivery"
+# Reuse an existing board (GitHub has no project upsert — without this check a
+# re-run would stand up a DUPLICATE Delivery project).
+BOARD_NUM="$(gh project list --owner "$OWNER" --format json --limit 100 2>/dev/null \
+  | BT="$BOARD_TITLE" node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{try{const p=(JSON.parse(s).projects||[]).find(p=>p.title===process.env.BT);process.stdout.write(p?String(p.number):"")}catch(e){}})' || true)"
+if [ -n "$BOARD_NUM" ]; then
+  echo "→ Delivery board already exists — reusing project #$BOARD_NUM"
+else
+  echo "→ provisioning Delivery board (one project · EPICS view + Board view)"
+  BOARD_LOG="$(mktemp)"
+  bash "$HERE/setup-board.sh" --owner "$OWNER" --title "$BOARD_TITLE" --template "$TPL/execution-board.json" --repo "$REPO" | tee "$BOARD_LOG"
+  # the board number, for putting the seeded epics ON the board (setup-board prints "project #N")
+  BOARD_NUM="$(sed -n 's/.*project #\([0-9][0-9]*\).*/\1/p' "$BOARD_LOG" | tail -1)"
+  rm -f "$BOARD_LOG"
+fi
 
 # ── 4. standing epics ─────────────────────────────────────────────────────────
 echo "→ seeding standing epics in $REPO"
@@ -109,9 +122,22 @@ node -e '
 const fs=require("fs");const eps=JSON.parse(fs.readFileSync(process.argv[1],"utf8")).standing_epics;
 for(const e of eps) console.log([e.title,(e.labels||[]).join(","),e.body||""].join("\t"));
 ' "$TPL/labels.json" | while IFS=$'\t' read -r TITLE LBLS BODY; do
-  gh issue create --repo "$REPO" --title "$TITLE" --body "$BODY" --label "$LBLS" >/dev/null 2>&1 \
-    && echo "  + $TITLE" || echo "  · $TITLE (exists or label missing)"
+  # `gh issue create` has no upsert — search by title first, or every re-run
+  # would seed the standing epics again.
+  EXISTS="$(gh issue list --repo "$REPO" --state all --search "in:title \"$TITLE\"" --json number --jq '.[0].number' 2>/dev/null || true)"
+  if [ -n "$EXISTS" ]; then
+    echo "  · $TITLE (exists — #$EXISTS)"
+  elif URL="$(gh issue create --repo "$REPO" --title "$TITLE" --body "$BODY" --label "$LBLS" 2>/dev/null)"; then
+    echo "  + $TITLE"
+    # one project holds the whole hierarchy — the epic must live ON the board, not just in the repo
+    [ -n "$BOARD_NUM" ] && gh project item-add "$BOARD_NUM" --owner "$OWNER" --url "$URL" >/dev/null 2>&1 \
+      && echo "    ↳ on board #$BOARD_NUM" || true
+  else
+    echo "  ! $TITLE — creation FAILED (missing labels? run the labels step first)"
+  fi
 done
 
 echo "✓ instance '$INSTANCE' provisioned."
-echo "  next: on the Delivery project, apply the two views — an EPICS view (Table · filter label:level:epic · Sub-issues progress) + a Board view (kanban · Status × Seat · filter has:status -status:Backlog,Merged,Released) — from the golden template or the UI (the Projects API can't create views); set it as the repo's default; then steer the first epic (workflow/state-machine.md)."
+# machine-readable hand-off — bootstrap.sh reads this line for .env.local
+echo "BOARD_NUM=${BOARD_NUM:-}"
+echo "  next: on the Delivery project, apply the two views — an EPICS view (Table · filter label:level:epic · Sub-issues progress) + a Board view (kanban · Status × Seat · filter has:status -status:Backlog,Merged,Released,Cancelled) — from the golden template or the UI (the Projects API can't create views); set it as the repo's default; then steer the first epic (workflow/state-machine.md)."

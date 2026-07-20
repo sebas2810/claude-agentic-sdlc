@@ -21,8 +21,8 @@ GitHub sub-issues.
 ## The one project
 
 One project **per instance**, linked to the product repo. It holds **everything** —
-epics, stories, tasks. Canonical `Status` (the 7-state Kanban + `Blocked`) plus
-custom fields (`WSJF`, `Priority`, `Level`, `Seat`, `Target`, `Area`).
+epics, stories, tasks. Canonical `Status` (the 7-state Kanban + `Blocked` +
+`Cancelled`) plus custom fields (`WSJF`, `Priority`, `Level`, `Seat`, `Target`, `Area`).
 
 ## The two views
 
@@ -33,12 +33,12 @@ grouped **Status × Seat** (a swim-lane per producer), filtered to live work wit
 the canonical Board filter:
 
 ```
-has:status -status:Backlog,Merged,Released
+has:status -status:Backlog,Merged,Released,Cancelled
 ```
 
-— i.e. require a Status, and hide `Backlog` (not yet steered), `Merged`, and
-`Released` (done). What's left is the active flow: `Scoped → In Progress →
-Delivered → Tested` (+ `Blocked`). The SM/runner, the engineer seats, and the
+— i.e. require a Status, and hide `Backlog` (not yet steered), `Merged`,
+`Released` (done), and `Cancelled` (closed unshipped). What's left is the active
+flow: `Scoped → In Progress → Delivered → Tested` (+ `Blocked`). The SM/runner, the engineer seats, and the
 Quality seat operate here.
 
 ### EPICS view — the strategic roll-up

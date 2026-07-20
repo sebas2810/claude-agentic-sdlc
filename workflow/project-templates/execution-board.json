@@ -12,7 +12,8 @@
       { "name": "Tested", "color": "PURPLE", "description": "independent verification PASS against the AC" },
       { "name": "Merged", "color": "PINK", "description": "adjudicated + squash-merged to main" },
       { "name": "Released", "color": "GREEN", "description": "deployed + verified in target env; issue closed" },
-      { "name": "Blocked", "color": "RED", "description": "a consult-exception or owner-touchpoint is pending" }
+      { "name": "Blocked", "color": "RED", "description": "a consult-exception or owner-touchpoint is pending" },
+      { "name": "Cancelled", "color": "GRAY", "description": "closed without shipping (NOT_PLANNED: duplicate · won't-do · obsolete)" }
     ]
   },
   "fields": [

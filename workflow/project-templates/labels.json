@@ -1,5 +1,5 @@
 {
-  "description": "The portable label taxonomy (see workflow/naming-conventions.md). level + type + priority are flat string labels; state lives in the Project Status field, never a label.",
+  "description": "The portable label taxonomy (see workflow/naming-conventions.md). level + type + priority are flat string labels; state is canonical on the Project Status field, mirrored by the status:* routing index (dual-write — see onboarding/board-label-sync.md). seat:* lane labels are created per chosen seat by bootstrap.sh.",
   "labels": [
     { "name": "level:initiative", "color": "5319e7", "description": "strategic outcome (quarters), owner-framed" },
     { "name": "level:epic", "color": "8250df", "description": "shippable capability; the unit of steering" },
@@ -19,7 +19,17 @@
     { "name": "priority:P0", "color": "b60205", "description": "incident / interrupt — preempts WSJF order" },
     { "name": "priority:P1", "color": "e99695", "description": "high" },
     { "name": "priority:P2", "color": "f9d0c4", "description": "normal" },
-    { "name": "priority:P3", "color": "fef2c0", "description": "low" }
+    { "name": "priority:P3", "color": "fef2c0", "description": "low" },
+
+    { "name": "status:backlog", "color": "CCCCCC", "description": "Routing index: awaiting PM framing" },
+    { "name": "status:scoped", "color": "FBCA04", "description": "Routing index: framed + AC, claimable" },
+    { "name": "status:in-progress", "color": "1D76DB", "description": "Routing index: claimed, building" },
+    { "name": "status:delivered", "color": "0E8A16", "description": "Routing index: PR open, awaiting QA" },
+    { "name": "status:tested", "color": "5319E7", "description": "Routing index: QA PASS, awaiting SM merge" },
+    { "name": "status:merged", "color": "6F42C1", "description": "Routing index: merged to main" },
+    { "name": "status:released", "color": "0052CC", "description": "Routing index: released" },
+    { "name": "status:blocked", "color": "B60205", "description": "Routing index: blocked consult-exception" },
+    { "name": "status:cancelled", "color": "6A737D", "description": "Routing index: cancelled — closed without shipping (NOT_PLANNED)" }
   ],
   "standing_epics": [
     { "title": "Epic: Maintenance & Tech Debt", "body": "Standing epic. Parents chores, refactors, dep bumps, CI work that isn't part of a feature epic. See workflow/hierarchy.md.", "labels": ["level:epic", "type:chore"] },

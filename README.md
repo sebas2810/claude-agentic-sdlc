@@ -24,12 +24,34 @@ below). The reference instance lives under instance/<name>/.
 
 ## Quickstart
 
-Stand up a whole instance — labels, board, standing epics, a worktree + seat
-identity per role, and double-clickable seat apps — with one interactive command:
+Two commands from a clone of this repo to a running instance.
+
+**1. Vendor the framework into your product repo** (creates + `git init`s it if
+new, stamps a root `CLAUDE.md`; with `--repo` it also publishes the repo to
+GitHub, which bootstrap needs — the labels, issues, and board live there):
 
 ```bash
-bash agentic-sdlc/onboarding/bootstrap.sh
+bash onboarding/vendor-framework.sh --into ~/Code/my-product --repo <you>/my-product
 ```
+
+**2. Stand up the whole instance** — labels (incl. the `status:*` routing index
++ `seat:*` lanes), one Delivery board, the standing epics, an optional guided
+first epic, the enforcement hooks, a worktree + seat identity per **named seat**,
+and double-clickable seat apps — with one command from the product repo:
+
+```bash
+cd ~/Code/my-product && bash agentic-sdlc/onboarding/bootstrap.sh
+```
+
+All bespoke choices live in **one committed file, `sdlc.config`** (instance ·
+repo · seats as `role:Name` pairs · git identity · AWS profile — never secrets;
+tokens stay in each worktree's gitignored `.env.local`). First run: a wizard
+asks, **suggests seat names** (Pim · Finn · Cas · Noor · Vera · …), and writes
+the file; each seat's checkout, branch, and `.app` are named after it
+(`~/Code/my-product-finn`, `Finn.app`). Re-runs read the config and are
+idempotent — edit `sdlc.config` + re-run to change anything, or run
+`bootstrap.sh --yes` non-interactively (see
+[`onboarding/sdlc.config.example`](onboarding/sdlc.config.example)).
 
 It prompts for the repo, owner, seats, and git identity, then provisions
 everything and prints how to start. Full walkthrough + the manual/by-hand steps:
@@ -121,19 +143,26 @@ agentic-sdlc/
 
 To run this SDLC for your own product:
 
-**Golden path** — `onboarding/create-instance.sh --instance <you> --owner <gh-login> --repo <owner/repo>`
-scaffolds the overlay skeleton, creates the [label taxonomy](workflow/project-templates/labels.json) +
-the standing epics, and provisions both boards (Program + Execution) from the
+**Golden path** — `onboarding/vendor-framework.sh --into <your-repo>` then
+`bash agentic-sdlc/onboarding/bootstrap.sh` inside it (the Quickstart above) —
+bootstrap drives `create-instance.sh`, which scaffolds the overlay skeleton,
+creates the [label taxonomy](workflow/project-templates/labels.json) +
+the standing epics, and provisions the Delivery board from the
 [templates](workflow/project-templates/). Then refine by hand:
 
-1. **Take the framework** — everything outside `instance/`.
+1. **Take the framework** — `vendor-framework.sh` copies everything into
+   `<your-repo>/agentic-sdlc/`.
 2. **Replace the overlay.** Delete `instance/<your-instance>/` and create `instance/<you>/` with your own:
    - `skills/` — your Principal-grade engineer skills (the *model* is [`skills/INDEX.md`](skills/INDEX.md));
    - `rules/` — your stack-specific feedback rules (the portable ones stay in [`feedback/`](feedback/INDEX.md));
    - `engineering-standard.md` — your concrete tiered bar on top of the [framework floor](engineering-standard.md);
    - `product-mapping.md` — how the 7 principles govern the agents *your* product ships.
 3. **Configure a seat** — `cp onboarding/.env.local.example .env.local`, fill it in, then `source onboarding/setup-seat.sh`. It sets the per-worktree identity and scaffolds the seat-identity file + SessionStart injection (native start).
-4. **Wire the gates** — the framework rules are enforced by hooks under `.claude/hooks/` (no-push-to-main, no-AI-attribution, rebase-before-push, run-gates). Repoint any instance-specific paths at your overlay.
+4. **Wire the gates** — `bootstrap.sh` installs the shipped PreToolUse git guard
+   ([`onboarding/hooks/guard-git.sh`](onboarding/hooks/guard-git.sh):
+   no-push-to-main, no-AI-attribution, rebase-before-push) into your product
+   root `.claude/` and stamps a root `CLAUDE.md` — commit both. Add your own
+   instance-specific hooks (e.g. run-gates) alongside it.
 5. **Grow it** — capture new lessons via the learning loop ([`learning-loop/how-to-capture-a-rule.md`](learning-loop/how-to-capture-a-rule.md)); on any conflict, the spine wins.
 
 The framework is product-agnostic; only `instance/<you>/` is yours to write.

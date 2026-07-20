@@ -30,19 +30,39 @@ micro-gate; the engineer stops to consult the PM only for the **3
 consult-exceptions** (out-of-scope, a better solution, an external blocker),
 resolved on the GitHub thread.
 
-## Quickstart — one command
+## Quickstart — two commands
 
-Forked/cloned the repo? Stand up the **entire instance** in one interactive
-command — the label taxonomy, one Delivery project (Board + EPICS views), the
-standing epics, one isolated git **worktree + seat identity per role**, and a
-double-clickable **seat app** per role:
+**Starting a new product?** Vendor the framework into it first (from a clone of
+the framework repo — creates + inits the product repo if needed, stamps a root
+`CLAUDE.md` + `.gitignore`, and **publishes the repo to GitHub** — bootstrap
+requires the repo to exist there, because the labels, issues, and board live on
+it; without `--repo`, commit and publish by hand before bootstrapping):
 
 ```bash
-bash agentic-sdlc/onboarding/bootstrap.sh
+bash onboarding/vendor-framework.sh --into ~/Code/<your-product> --repo <you>/<your-product>
 ```
 
-It asks for your repo, owner, instance name, seats, git identity, and (optionally)
-an AWS profile; prints a summary; and on your typed `yes` provisions everything.
+Then stand up the **entire instance** in one interactive command — the label
+taxonomy (incl. the `status:*` routing index + per-seat `seat:*` lanes), one
+Delivery project (Board + EPICS views), the standing epics, an optional guided
+**first epic**, the **enforcement hooks** (PreToolUse git guard: no-push-to-main
+· no-AI-attribution · rebase-before-push), one isolated git **worktree + seat
+identity per role**, and a double-clickable **seat app** per role:
+
+```bash
+cd ~/Code/<your-product> && bash agentic-sdlc/onboarding/bootstrap.sh
+```
+
+All bespoke configuration lives in **one committed file at the product root:
+`sdlc.config`** — instance, repo, owner, the seats as `role:Name` pairs, git
+identity, AWS profile (never secrets — tokens go in each worktree's gitignored
+`.env.local`). On first run a wizard asks for each value, **suggests a name per
+seat** (Pim · Finn · Cas · Noor · Vera · …), writes `sdlc.config`, prints a
+summary, and on your `yes` provisions everything. Every seat is then named
+end-to-end: checkout `~/Code/<your-product>-<name>` on branch `seat/<name>`,
+launcher + `.app` called `<Name>`. Re-runs read `sdlc.config` and are
+idempotent (the board is reused, not duplicated) — edit the file + re-run to
+change seats or identity, or `bootstrap.sh --yes` for non-interactive runs.
 When it finishes, open a seat (double-click its `.app`, or `cd` its worktree and
 run `claude`) and type `/check` to pull the first work item from the board.
 
@@ -53,12 +73,15 @@ customize, to do it by hand, or to understand what got set up.
 
 | Tool | Version | How |
 |---|---|---|
-| Claude Code | latest | https://claude.com/claude-code |
-| VS Code | latest | https://code.visualstudio.com/ |
+| Claude Code | latest | `curl -fsSL https://claude.ai/install.sh \| bash` (https://claude.com/claude-code) |
 | `gh` CLI | latest | `brew install gh` |
-| `node` | 22.x | `nvm install 22` |
+| `node` | 22.x | `nvm install 22` (or `brew install node`) |
 | `git` | 2.40+ | `brew install git` |
-| AWS CLI | v2 | for ECS / CloudWatch diagnostics |
+| `jq` | 1.6+ | `brew install jq` — setup-seat's hook wiring + the git guard need it |
+| AWS CLI | v2 | optional — for cloud diagnostics / the Bedrock route |
+| VS Code | latest | **optional** — every seat runs in a terminal; an IDE is for the human reading code, never required by a seat |
+
+Windows: run everything in WSL (Ubuntu) — the framework's scripts are bash.
 
 ## Step 1: Clone
 
@@ -97,17 +120,21 @@ EPIC when you pick one up. The file is gitignored (per-worktree, never shared).
 
 ## Step 3: Two Claude Code sessions
 
-**Terminal (PM seat):**
+Every seat is a terminal pane — one `claude` per seat worktree. (Prefer an IDE?
+The Claude Code panel in VS Code works identically; optional, never required.)
+
+**Terminal 1 (PM seat):**
 ```bash
-cd ~/Code/<your-repo>
+cd ~/Code/<your-repo>-pm
 claude
 # Auto-loads CLAUDE.md → read the spine, then seats/pm/KICKOFF.md
 ```
 
-**VS Code (Engineer seat):**
+**Terminal 2 (Engineer seat):**
 ```bash
-code ~/Code/<your-repo>
-# Open the Claude Code panel → read the spine, then seats/engineer/KICKOFF.md
+cd ~/Code/<your-repo>-engineer
+claude
+# Auto-loads CLAUDE.md → read the spine, then seats/engineer/KICKOFF.md
 ```
 
 Both sessions launch **interactive** and stay idle until you run `/check` in a

@@ -27,6 +27,11 @@ One label per `Status` option (board order), prefix `status:`:
 
 ## One-time setup (per repo on the board)
 
+> Since v1.11 the `status:*` set ships in
+> [`labels.json`](../workflow/project-templates/labels.json), so
+> `create-instance.sh` / `bootstrap.sh` create it automatically — the snippet
+> below is for repos provisioned before that (or created by hand).
+
 Create the label set (idempotent — `--force` updates if present):
 
 ```bash
