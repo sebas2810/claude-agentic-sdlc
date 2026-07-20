@@ -14,10 +14,10 @@ you build and the process you build it with.
 
 **Two layers.** Everything at the top of this folder is the **generic framework**
 (spine, seats, the skill model, learning-loop, onboarding + native-start, the
-portable rules, the production-ready floor). [`instance/<your-instance>/`](instance/<your-instance>/)
+portable rules, the production-ready floor). `instance/<your-instance>/`
 is the **instance overlay** — the product-specific skills, rules, standard, and
 product-mapping. **To fork: keep the framework, swap the overlay** (see *Fork it*
-below). The reference instance lives under instance/<name>/.
+below). `instance/orbis/` is the shipped reference instance — replace it with your own.
 
 > This folder is the single source for how the SDLC works. Everything here is
 > live — no history, no old versions.
@@ -190,7 +190,7 @@ the standing epics, and provisions the Delivery board from the
 
 1. **Take the framework** — `vendor-framework.sh` copies everything into
    `<your-repo>/agentic-sdlc/`.
-2. **Replace the overlay.** Delete `instance/<your-instance>/` and create `instance/<you>/` with your own:
+2. **Replace the overlay.** Delete the shipped reference overlay (`instance/orbis/`) and create `instance/<you>/` with your own:
    - `skills/` — your Principal-grade engineer skills (the *model* is [`skills/INDEX.md`](skills/INDEX.md));
    - `rules/` — your stack-specific feedback rules (the portable ones stay in [`feedback/`](feedback/INDEX.md));
    - `engineering-standard.md` — your concrete tiered bar on top of the [framework floor](engineering-standard.md);

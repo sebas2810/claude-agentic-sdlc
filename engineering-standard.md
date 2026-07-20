@@ -1,6 +1,6 @@
 # Engineering Standard — the production-ready floor
 
-> **The floor.** Every change ships production-ready. This is the generic, portable bar; an instance defines the concrete *tiered* standard + per-area "done means" on top of it (the instance: the firmwide **ADR-0006** Tier-1/Tier-2 model + [`instance/<your-instance>/engineering-standard.md`](instance/<your-instance>/engineering-standard.md)).
+> **The floor.** Every change ships production-ready. This is the generic, portable bar; an instance defines the concrete *tiered* standard + per-area "done means" on top of it (e.g., the reference instance: its ADR-0006 Tier-1/Tier-2 model, in `instance/orbis/engineering-standard.md`).
 
 ## Non-negotiable — production-ready only
 
@@ -39,4 +39,4 @@ This bar is the portable floor. An instance adds, in its overlay:
 - its **per-area "done means"** — what "done" is for each subsystem, with falsifiable evidence;
 - its **hygiene contract** — PR conventions, status-flip discipline, the citation format.
 
-the instance's live at [`instance/<your-instance>/engineering-standard.md`](instance/<your-instance>/engineering-standard.md), under the firmwide ADR-0006 tiered model.
+Yours goes at `instance/<you>/engineering-standard.md`; the reference instance's lives at `instance/orbis/engineering-standard.md`, under its ADR-0006 tiered model.

@@ -3,13 +3,13 @@
 > Root: the spine [`../agentic-operating-model.md`](../agentic-operating-model.md).
 > Read it first - it is the model everything below operationalises.
 
-A "pair" in the instance is **one PM seat + one engineer seat**, both Claude Code,
+A "pair" is **one PM seat + one engineer seat**, both Claude Code,
 coordinating over GitHub. The human is the **owner**. This walks you through
 getting productive in that model on day 1.
 
 ## The model in one paragraph
 
-the instance is an agentic platform built by an agentic SDLC, both on one root
+Your instance is an agentic platform built by an agentic SDLC, both on one root
 (Building Effective Agents). Delivery is a fixed-phase workflow: the **owner**
 frames the master EPIC; the **PM-orchestrator** steers it (scope + WP
 decomposition + pre-committed acceptance criteria); the **Engineer-Principal**
@@ -19,11 +19,13 @@ against its pre-committed AC (produce != adjudicate); the **SM** merges on a QA
 PASS and runs the staging-promote ceremony (Merged → Released);
 the owner owns PROD. The framework is **operator-driven** (a single mode): the
 human is the orchestrator. Each seat is an interactive pane, idle until the
-operator runs `/check` in it; then it **drains its queue** — reads the board
-once, then handles every item eligible for its role in that snapshot (item →
-report → next) until none remain, then idles. The drain is operator-initiated
-and bounded by the work that exists now (one board read per `/check`); once the
-queue is empty the seat stops re-reading the board — no self-loop, no board
+operator runs `/check` in it; then it **drains its queue** — each discovery is
+one cheap `gh issue list --search` on the `status:*` label index (never the
+expensive 300-item board read), re-run per item: handle an eligible item (item →
+report → next) until none remain, then idle. The drain is operator-initiated
+and bounded by the work that exists now (re-querying per item is cheap REST — no
+snapshot semantics); once the
+queue is empty the seat stops re-querying — no self-loop, no board
 polling, no idle-poll. The
 pre-committed steer is what clears the build, so there is no per-unit "do X"
 micro-gate; the engineer stops to consult the PM only for the **3
@@ -168,7 +170,8 @@ claude
 
 Both sessions launch **interactive** and stay idle until you run `/check` in a
 seat — operator-driven: the seat then **drains its queue** — pulls its next
-workload from the board, does it, reports, pulls the next from the same snapshot,
+workload off the `status:*` label index (one cheap `gh issue list --search` per
+item), does it, reports, re-runs the query for the next,
 repeating until none remain for its role, then idles (`/board` is your overview).
 They don't share memory - they coordinate via GitHub. The owner is never the relay between them
 (spine invariant 7).
@@ -176,21 +179,24 @@ They don't share memory - they coordinate via GitHub. The owner is never the rel
 ### Optional: one-click seat apps (instead of a bare `claude` window)
 
 Once a seat's worktree is configured (Step 2.5), you can generate a **double-clickable
-launcher + macOS `.app`** for it — a titled window ("Engineer - Dex"), the right
+launcher + macOS `.app`** for it — a titled window ("Engineer - Finn"), the right
 worktree + git identity, the operator commands auto-installed, and an interactive
 operator-driven `claude`. You generate your **own** (the launchers hardcode local
 paths, so they're never shipped pre-built — but the generators below ship with the framework):
 
 ```bash
 # one .command per seat (run once per configured seat worktree)
-agentic-sdlc/onboarding/make-launcher.sh --worktree ~/Code/<your-repo>-dex --out ~/Code/agents/<instance>
+agentic-sdlc/onboarding/make-launcher.sh --worktree ~/Code/<your-repo>-finn --out ~/Code/agents/<instance>
 # wrap every .command in that dir into a double-clickable .app (macOS)
 agentic-sdlc/onboarding/build-apps.sh --dir ~/Code/agents/<instance>
 ```
 
 Double-click the `.app` (or `open <seat>.command`) to launch that seat. All runtime
 logic lives in `seat-launch.sh`, so the app **inherits every framework update for free**
-— no rebuild when the framework changes. (Drop a `icons/<seat>.icns` next to the `.command`
+— no rebuild when the framework changes. **Know what you're launching:** `seat-launch.sh`
+starts `claude` with `--permission-mode acceptEdits`, so a launched seat pane
+**auto-accepts file edits** in its worktree (bash commands and the git guard still
+prompt/gate as normal) — prefer a bare `claude` if you want per-edit approval. (Drop a `icons/<seat>.icns` next to the `.command`
 and re-run `build-apps.sh` to brand it.)
 
 ## Step 4: Read order (both seats, first session)
@@ -214,8 +220,8 @@ engineer does not wait for a per-unit go-signal after it.
 
 ```bash
 gh issue view <epic-#> --json assignees,milestone,labels
-# PM: flip Project #4 status to In Progress before the first PR
-# (per instance/<your-instance>/rules/flip-epic-status-when-starting.md)
+# PM: flip the epic's status to In Progress on your Delivery project before the
+# first PR (dual-write: status:* label + board Status field)
 ```
 
 ## Step 6: The delivery loop (phases 3-8)
@@ -226,8 +232,8 @@ git fetch origin main
 git checkout -B feat/<epic-#>-<slug> origin/main
 
 # build the whole EPIC on one branch (branch-per-EPIC)
-tsx infra/scripts/check-agent-readme-drift.ts
-tsx infra/scripts/check-agent-type-coverage.ts
+# run your instance's gates — see your instance overlay's engineering-standard.md
+# (e.g., the reference instance runs `npm run gates:agents`)
 
 git fetch origin main && git rebase origin/main   # always rebase before push
 git push -u origin feat/<epic-#>-<slug>
@@ -287,7 +293,7 @@ with a recommendation - it does not become a relay through the owner.
 ## Step 8: Drain your queue, then stop
 
 When the operator runs `/check`, **drain your role's eligible queue** — handle
-each item, report, pull the next from the same board snapshot, repeating until
+each item, report, re-run your role's cheap label-index query for the next, repeating until
 none remain — then **stop and idle**. The drain is operator-initiated and
 bounded by the work that exists now (each unit still passes its gate). Stop at
 empty: no polling loop, no `/loop`, no `ScheduleWakeup`, no idle re-reading once
@@ -311,7 +317,7 @@ Project rules go in the repo `agentic-sdlc/`, never personal memory.
 
 - **Claude Code didn't auto-load CLAUDE.md?** You're not at repo root / a recognized worktree.
 - **PR CI failing on a check you didn't change?** [`../feedback/workflow/dont-block-on-irrelevant-ci.md`](../feedback/workflow/dont-block-on-irrelevant-ci.md)
-- **Smoke failing on DEV but Lambda looks fine?** [`../instance/<your-instance>/rules/dev-ecs-scale-to-zero.md`](../instance/<your-instance>/rules/dev-ecs-scale-to-zero.md)
+- **Smoke failing on a deployed env that scales to zero?** See your instance overlay's rules (e.g., the reference instance documents this in `instance/orbis/rules/dev-ecs-scale-to-zero.md`)
 - **Don't know what's next?** If you're the engineer mid-EPIC, the steer already cleared it - continue. If you hit a consult-exception, post it on the thread (not chat). The PM responds there.
 
 ## First week

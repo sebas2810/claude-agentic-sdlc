@@ -10,14 +10,14 @@ last-confirmed: 2026-05-13
 
 ## Rule
 
-A milestone shift is an **owner-touchpoint**: never move an issue between milestones on a seat's own initiative (not even mid-`/check`), **especially master EPICs**. Always surface as a recommendation; wait for explicit Sebastiaan approval before applying.
+A milestone shift is an **owner-touchpoint**: never move an issue between milestones on a seat's own initiative (not even mid-`/check`), **especially master EPICs**. Always surface as a recommendation; wait for the owner's explicit approval before applying.
 
 ## Why
 
 - Milestone is the strategic timeline visible to Capgemini leadership
 - Master EPIC milestone shifts implicitly reschedule the programme
 - Even small shifts ("just from v1.1.0 to v1.2.0") signal scope-slip to anyone watching the board
-- Sebastiaan needs to be IN the decision, not informed after
+- The owner needs to be IN the decision, not informed after
 
 ## How to apply
 
@@ -50,7 +50,7 @@ Setting an initial milestone when an issue is CREATED is fine — it's not a SHI
 Then it's just applying their decision. Confirm understanding in the comment:
 
 ```bash
-gh issue comment <n> --body "Per Sebastiaan's call in <conversation reference>: 
+gh issue comment <n> --body "Per the owner's call in <conversation reference>: 
 shifting #<n> from <milestone-a> to <milestone-b>. <why>."
 gh issue edit <n> --milestone <milestone-b>
 ```

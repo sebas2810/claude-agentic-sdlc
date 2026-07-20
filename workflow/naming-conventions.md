@@ -1,7 +1,7 @@
 ---
 title: Naming Conventions — titles, labels, branches
 status: active
-scope: all-seats, both modes
+scope: all-seats
 ---
 
 # Naming Conventions

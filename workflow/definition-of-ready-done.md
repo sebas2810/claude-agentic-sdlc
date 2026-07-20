@@ -1,7 +1,7 @@
 ---
 title: Definition of Ready / Definition of Done — the gates between states
 status: active
-scope: all-seats, both modes
+scope: all-seats
 ---
 
 # Definition of Ready / Definition of Done
@@ -19,7 +19,7 @@ without judgement.
 
 ## Definition of Ready — the gate `Backlog → Scoped`
 
-An item is **Ready** when the steer has made it dispatchable. Every box is
+An item is **Ready** when the steer has made it claimable. Every box is
 falsifiable; a single unchecked box keeps it in `Backlog`.
 
 - [ ] **One clear outcome.** Scope is a single user-visible result, stated in one
@@ -30,7 +30,7 @@ falsifiable; a single unchecked box keeps it in `Backlog`.
 - [ ] **Sized.** Fits one branch / one PR. If it doesn't, split it (relative
   sizing — see [`prioritization.md`](prioritization.md), the "sized" check).
 - [ ] **Parented to an Epic.** Carries its Epic link per
-  [`hierarchy.md`](hierarchy.md). An orphan Story has no steer to dispatch from.
+  [`hierarchy.md`](hierarchy.md). An orphan Story has no steer to build from.
 - [ ] **Dependencies known.** Upstream items / data / access are named and
   available, or the item is explicitly `Blocked`, not `Ready`.
 - [ ] **No open product/strategic question.** If a decision is owner-class, it is

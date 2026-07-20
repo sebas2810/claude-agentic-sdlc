@@ -24,6 +24,7 @@ One label per `Status` option (board order), prefix `status:`:
 | `status:merged` | Merged to main |
 | `status:released` | Released (staging/canary) |
 | `status:blocked` | Blocked (consult-exception) |
+| `status:cancelled` | Cancelled (terminal — closed without shipping; the board mirror of a `NOT_PLANNED` close, never parked in `Released`) |
 
 ## One-time setup (per repo on the board)
 
@@ -44,6 +45,7 @@ create "status:tested"      "5319E7" "Routing index: QA PASS, awaiting SM merge"
 create "status:merged"      "6F42C1" "Routing index: merged to main"
 create "status:released"    "0052CC" "Routing index: released"
 create "status:blocked"     "B60205" "Routing index: blocked consult-exception"
+create "status:cancelled"   "6A737D" "Routing index: cancelled — closed without shipping (NOT_PLANNED)"
 ```
 
 **Backfill existing items** (one-time, costs the *one* expensive board read — run it
@@ -58,7 +60,7 @@ gh project item-list "$BOARD_ID" --owner "$BOARD_OWNER" --format json --limit 30
     case "$status" in
       Backlog) L=status:backlog;; Scoped) L=status:scoped;; "In Progress") L=status:in-progress;;
       Delivered) L=status:delivered;; Tested) L=status:tested;; Merged) L=status:merged;;
-      Released) L=status:released;; Blocked) L=status:blocked;; *) continue;;
+      Released) L=status:released;; Blocked) L=status:blocked;; Cancelled) L=status:cancelled;; *) continue;;
     esac
     gh issue edit "$num" --add-label "$L" 2>/dev/null && echo "#$num -> $L"
   done

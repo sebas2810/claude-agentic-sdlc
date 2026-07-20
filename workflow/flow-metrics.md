@@ -1,7 +1,7 @@
 ---
 title: Flow & DORA metrics — reading the board's movement
 status: active
-scope: all-seats, both modes
+scope: all-seats
 ---
 
 # Flow & DORA Metrics
@@ -52,8 +52,8 @@ duration of `Blocked → (prior)` on items tagged as incidents.
 The Flow seat (the [runner](../seats/scrum-master/KICKOFF.md)) reads these each
 tick and acts on three of them:
 
-- **WIP-limit enforcement.** WIP over its limit → the runner does **not** dispatch
-  the next `Scoped` item; it drives in-flight work to `Released` first. *Stop
+- **WIP-limit enforcement.** WIP over its limit → no seat pulls
+  the next `Scoped` item; in-flight work is driven to `Released` first. *Stop
   starting, start finishing* — the limits in [`state-machine.md`](state-machine.md)
   are the trigger.
 - **Aging alerts.** An item past its time-in-state threshold is surfaced like any

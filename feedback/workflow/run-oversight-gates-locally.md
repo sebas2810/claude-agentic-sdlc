@@ -10,21 +10,21 @@ last-confirmed: 2026-05-13
 
 ## Rule
 
-On any PR touching `agents/`, `infra/specialists/`, `infra/orchestrators/`, or agent READMEs, run the **full** local gate inventory before pushing — one command:
+On any PR touching your instance's gated paths, run your instance's **full** local gate suite before pushing — one command. The concrete command and the gated paths are your instance overlay's `engineering-standard.md`; e.g., the reference instance runs:
 
 ```bash
-npm run gates:agents
+npm run gates:agents   # e.g. — the reference instance's gate suite; use YOUR instance's command
 ```
 
-This runs all 11 blocking local gates (+ 2 report-only) and, on all-pass, stamps the diff's patch-id so the push guard lets the push through. Running only a subset is not "running the gates" — three CI failures in one session (#2161/#2162/#2172) came from following an older 2-gate version of this rule.
+Run the full inventory, not a subset — running only a subset is not "running the gates" (three CI failures in one reference-instance session, #2161/#2162/#2172, came from following an older 2-gate version of this rule).
 
 Fix any failures BEFORE the push. **Don't bypass gates** — fix the underlying issue.
 
 ## Why
 
 - CI runs these same gates; a local pre-flight saves a CI cycle when you've broken them
-- The README drift gate catches docs lagging behind code (a frequent source of confused engineers)
-- The type coverage gate ensures Strands tool definitions stay typed (caught a #-of-bugs in the original wire-up)
+- Drift gates catch docs lagging behind code (a frequent source of confused engineers)
+- Type/coverage gates catch classes of bugs before CI ever sees them
 - "It works locally, CI will catch the rest" is a poor habit — CI is for catching regressions, not for finding the bug you just wrote
 
 ## How to apply
@@ -32,25 +32,21 @@ Fix any failures BEFORE the push. **Don't bypass gates** — fix the underlying 
 After making changes, **commit first**, then before `git push`:
 
 ```bash
-# In repo root
-npm run gates:agents
+# In repo root — YOUR instance's gate command (see your overlay's engineering-standard.md)
+<your gate command>
 
 # If any gate FAILs, FIX the failure — don't push
-# - README drift: update the agent's README to match what the code does
-# - Type coverage: add missing type annotations to the affected @tool definition
-# - Runtime secrets: add the `# runtime-secret-ignore` marker where legitimate
-# - Skill content drift: re-run the skill-hash updater after SKILL.md edits
+# (e.g., in the reference instance: README drift → update the agent's README;
+#  type coverage → add the missing annotations; skill-content drift → re-run the hash updater)
 
 # Then push
 git push
 ```
 
-The pass-stamp is computed from the committed diff (`origin/main...HEAD`, patch-id based), so a clean rebase does not invalidate it — only changing your actual diff does.
-
 ## What "fix the failure" means
 
-- README drift → edit the README to describe what code currently does (don't just delete the README's claim)
-- Type coverage → add Pydantic models / type annotations to the @tool args + return shape
+- A drift gate → edit the doc to describe what the code currently does (don't just delete the doc's claim)
+- A coverage gate → add the missing types/tests, not an exclusion
 - If you genuinely think the gate is wrong, file an issue + DON'T bypass — discuss before adjusting
 
 ## NO --no-verify or skip-gate flags
@@ -58,16 +54,16 @@ The pass-stamp is computed from the committed diff (`origin/main...HEAD`, patch-
 You're not allowed to:
 - `git commit --no-verify` to bypass pre-commit hooks
 - `git push --no-verify` to bypass pre-push hooks
-- Add `skip-agent-oversight` to the PR
+- Add a skip-gate marker to the PR
 
 If the gate is wrong: fix the gate (separate PR). If your code is wrong: fix the code. There's no third option.
 
 ## Cautionary tale
 
-Pre-rule: engineer-seat pushed a `feat/<n>` PR with the README drift gate ignored (bypassed locally to "save time"). CI caught it. Engineer pushed a fix. CI caught a related type-coverage issue (cascade from the first). Engineer pushed a fix. ~25 min of CI cycles vs ~3 min of local runs upfront.
+Pre-rule: engineer-seat pushed a `feat/<n>` PR with a drift gate ignored (bypassed locally to "save time"). CI caught it. Engineer pushed a fix. CI caught a related type-coverage issue (cascade from the first). Engineer pushed a fix. ~25 min of CI cycles vs ~3 min of local runs upfront.
 
 Rule cost: 90 seconds local pre-flight. Saves: 20+ min per occurrence + reviewer's attention.
 
-## Enforcement (promoted from prose to gate, 2026-06-12)
+## Enforcement (instance-specific, promoted from prose to gate)
 
-The `.claude/hooks/bash-guard.mjs` PreToolUse hook **blocks** any `git push` whose committed diff touches `agents/**`, `docs/agents/**`, or agent-adjacent Lambda code unless `npm run gates:agents` has passed against that exact diff (patch-id stamp in `.git/gates-pass`). "I ran the gates" is now verified, not claimed.
+An instance can promote this rule from prose to a machine gate — e.g., the reference instance wires a PreToolUse hook (`.claude/hooks/bash-guard.mjs`) that **blocks** any `git push` whose committed diff touches gated paths unless its gate suite has passed against that exact diff (a patch-id stamp in `.git/gates-pass`, so a clean rebase doesn't invalidate it — only changing the actual diff does). The framework ships only the generic git guard; wire your own gate-enforcement hook in your instance.

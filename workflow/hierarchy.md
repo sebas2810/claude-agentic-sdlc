@@ -1,15 +1,15 @@
 ---
 title: The Work Hierarchy — Initiative → Epic → Story → Task
 status: active
-scope: all-seats, both modes
+scope: all-seats
 ---
 
 # The Work Hierarchy
 
 > **Every Story is nested under an Epic, and every Epic under an Initiative.**
-> An orphan Story has no steer to dispatch from — the Epic *is* the steer. No
+> An orphan Story has no steer to build from — the Epic *is* the steer. No
 > Epic, no acceptance-criteria context, no roadmap parent, nothing for
-> [`state-machine.md`](state-machine.md) to pull. The runner cannot dispatch
+> [`state-machine.md`](state-machine.md) to pull. A seat cannot pull
 > what it cannot trace.
 
 Four levels, one project, two views. The coarse levels (Initiative, Epic) set

@@ -246,7 +246,7 @@ Pre-blog review found the operating model strong but the enforcement almost enti
 
 ### Legacy archived + legacy names retired (same day, owner-directed)
 
-- The 8 superseded stub files (6 retired seat files under `seats/top-pm/` + `seats/sub-pm/`, plus `feedback/workflow/engineer-no-unilateral-decisions.md` and `feedback/seat-specific/engineer-seat-senior-architect.md`) moved via `git mv` to [`docs/archive/agentic-sdlc/`](../../archive/agentic-sdlc/README.md), waiving the last 6 days of the 30-day grace (owner call, pre-blog corpus cleanup). All live inbound references repointed (engineer KICKOFF's stale senior-architect pointer now goes to the Principal skills).
+- The 8 superseded stub files (6 retired seat files under `seats/top-pm/` + `seats/sub-pm/`, plus `feedback/workflow/engineer-no-unilateral-decisions.md` and `feedback/seat-specific/engineer-seat-senior-architect.md`) moved via `git mv` to `docs/archive/agentic-sdlc/` (a product-repo path; the framework repo ships no archive), waiving the last 6 days of the 30-day grace (owner call, pre-blog corpus cleanup). All live inbound references repointed (engineer KICKOFF's stale senior-architect pointer now goes to the Principal skills).
 - **Renamed:** `feedback/workflow/standing-by-means-polling.md` → `finish-report-stop.md` — the rule was inverted 2026-05-19 but kept its old name "so cross-refs resolve"; all 8 live cross-refs (incl. CLAUDE.md) now point at the new name, which finally matches the rule.
 - **Renamed:** `escalation/needs-top-pm-label.md` → `escalation/owner-touchpoints.md` — named after the retired `needs:top-pm` queue; content was already current.
 - Historical CHANGELOG entries below this one intentionally keep the old filenames — they are records of what happened, not live links.
@@ -287,7 +287,8 @@ Estimated wasted cycle time: ~30–60 min across the kickoff day. The sharpened 
 
 The deliberate reconciliation pass named in the spine's `## Scope honesty`.
 The spine ([`agentic-operating-model.md`](../agentic-operating-model.md)) and
-[`seats/engineer/authority.md`](../seats/engineer/authority.md) were the
+`seats/engineer/authority.md` (since folded into
+[`seats/engineer/KICKOFF.md`](../seats/engineer/KICKOFF.md)) were the
 ratified root + reference shape; everything below derives from them, nothing
 contradicts them. Staged on-branch only - **no commit, no push, no merge**.
 

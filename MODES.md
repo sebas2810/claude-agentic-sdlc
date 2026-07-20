@@ -9,11 +9,12 @@ scope: all-seats
 The framework is **operator-driven**: the **human is the orchestrator**. There is **no autonomous
 self-loop, no board polling, no events, no inbox**. Each seat is an interactive, watchable pane that
 stays **idle until the operator engages it**, then on **`/check`** (role-aware) **drains its queue** —
-it reads the board **once**, then handles every eligible item in that one snapshot (item → report →
-next-from-the-same-snapshot) until none remain for its role, then idles. The drain is bounded by the
-work that exists now and every unit still passes its normal gate; it costs **one** board read per
-`/check` (only cheap single-item mutations after), and once the queue is empty the seat does **not**
-keep re-reading the board (no idle-poll, no self-loop). The operator conducts the cadence:
+each discovery is one cheap `gh issue list --search` on the `status:*` **label index** (never the
+expensive 300-item board read), re-run per item to drain: take an eligible item, handle it, report,
+re-query for the next, until none remain for its role, then idle. The drain is bounded by the
+work that exists now and every unit still passes its normal gate; re-querying per item is cheap REST
+(no snapshot semantics), and once the queue is empty the seat does **not**
+keep re-querying (no idle-poll, no self-loop). The operator conducts the cadence:
 watch **`/board`** → run **`/check`** in the seat that should advance.
 
 > **History — what was removed and why.** An earlier "autonomous mode" had standing seats self-loop
@@ -32,14 +33,15 @@ watch **`/board`** → run **`/check`** in the seat that should advance.
    - **quality-engineer** → next `Delivered` → verify on the deployed env → PASS `Tested` / FAIL `Scoped` (+ comments — the engineer re-pulls it)
    - **scrum-master** → next `Tested` → validate (real QA verdict, CI green, PR clean) + merge (squash) → drive `Merged → Released`; plus board hygiene (explode Epics into sub-issues, WIP, sweep). On `Blocked`: for each `Blocked` consult-exception **verify the claims, then surface to the PM with a verdict** (legit / avoidable / needs-PM-call), never a bare relay.
    - **pm** → oversight + product: frame the next `Backlog` → `Scoped` with its pre-committed AC, re-frame a `Blocked` consult-exception the SM surfaced, own the roadmap + owner touchpoints, resolve the rare product/scope judgment the QA seat surfaces (not in the routine merge path). The PM **dual-writes its own scoping transitions** — `Backlog → Scoped` (framing) and `Blocked → Scoped` (re-framing): set the `status:*` label **and** the board `Status` field together; producers then pull `status:scoped` directly. The PM **still never merges** — the SM is the merge authority.
-3. **Drain your queue per `/check`, then idle.** Don't stop after one item — read the board **once** at
-   the start of the engagement, then after each item (report posted, status flipped) immediately pull
-   your role's next eligible item **from that same snapshot** and handle it (item → report → next),
-   until none remain for your role; then report `queue clear — idle` and **stop**. The drain is
-   **operator-initiated** and **bounded by the work that exists now**, every unit still passes its
-   normal gate (per-unit 4-eye intact — not autonomous EPIC-draining), and it costs **one** board read
-   regardless of queue depth (only cheap per-item mutations after — the rate-limit fix stays intact).
-   Once empty, do **not** keep re-reading the board (no idle-poll, no self-loop); the operator
+3. **Drain your queue per `/check`, then idle.** Don't stop after one item — after each item (report
+   posted, status flipped) immediately **re-run your role's cheap discovery query** (one
+   `gh issue list --search` on the `status:*` label index) and handle the next eligible item
+   (item → report → next), until none remain for your role; then report `queue clear — idle` and
+   **stop**. The drain is **operator-initiated** and **bounded by the work that exists now**, every
+   unit still passes its normal gate (per-unit 4-eye intact — not autonomous EPIC-draining), and
+   discovery never touches the expensive 300-item board read — re-querying per item is cheap REST,
+   so no snapshot is needed and the rate-limit fix stays intact.
+   Once empty, do **not** keep re-querying (no idle-poll, no self-loop); the operator
    re-engages you when new work lands.
 
 ## What is unchanged (the spine)

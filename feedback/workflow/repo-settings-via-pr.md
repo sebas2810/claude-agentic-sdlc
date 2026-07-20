@@ -10,7 +10,7 @@ last-confirmed: 2026-05-13
 
 ## Rule
 
-Mutations to repo settings need explicit Sebastiaan approval before firing. Even top-PM seat asks before:
+Mutations to repo settings need explicit owner approval before firing. Even the PM seat asks before:
 
 - `gh api PATCH /repos/.../*` — any settings mutation
 - `gh label create / delete` — label set changes (`gh label edit` for existing labels is fine)
@@ -24,7 +24,7 @@ Mutations to repo settings need explicit Sebastiaan approval before firing. Even
 - These actions affect ALL team members, not just one EPIC
 - Most are hard to reverse cleanly (label deletion loses history, branch protection drift can let bad code merge)
 - "Just one tiny tweak" → drift over time → settings nobody remembers configuring
-- Sebastiaan owns the strategic shape of the repo; he should approve shape-changes
+- The owner owns the strategic shape of the repo; they should approve shape-changes
 
 ## How to apply
 
@@ -45,7 +45,7 @@ Wait for explicit "yes, fire it" before running.
 
 ## Exceptions (auto-approved by this rule's existence)
 
-- Status flips on Project #4 (per [`../../instance/<your-instance>/rules/flip-epic-status-when-starting.md`](../../instance/<your-instance>/rules/flip-epic-status-when-starting.md)) — these are routine
+- Status flips on your Delivery project — these are routine (the reference instance codifies this in `instance/orbis/rules/flip-epic-status-when-starting.md`)
 - Existing-label-set assignment to issues/PRs — routine
 - `gh label edit` of an existing label's description/color — routine (but ask before creating new ones)
 - Issue body editing on EPICs you own — routine

@@ -15,7 +15,8 @@ PR rather than diverging silently.
 
 This is the **generic framework** spine — product-agnostic. How its principles
 map to the specific agent platform an instance ships is the instance's overlay
-(the instance's is [`instance/<your-instance>/product-mapping.md`](instance/<your-instance>/product-mapping.md)).
+(yours lives at `instance/<you>/product-mapping.md`; the reference instance's is
+`instance/orbis/product-mapping.md`).
 
 ## Thesis
 
@@ -35,8 +36,8 @@ as product. We do not maintain two bars.
 Each principle governs both the product an instance ships and the process it
 ships with — that is the isomorphism. The column below is the **process** (how
 we build); the **product** column (how these principles govern the agents your
-instance ships) is the instance's mapping — the instance's is in
-[`instance/<your-instance>/product-mapping.md`](instance/<your-instance>/product-mapping.md).
+instance ships) is the instance's mapping — your overlay's `product-mapping.md`
+(the reference instance's is `instance/orbis/product-mapping.md`).
 
 | Principle | Agentic SDLC (how we build) |
 |---|---|
@@ -55,7 +56,7 @@ instance ships) is the instance's mapping — the instance's is in
 | **1 Frame** | Human owner | Owner-only | Master-EPIC definition, product/strategic intent. Principle 7 (human owns the irreversible framing). |
 | **2 Steer** | PM-orchestrator | PM-autonomous | EPIC scope + WP decomposition + acceptance criteria pre-committed. Principle 1 (workflow scaffold) + 4 (orchestrator). |
 | **3 Plan** | Engineer-Principal | Engineer-autonomous within steer | Design proposed against the smallest sufficient shape. Principle 2 (start simple) + 3 (augmented atom). |
-| **4 Build** | Engineer-Principal (+ additional producer seats only for genuinely-independent parallel WPs) | Engineer-autonomous within steer + guardrails + skills | Branch-per-EPIC; the instance's augmented-atom platform floor (the instance: AgentCore-first + the 5-layer envelope). Principle 3 + 4. |
+| **4 Build** | Engineer-Principal (+ additional producer seats only for genuinely-independent parallel WPs) | Engineer-autonomous within steer + guardrails + skills | Branch-per-EPIC; the instance's augmented-atom platform floor (e.g., the reference instance: AgentCore-first + the 5-layer envelope). Principle 3 + 4. |
 | **5 Verify** | Deterministic evals | Non-negotiable, automated | Falsifiable, both-directions, anti-tautology. Canary before any irreversible step. Never LLM-self-grade. Principle 5 + 7. |
 | **6 Adjudicate + Integrate** | Scrum-Master (merge) | SM-autonomous, exactly once | Produce ≠ adjudicate: the independent QA seat verifies vs pre-committed criteria (Phase 5), then the SM — who did not author — validates the merge preconditions and squash-merges, once. Producer ≠ verifier ≠ merger. Principle 5. |
 | **7 Release** | Staging = SM ceremony; PROD = human owner | SM-autonomous (staging) / owner-only (PROD) | Irreversible release is human-owned. Principle 7. |
@@ -150,13 +151,13 @@ verifies → SM merges). The owner appears only for the gated class above
 
 ## Scaling the platform's agents
 
-Growing the instance's agent fleet follows the same 7 principles — workflow
+Growing your instance's agent fleet follows the same 7 principles — workflow
 scaffold + bounded autonomy within a step, the augmented-atom as the unit,
 evaluator ≠ producer at every tier, a single canonical tool surface, and a
 falsifiable bundled eval per agent or it is not "done". The instance's concrete
 agent-platform rules (its augmented-atom floor, the in-runtime-vs-cross-runtime
-split, the tool surface) live in its overlay — the instance's are in
-[`instance/<your-instance>/product-mapping.md`](instance/<your-instance>/product-mapping.md).
+split, the tool surface) live in its overlay — the reference instance's are in
+`instance/orbis/product-mapping.md`.
 
 ## Scope honesty
 
