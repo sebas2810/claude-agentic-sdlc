@@ -1,0 +1,16 @@
+{
+  "name": "agentic-sdlc",
+  "owner": {
+    "name": "Sebastiaan van Wijngaarden",
+    "email": "sebastiaan.van.wijngaarden@capgemini.com"
+  },
+  "description": "The agentic-SDLC framework's own marketplace — install the seat tooling as a versioned plugin instead of vendored file copies.",
+  "plugins": [
+    {
+      "name": "agentic-sdlc",
+      "source": "./",
+      "description": "Seat commands (/check · /board · /workload · /backlog) + the git guard + seat-brief injection.",
+      "category": "workflow"
+    }
+  ]
+}
