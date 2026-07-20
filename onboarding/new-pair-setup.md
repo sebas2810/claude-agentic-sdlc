@@ -34,10 +34,12 @@ resolved on the GitHub thread.
 
 **Starting a new product?** Vendor the framework into it first (from a clone of
 the framework repo — creates + inits the product repo if needed, stamps a root
-`CLAUDE.md`):
+`CLAUDE.md` + `.gitignore`, and **publishes the repo to GitHub** — bootstrap
+requires the repo to exist there, because the labels, issues, and board live on
+it; without `--repo`, commit and publish by hand before bootstrapping):
 
 ```bash
-bash onboarding/vendor-framework.sh --into ~/Code/<your-product>
+bash onboarding/vendor-framework.sh --into ~/Code/<your-product> --repo <you>/<your-product>
 ```
 
 Then stand up the **entire instance** in one interactive command — the label
@@ -51,8 +53,16 @@ identity per role**, and a double-clickable **seat app** per role:
 cd ~/Code/<your-product> && bash agentic-sdlc/onboarding/bootstrap.sh
 ```
 
-It asks for your repo, owner, instance name, seats, git identity, and (optionally)
-an AWS profile; prints a summary; and on your typed `yes` provisions everything.
+All bespoke configuration lives in **one committed file at the product root:
+`sdlc.config`** — instance, repo, owner, the seats as `role:Name` pairs, git
+identity, AWS profile (never secrets — tokens go in each worktree's gitignored
+`.env.local`). On first run a wizard asks for each value, **suggests a name per
+seat** (Pim · Finn · Cas · Noor · Vera · …), writes `sdlc.config`, prints a
+summary, and on your `yes` provisions everything. Every seat is then named
+end-to-end: checkout `~/Code/<your-product>-<name>` on branch `seat/<name>`,
+launcher + `.app` called `<Name>`. Re-runs read `sdlc.config` and are
+idempotent (the board is reused, not duplicated) — edit the file + re-run to
+change seats or identity, or `bootstrap.sh --yes` for non-interactive runs.
 When it finishes, open a seat (double-click its `.app`, or `cd` its worktree and
 run `claude`) and type `/check` to pull the first work item from the board.
 

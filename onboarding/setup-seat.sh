@@ -13,15 +13,19 @@ git config extensions.worktreeConfig true
 git config --worktree user.name  "$GIT_USER_NAME"
 git config --worktree user.email "$GIT_USER_EMAIL"
 
-# 2. AWS + GitHub for this session
-export AWS_PROFILE
+# 2. AWS + GitHub for this session (AWS only when the seat actually has a profile)
+[ -n "${AWS_PROFILE:-}" ] && export AWS_PROFILE
 [ -n "${GH_TOKEN:-}" ] && export GH_TOKEN
 
 # 3. verify + report
-AWS_ID="$(aws sts get-caller-identity --query Arn --output text 2>/dev/null || echo 'AWS creds NOT resolving — check AWS_PROFILE')"
+if [ -n "${AWS_PROFILE:-}" ]; then
+  AWS_ID="$(aws sts get-caller-identity --query Arn --output text 2>/dev/null || echo 'AWS creds NOT resolving — check AWS_PROFILE')"
+else
+  AWS_ID="(no AWS_PROFILE — skipped)"
+fi
 echo "✓ seat ready — ${SEAT_ROLE}/${SEAT_NAME}"
 echo "    git:    $(git config --worktree user.name) <$(git config --worktree user.email)>"
-echo "    aws:    ${AWS_PROFILE} → ${AWS_ID}"
+echo "    aws:    ${AWS_PROFILE:-—} → ${AWS_ID}"
 echo "    github: ${GH_TOKEN:+custom token}${GH_TOKEN:-default gh login}"
 
 # 4. native start — scaffold this seat's identity file from its role template
@@ -50,7 +54,10 @@ if command -v jq >/dev/null 2>&1; then
   if grep -q "${INSTANCE}-seat\.md" "$SETTINGS" 2>/dev/null; then
     echo "    hook:   SessionStart already wired"
   else
-    _hook_cmd='cat "$CLAUDE_PROJECT_DIR/.${INSTANCE}-seat.md" 2>/dev/null || true'
+    # ${INSTANCE} must expand NOW (a bare `claude` launched later has no such
+    # env var — the stored hook must hardcode the real filename); only
+    # $CLAUDE_PROJECT_DIR stays literal for Claude Code to expand at runtime.
+    _hook_cmd="cat \"\$CLAUDE_PROJECT_DIR/.${INSTANCE}-seat.md\" 2>/dev/null || true"
     _tmp="$(mktemp)"
     jq --arg cmd "$_hook_cmd" \
       '.hooks.SessionStart = ((.hooks.SessionStart // []) + [{"hooks":[{"type":"command","command":$cmd}]}])' \

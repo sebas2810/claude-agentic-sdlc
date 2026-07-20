@@ -37,12 +37,22 @@ bash onboarding/vendor-framework.sh --into ~/Code/my-product --repo <you>/my-pro
 
 **2. Stand up the whole instance** — labels (incl. the `status:*` routing index
 + `seat:*` lanes), one Delivery board, the standing epics, an optional guided
-first epic, the enforcement hooks, a worktree + seat identity per role, and
-double-clickable seat apps — with one interactive command from the product repo:
+first epic, the enforcement hooks, a worktree + seat identity per **named seat**,
+and double-clickable seat apps — with one command from the product repo:
 
 ```bash
 cd ~/Code/my-product && bash agentic-sdlc/onboarding/bootstrap.sh
 ```
+
+All bespoke choices live in **one committed file, `sdlc.config`** (instance ·
+repo · seats as `role:Name` pairs · git identity · AWS profile — never secrets;
+tokens stay in each worktree's gitignored `.env.local`). First run: a wizard
+asks, **suggests seat names** (Pim · Finn · Cas · Noor · Vera · …), and writes
+the file; each seat's checkout, branch, and `.app` are named after it
+(`~/Code/my-product-finn`, `Finn.app`). Re-runs read the config and are
+idempotent — edit `sdlc.config` + re-run to change anything, or run
+`bootstrap.sh --yes` non-interactively (see
+[`onboarding/sdlc.config.example`](onboarding/sdlc.config.example)).
 
 It prompts for the repo, owner, seats, and git identity, then provisions
 everything and prints how to start. Full walkthrough + the manual/by-hand steps:

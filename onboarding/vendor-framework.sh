@@ -72,6 +72,14 @@ else
   echo "· CLAUDE.md already present (kept)"
 fi
 
+# root .gitignore — the seat env/identity files land at the PRODUCT root; the
+# vendored framework .gitignore only covers agentic-sdlc/. Without these lines
+# a seat's `git add -A` would commit .env.local (which may hold a GH_TOKEN).
+for pat in '.env.local' '.*-seat.md' '.claude/settings.local.json' '.DS_Store'; do
+  grep -qxF "$pat" "$INTO/.gitignore" 2>/dev/null || printf '%s\n' "$pat" >> "$INTO/.gitignore"
+done
+echo "✓ root .gitignore covers seat env + identity files (never commit .env.local)"
+
 # optional: publish to GitHub (bootstrap needs the repo to exist there —
 # the labels, issues, and board live on it)
 if [ -n "$REPO" ]; then

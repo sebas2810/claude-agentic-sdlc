@@ -1,0 +1,34 @@
+# sdlc.config — ALL of this instance's bespoke configuration, in one committed
+# file at the product-repo root. bootstrap.sh reads it (and writes it for you on
+# first run); edit + re-run bootstrap any time — provisioning is idempotent.
+#
+# NO SECRETS IN THIS FILE — it is committed. Tokens (GH_TOKEN, BOARD_TOKEN_CMD)
+# go in each worktree's .env.local (gitignored); AWS credentials stay in
+# ~/.aws/credentials and are only *referenced* here by profile name.
+
+INSTANCE="my-product"                 # short slug: seat-file + overlay name
+REPO="you/my-product"                 # the product repo on GitHub (owner/repo)
+OWNER="you"                           # project-board owner (your login or org)
+BASE="$HOME/Code"                     # where the seat checkouts live
+
+# Seats: space-separated role:Name pairs. The NAME is the seat's identity —
+# its checkout is $BASE/<repo>-<name> (lowercased), its launcher/.app is
+# <Name>.app, and producer seats get a seat:<name> routing lane label.
+# Roles: pm · engineer · scrum-master · quality-engineer · cloud-architect ·
+#        data-architect · data-scientist   (a role may appear twice — names
+#        must be unique; the wizard suggests names, e.g. Pim · Finn · Cas ·
+#        Noor · Vera · Otto · Dex · Max · Sam · Tess)
+SEATS="pm:Pim engineer:Finn scrum-master:Cas quality-engineer:Noor engineer:Dex"
+
+# Git identity every seat commits as (applied per-worktree, never globally)
+GIT_USER_NAME="Your Name"
+GIT_USER_EMAIL="you@example.com"
+
+# AWS — the ~/.aws profile seats use (blank = no AWS). Optionally pin the
+# account: bootstrap verifies `sts get-caller-identity` matches when set.
+AWS_PROFILE=""
+AWS_ACCOUNT_ID=""
+
+# Bootstrap behaviour
+SEED_EPIC="y"                         # seed the guided first epic on first run
+BUILD_APPS="y"                        # macOS: wrap each seat in a .app bundle

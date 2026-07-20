@@ -21,11 +21,16 @@ case "$CMD" in *git*) : ;; *) exit 0 ;; esac   # cheap prefilter: only git comma
 
 block() { printf 'BLOCKED (agentic-sdlc guard): %s\n' "$1" >&2; exit 2; }
 
+# git may carry options BEFORE the subcommand — `git -C <dir> push`, `git
+# --no-pager push`, `git -c k=v push` — so match flags between git and the verb
+# (an adjacency-only regex was a full bypass for `git -C . push origin main`).
+GIT_VERB='git([[:space:]]+-[A-Za-z]([[:space:]]+[^[:space:]]+)?|[[:space:]]+--[A-Za-z0-9-]+(=[^[:space:]]*)?)*[[:space:]]+'
+
 # ── 1 + 3: git push ───────────────────────────────────────────────────────────
-if printf '%s' "$CMD" | grep -Eq '(^|[;&|[:space:]])git[[:space:]]+push'; then
+if printf '%s' "$CMD" | grep -Eq "(^|[;&|[:space:]])${GIT_VERB}push"; then
   # protected ref named anywhere in the push (covers `origin main`, `HEAD:main`,
-  # `origin master`, `release/x`, --force variants)
-  if printf '%s' "$CMD" | grep -Eq '(^|[[:space:]:])(main|master|release/[^[:space:]]+)([[:space:]]|$)'; then
+  # `refs/heads/main`, `origin master`, `release/x`, --force variants)
+  if printf '%s' "$CMD" | grep -Eq '(^|[[:space:]:/])(main|master|release/[^[:space:]]+)([[:space:]]|$)'; then
     block "never push to main/master/release/* — open a PR instead (feedback/workflow/always-pr-never-push.md)."
   fi
   CUR="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
@@ -42,7 +47,7 @@ if printf '%s' "$CMD" | grep -Eq '(^|[;&|[:space:]])git[[:space:]]+push'; then
 fi
 
 # ── 2: AI attribution in a commit ─────────────────────────────────────────────
-if printf '%s' "$CMD" | grep -Eq '(^|[;&|[:space:]])git[[:space:]]+commit'; then
+if printf '%s' "$CMD" | grep -Eq "(^|[;&|[:space:]])${GIT_VERB}commit"; then
   if printf '%s' "$CMD" | grep -Eqi 'co-authored-by:[[:space:]]*claude|generated with .{0,3}claude code'; then
     block "no AI attribution in commits — drop the Co-Authored-By / Generated-with footer and commit again (feedback/workflow/no-claude-attribution.md)."
   fi
