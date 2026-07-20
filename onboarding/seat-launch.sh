@@ -101,11 +101,12 @@ EOP
     ;;
 esac
 
-# 6) model tier — capability where errors are expensive / hard to catch; economy on gated, high-volume
-#    work. Defaults: PM + quality-engineer (judgment + the independent gate) → opus; scrum-master +
-#    producers (mechanical / volume, with a downstream gate) → sonnet. Override per seat with SEAT_MODEL
-#    in .env.local (e.g. opus for an agent-path / infra / data / ML engineer). Set SEAT_MODEL="" to
-#    inherit the account default (pass no --model). `${SEAT_MODEL-…}` keeps an explicit "" distinct from unset.
+# 6) model tier — configured per seat in sdlc.config (role:Name:model triples; bootstrap writes the
+#    resolved tier to this worktree's .env.local as SEAT_MODEL). The case below is only the FALLBACK
+#    for hand-made seats whose .env.local predates SEAT_MODEL: PM + quality-engineer (judgment + the
+#    independent gate) → opus; scrum-master + producers (mechanical / volume, with a downstream
+#    gate) → sonnet. Set SEAT_MODEL="" explicitly to inherit the account default (pass no --model).
+#    `${SEAT_MODEL-…}` keeps an explicit "" distinct from unset.
 case "$SEAT_ROLE" in
   pm|orchestrator|quality-engineer) DEFAULT_MODEL="opus" ;;
   *)                                DEFAULT_MODEL="sonnet" ;;

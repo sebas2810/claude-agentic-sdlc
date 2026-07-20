@@ -11,14 +11,20 @@ REPO="you/my-product"                 # the product repo on GitHub (owner/repo)
 OWNER="you"                           # project-board owner (your login or org)
 BASE="$HOME/Code"                     # where the seat checkouts live
 
-# Seats: space-separated role:Name pairs. The NAME is the seat's identity —
-# its checkout is $BASE/<repo>-<name> (lowercased), its launcher/.app is
-# <Name>.app, and producer seats get a seat:<name> routing lane label.
+# Seats: space-separated role:Name pairs — optionally role:Name:model triples.
+# The NAME is the seat's identity — its checkout is $BASE/<repo>-<name>
+# (lowercased), its launcher/.app is <Name>.app, and producer seats get a
+# seat:<name> routing lane label.
+# The MODEL is the seat's Claude tier, written to its .env.local as SEAT_MODEL:
+#   omitted → role default (pm + quality-engineer → opus: judgment + the
+#   independent gate; everyone else → sonnet: gated, high-volume work).
+#   Values: opus · sonnet · haiku, or a pinned model id (claude-…). Aliases
+#   float with releases — prefer them; pin only when reproducibility matters.
 # Roles: pm · engineer · scrum-master · quality-engineer · cloud-architect ·
 #        data-architect · data-scientist   (a role may appear twice — names
 #        must be unique; the wizard suggests names, e.g. Pim · Finn · Cas ·
 #        Noor · Vera · Otto · Dex · Max · Sam · Tess)
-SEATS="pm:Pim engineer:Finn scrum-master:Cas quality-engineer:Noor engineer:Dex"
+SEATS="pm:Pim engineer:Finn scrum-master:Cas:haiku quality-engineer:Noor engineer:Dex:opus"
 
 # Git identity every seat commits as (applied per-worktree, never globally)
 GIT_USER_NAME="Your Name"

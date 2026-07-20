@@ -54,7 +54,9 @@ cd ~/Code/<your-product> && bash agentic-sdlc/onboarding/bootstrap.sh
 ```
 
 All bespoke configuration lives in **one committed file at the product root:
-`sdlc.config`** — instance, repo, owner, the seats as `role:Name` pairs, git
+`sdlc.config`** — instance, repo, owner, the seats as `role:Name` pairs
+(optionally `role:Name:model` to pin a seat's Claude tier — defaults: pm +
+quality-engineer → opus, others → sonnet), git
 identity, AWS profile (never secrets — tokens go in each worktree's gitignored
 `.env.local`). On first run a wizard asks for each value, **suggests a name per
 seat** (Pim · Finn · Cas · Noor · Vera · …), writes `sdlc.config`, prints a
@@ -146,8 +148,9 @@ no launcher and no copied files:
 
 (Or pin it per product repo via `extraKnownMarketplaces`/`enabledPlugins` in
 `.claude/settings.json` — see the README's plugin section. One difference in the
-app: pick the seat's model tier in the UI — the `--model` flag is a
-`seat-launch.sh` mechanism.)
+app: the `--model` flag is a `seat-launch.sh` mechanism, so pick the seat's
+model tier in the UI — the injected seat brief names the tier this seat is
+configured for in `sdlc.config`.)
 
 **Terminal 1 (PM seat):**
 ```bash

@@ -87,6 +87,22 @@ default_name(){ case "$1" in
   quality-engineer) echo Noor ;; cloud-architect) echo Otto ;;
   data-architect) echo Dex ;; data-scientist) echo Vera ;; *) echo "" ;;
 esac; }
+# model tier by role — capability where errors are expensive / hard to catch
+# (judgment + the independent gate), economy on gated, high-volume work.
+# Override per seat with a role:Name:model triple in SEATS.
+default_model(){ case "$1" in
+  pm|orchestrator|quality-engineer) echo opus ;; *) echo sonnet ;;
+esac; }
+# SEATS entries are role:Name or role:Name:model — parse one entry into
+# SEAT_R / SEAT_N / SEAT_M (model empty = role default applies later)
+parse_seat(){
+  SEAT_R="${1%%:*}"
+  local rest="${1#*:}"
+  SEAT_N="${rest%%:*}"
+  SEAT_M="${rest#*:}"
+  # a pair has no third field — ${rest#*:} then equals the name itself
+  if [ "$SEAT_M" = "$SEAT_N" ]; then SEAT_M=""; fi
+}
 pick_unused(){ # pick_unused "<used names>" -> first pool name not yet used
   local used="$1" n
   for n in $NAME_POOL; do
@@ -167,12 +183,12 @@ for var in INSTANCE REPO OWNER BASE SEATS GIT_USER_NAME GIT_USER_EMAIL; do
 done
 USED=""
 for pair in $SEATS; do
-  role="${pair%%:*}" ; name="${pair#*:}"
-  [ "$role" != "$pair" ] || die "sdlc.config: SEATS entries are role:Name pairs — '$pair' has no name."
-  printf '%s' "$ROLES" | grep -qw "$role" || die "sdlc.config: unknown role '$role' (roles: $ROLES)"
-  [ -f "$HERE/seat.${role}.template.md" ] || die "no seat template for role '$role' ($HERE/seat.${role}.template.md)"
-  printf '%s' "$USED" | grep -qiw "$name" && die "sdlc.config: seat name '$name' used twice — names must be unique."
-  USED="$USED $name"
+  [ "${pair%%:*}" != "$pair" ] || die "sdlc.config: SEATS entries are role:Name (or role:Name:model) — '$pair' has no name."
+  parse_seat "$pair"
+  printf '%s' "$ROLES" | grep -qw "$SEAT_R" || die "sdlc.config: unknown role '$SEAT_R' (roles: $ROLES)"
+  [ -f "$HERE/seat.${SEAT_R}.template.md" ] || die "no seat template for role '$SEAT_R' ($HERE/seat.${SEAT_R}.template.md)"
+  printf '%s' "$USED" | grep -qiw "$SEAT_N" && die "sdlc.config: seat name '$SEAT_N' used twice — names must be unique."
+  USED="$USED $SEAT_N"
 done
 gh repo view "$REPO" >>"$LOG" 2>&1 \
   || die "repo '$REPO' not reachable on GitHub — publish it first (gh repo create $REPO --private --source . --push) or fix REPO in sdlc.config."
@@ -220,12 +236,12 @@ rm -f "$CI_LOG"
 # seat:* lane labels — producers get a PER-NAME lane (two engineers = two lanes);
 # pm / scrum-master / quality-engineer key off their role, no lane needed.
 for pair in $SEATS; do
-  role="${pair%%:*}" ; name="${pair#*:}"
-  case "$role" in pm|scrum-master|quality-engineer) continue ;; esac
-  key="$(printf '%s' "$name" | tr '[:upper:] ' '[:lower:]-')"
+  parse_seat "$pair"
+  case "$SEAT_R" in pm|scrum-master|quality-engineer) continue ;; esac
+  key="$(printf '%s' "$SEAT_N" | tr '[:upper:] ' '[:lower:]-')"
   gh label create "seat:$key" --repo "$REPO" --color "0E8A16" \
-    --description "Routing lane: work for $name (the $role seat)" --force >>"$LOG" 2>&1 \
-    && c_ok "label seat:$key ($name)" || c_warn "label seat:$key failed (see log)"
+    --description "Routing lane: work for $SEAT_N (the $SEAT_R seat)" --force >>"$LOG" 2>&1 \
+    && c_ok "label seat:$key ($SEAT_N)" || c_warn "label seat:$key failed (see log)"
 done
 
 # optional guided first epic — once; re-runs detect it by title
@@ -278,10 +294,12 @@ c_ok ".gitignore covers .env.local · .*-seat.md · .claude/settings.local.json"
 
 # ── 4. one worktree per seat — NAMED after the seat, on its own branch ────────
 for pair in $SEATS; do
-  role="${pair%%:*}" ; name="${pair#*:}"
+  parse_seat "$pair"
+  role="$SEAT_R" ; name="$SEAT_N"
+  model="${SEAT_M:-$(default_model "$role")}"
   key="$(printf '%s' "$name" | tr '[:upper:] ' '[:lower:]-')"
   WT="$BASE/${REPONAME}-${key}"
-  c_head "▶ Seat $name ($role) → $WT"
+  c_head "▶ Seat $name ($role · $model) → $WT"
   if [ -d "$WT" ]; then
     c_info "worktree already exists — reusing"
   elif git -C "$ROOT" worktree add -b "seat/$key" "$WT" main >>"$LOG" 2>&1; then
@@ -298,6 +316,7 @@ for pair in $SEATS; do
 INSTANCE=$INSTANCE
 SEAT_ROLE=$role
 SEAT_NAME=$name
+SEAT_MODEL=$model
 GIT_USER_NAME="$GIT_USER_NAME"
 GIT_USER_EMAIL="$GIT_USER_EMAIL"
 AWS_PROFILE=$AWS_PROFILE
@@ -305,7 +324,7 @@ SEAT_LABEL=$lane
 BOARD_ID=$BOARD_ID
 BOARD_OWNER=$OWNER
 ENV
-  c_ok ".env.local written ($name / $role${lane:+ · lane $lane})"
+  c_ok ".env.local written ($name / $role · model $model${lane:+ · lane $lane})"
   if ( cd "$WT" && . ./agentic-sdlc/onboarding/setup-seat.sh ) >>"$LOG" 2>&1; then
     c_ok "seat identity + SessionStart hook scaffolded"
   else
