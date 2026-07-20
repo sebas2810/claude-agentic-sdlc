@@ -97,16 +97,19 @@ phases, and the 8 invariants live in the spine.
 ## Per-seat setup — multiple seats on one machine
 
 Each seat runs in its **own git worktree** with its **own identity**, so commits
-and AWS/GitHub calls attribute correctly and never collide.
+and AWS/GitHub calls attribute correctly and never collide. `bootstrap.sh` does
+all of this for every seat in `sdlc.config`; the by-hand equivalent for one
+extra seat (say **Finn**, an engineer):
 
 ```bash
-# 1. a worktree per seat
-git worktree add -b feat/<epic> ~/Code/<your-repo>-<seat> origin/main
-cd ~/Code/<your-repo>-<seat>
+# 1. a worktree per seat — named after the seat, on its own seat/<name> branch
+#    (the epic branch comes later, at claim time — branch-per-EPIC off origin/main)
+git worktree add -b seat/finn ~/Code/<your-repo>-finn main
+cd ~/Code/<your-repo>-finn
 
 # 2. configure the seat
 cp agentic-sdlc/onboarding/.env.local.example .env.local
-$EDITOR .env.local      # SEAT_ROLE/NAME · GIT_USER_NAME/EMAIL · AWS_PROFILE · GH_TOKEN
+$EDITOR .env.local      # SEAT_ROLE=engineer · SEAT_NAME=Finn · GIT_* · AWS_PROFILE · GH_TOKEN
 source ./agentic-sdlc/onboarding/setup-seat.sh   # per-worktree git identity + AWS/gh env + verify
 
 # 3. launch

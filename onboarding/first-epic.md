@@ -27,16 +27,23 @@ real feature work starts.
 
 ## How to run it (the whole point)
 
-1. **PM seat** — `/check`: frame story 1 (`status:backlog → status:scoped`,
-   dual-write label + board Status), posting the AC above as the steer.
-2. **Engineer seat** — `/check`: claim it, branch off `origin/main`, build,
+1. **Scrum-Master seat** — `/check`: **explode this epic first** — create the
+   two suggested stories above as sub-issues (`level:story` ·
+   `status:backlog` · back-link the `#`s). Stories must EXIST as issues before
+   the PM can frame them.
+2. **PM seat** — `/check`: frame story 1 — post the AC above as the steer,
+   then dual-write `status:backlog → status:scoped` (label + board Status)
+   **and apply the producer's routing lane label** (`seat:<name>`, e.g.
+   `seat:finn` — the lanes bootstrap created from `sdlc.config`). Without the
+   lane label, no producer's `/check` will ever find the story.
+3. **Engineer seat** — `/check`: claim it, branch off `origin/main`, build,
    open ONE PR, deliver (`status:delivered`), post the ready-signal.
-3. **Quality seat** — `/check`: verify each AC line on the PR branch,
+4. **Quality seat** — `/check`: verify each AC line on the PR branch,
    post per-criterion PASS/FAIL → `status:tested` (or FAIL → `status:scoped`).
-4. **Scrum-Master seat** — `/check`: validate (QA PASS · CI green · PR clean),
+5. **Scrum-Master seat** — `/check`: validate (QA PASS · CI green · PR clean),
    squash-merge with `--delete-branch` → `status:merged`, then drive
-   `→ status:released`. Also: explode story 2 as a sub-issue if not yet done.
-5. Repeat for story 2 — the second pass is where the rhythm becomes natural.
+   `→ status:released`.
+6. Repeat 2–5 for story 2 — the second pass is where the rhythm becomes natural.
 
 When both stories are `Released`, close this epic and frame your first real one
 (`workflow/state-machine.md`). If any step surprised you, capture it as a rule

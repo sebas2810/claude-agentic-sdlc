@@ -83,29 +83,37 @@ customize, to do it by hand, or to understand what got set up.
 
 Windows: run everything in WSL (Ubuntu) — the framework's scripts are bash.
 
-## Step 1: Clone
+## Step 1: Clone (or vendor)
+
+New product? The vendor step in the Quickstart above already created + published
+the repo — skip to Step 2. Joining an existing instance from another machine:
 
 ```bash
 git clone git@github.com:<you>/<your-product>.git ~/Code/<your-repo>
 cd ~/Code/<your-repo>
-npm install
+# npm install — only if YOUR product has a package.json; the framework itself needs none
 ```
 
 ## Step 2: Authenticate `gh`
 
 ```bash
 gh auth login
-# Your own GitHub identity. Scopes: repo, project, read:org, gist.
+gh auth refresh -s project   # gh auth login does NOT grant the project scope;
+                             # boards fail without it. Scopes: repo, project, read:org, gist.
 ```
 
-## Step 2.5: Configure the seat (git · AWS · gh isolation)
+## Step 2.5: Configure the seat (worktree · git · AWS · gh isolation)
 
-Each seat runs in its own worktree with its own identity, so commits and AWS/gh
-calls don't collide across seats on one machine:
+Each seat runs in its own worktree **named after the seat** (from the `SEATS`
+`role:Name` pairs in `sdlc.config`), with its own identity, so commits and
+AWS/gh calls don't collide across seats on one machine. `bootstrap.sh` creates
+all of this; by hand, for one seat (say **Finn**, an engineer):
 
 ```bash
+git worktree add -b seat/finn ~/Code/<your-repo>-finn main
+cd ~/Code/<your-repo>-finn
 cp agentic-sdlc/onboarding/.env.local.example .env.local
-$EDITOR .env.local      # SEAT_ROLE/NAME · GIT_USER_NAME/EMAIL · AWS_PROFILE · GH_TOKEN
+$EDITOR .env.local      # SEAT_ROLE=engineer · SEAT_NAME=Finn · GIT_* · AWS_PROFILE · GH_TOKEN
 source ./agentic-sdlc/onboarding/setup-seat.sh   # per-worktree git identity + AWS/gh env + verify
 ```
 

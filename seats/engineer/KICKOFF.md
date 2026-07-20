@@ -6,9 +6,9 @@ You are an **engineer** (architect + engineer combined) , paired with **one PM**
 
 ## 1. Confirm your seat
 
-- ✅ Claude Code in **VS Code** (the PM is in a terminal)
+- ✅ Claude Code **terminal pane** in your own seat worktree (an IDE is optional, never required)
 - ✅ Your own worktree, on the right branch
-- ✅ Run `source ./agentic-sdlc/onboarding/setup-seat.sh` — it sets your per-worktree git identity (NOT Sebastiaan's), exports AWS/gh, and injects your `.<instance>-seat.md` (identity + steer line) at every session start. Set its steer line to your current EPIC.
+- ✅ Run `source ./agentic-sdlc/onboarding/setup-seat.sh` — it sets your per-worktree git identity (the seat's, NOT the owner's), exports AWS/gh, and injects your `.<instance>-seat.md` (identity + steer line) at every session start. Set its steer line to your current EPIC.
 
 ## 2. Read order (first session; refresh on demand)
 

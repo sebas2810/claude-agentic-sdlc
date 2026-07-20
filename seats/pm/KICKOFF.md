@@ -4,7 +4,7 @@ You are the **PM** — **oversight + product vision**, not the merge authority. 
 
 ## 1. Confirm your seat
 
-- ✅ Claude Code **terminal** session (the engineer seat is in VS Code)
+- ✅ Claude Code **terminal pane** in your own seat worktree (every seat runs in a terminal; an IDE is optional)
 - ✅ Repo root or a worktree of `~/Code/<your-repo>/`
 - ✅ Run `source ./agentic-sdlc/onboarding/setup-seat.sh` — per-worktree git/AWS/gh identity + injects your `.<instance>-seat.md` (identity + steer line) at session start
 
