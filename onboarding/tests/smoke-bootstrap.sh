@@ -118,7 +118,8 @@ echo "── wizard path (scripted answers, abort at confirm) ──"
 vendor_into "$T/prod2"
 # On macOS the wizard asks one extra question (.app build) that Linux skips;
 # aborting at the confirm gate keeps the answer script portable either way.
-WOUT="$( cd "$T/prod2" && HOME="$T/home" PATH="$T/bin:$PATH" bash agentic-sdlc/onboarding/bootstrap.sh 2>&1 <<ANSWERS || true
+# (Answers via a file — bash 5.x rejects a heredoc + `||` inside $(...).)
+cat > "$T/answers" <<ANSWERS
 tester
 tester/fake2
 fake2
@@ -133,7 +134,7 @@ n
 n
 no
 ANSWERS
-)"
+WOUT="$( (cd "$T/prod2" && HOME="$T/home" PATH="$T/bin:$PATH" bash agentic-sdlc/onboarding/bootstrap.sh < "$T/answers") 2>&1 || true )"
 printf '%s' "$WOUT" | grep -q 'aborted — nothing was changed' && pass "wizard aborts cleanly on 'no'" || fail "wizard abort missing"
 assert_grep '^SEATS="pm:Pim engineer:Vera"$' "$T/prod2/sdlc.config" "wizard wrote suggested + overridden names"
 assert_grep '^INSTANCE="fake2"$' "$T/prod2/sdlc.config" "wizard wrote instance"
