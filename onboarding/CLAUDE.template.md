@@ -9,6 +9,12 @@ starts by reading, in order:
 3. Your seat file — `agentic-sdlc/seats/<role>/KICKOFF.md` (this worktree's `.<instance>-seat.md`, injected at session start, names your role)
 4. [`agentic-sdlc/feedback/INDEX.md`](agentic-sdlc/feedback/INDEX.md) (skim) + [`agentic-sdlc/learning-loop/CHANGELOG.md`](agentic-sdlc/learning-loop/CHANGELOG.md) (last few entries)
 
+The seat tooling (`/check` · `/board` · `/workload` · `/backlog`, the git
+guard, the seat-brief injection) is also available as the **`agentic-sdlc`
+Claude Code plugin** (`/plugin marketplace add sebas2810/claude-agentic-sdlc`,
+then `/plugin install agentic-sdlc@agentic-sdlc`) — same seat on every surface:
+terminal, desktop app, web, IDE panels.
+
 ## House rules (hook-enforced where possible)
 
 - **Always a PR — never push to `main`/`master`/`release/*`.**
