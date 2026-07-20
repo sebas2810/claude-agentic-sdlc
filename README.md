@@ -103,12 +103,12 @@ updates flow by plugin version bump instead of re-vendoring. Provisioning
 
 ## The seats
 
-- **PM-orchestrator** (terminal) — oversight + product vision: frames + steers
+- **PM-orchestrator** — oversight + product vision: frames + steers
   EPICs, decomposes work, pre-commits acceptance criteria, owns the roadmap +
   owner touchpoints + docs + the board, and resolves the rare product/scope
   judgment the QA seat surfaces. Does **not** write product code and is **not**
   the routine merge gate.
-- **Engineer-Principal** (Claude Code panel) — architect-level design + build
+- **Engineer-Principal** — architect-level design + build
   within an assigned EPIC; branch-per-EPIC; report-then-stop after each unit.
   Does **not** touch the backlog / PM lane, and **never** self-merges.
 - **Quality Engineer** — independent verification at the `Delivered → Tested` gate
@@ -161,11 +161,13 @@ boots with that identity injected — no manual re-brief. Full walkthrough:
 ```
 agentic-sdlc/
 ├── README.md                  ← this guide
+├── .claude-plugin/            ← plugin + marketplace manifests: the seat tooling as a versioned Claude Code plugin
 ├── agentic-operating-model.md ← the spine: roles · 8 phases · 8 invariants
 ├── MODES.md                   ← the operator-driven operating model (the single mode)
 ├── engineering-standard.md    ← the generic production-ready floor (instances add their tiered standard)
+├── commands/                  ← the operator slash-commands: /check · /board · /workload · /backlog
 ├── workflow/                  ← the process layer: state machine · DoR/DoD · WSJF · hierarchy · naming · flow metrics · project boards (+ project-templates/)
-├── onboarding/                ← new-pair-setup + per-seat config · create-instance.sh (golden-path scaffolder) · setup-board.sh
+├── onboarding/                ← bootstrap.sh (sdlc.config-driven) · vendor-framework.sh · create-instance.sh · setup-board.sh · seat-launch + launcher/app builders · hooks/ (git guard + session brief) · new-pair-setup.md
 ├── seats/                     ← the agentic squad: SQUAD.md roster + a KICKOFF per seat (PM · Engineer · Quality · optional Flow · specialists)
 ├── skills/                    ← the Principal-skill MODEL (structure + how-to)
 ├── learning-loop/             ← how rules are captured + the CHANGELOG

@@ -122,7 +122,9 @@ source ./agentic-sdlc/onboarding/setup-seat.sh   # per-worktree git identity + A
 It then **starts the seat natively**: it scaffolds a per-worktree `.<instance>-seat.md`
 (your identity + a self-route block) from the role template
 (`seat.${SEAT_ROLE}.template.md`) and wires a SessionStart hook into this
-worktree's `.claude/settings.local.json`, so every Claude session here boots with
+worktree's `.claude/settings.local.json` (with the `agentic-sdlc` **plugin**
+enabled, its own SessionStart hook does the same injection on every surface —
+the local wiring then just double-covers the terminal), so every Claude session here boots with
 your seat identity injected — no manual re-brief. Set its **steer line** to your
 EPIC when you pick one up. The file is gitignored (per-worktree, never shared).
 
@@ -130,6 +132,22 @@ EPIC when you pick one up. The file is gitignored (per-worktree, never shared).
 
 Every seat is a terminal pane — one `claude` per seat worktree. (Prefer an IDE?
 The Claude Code panel in VS Code works identically; optional, never required.)
+
+**Prefer the Claude desktop app (or claude.ai/code)?** Install the
+**`agentic-sdlc` plugin** once — it carries `/check` · `/board` · `/workload` ·
+`/backlog`, the git guard, and the seat-brief injection to every Claude Code
+surface, so opening the seat's worktree in the app gives you the full seat with
+no launcher and no copied files:
+
+```
+/plugin marketplace add sebas2810/claude-agentic-sdlc
+/plugin install agentic-sdlc@agentic-sdlc
+```
+
+(Or pin it per product repo via `extraKnownMarketplaces`/`enabledPlugins` in
+`.claude/settings.json` — see the README's plugin section. One difference in the
+app: pick the seat's model tier in the UI — the `--model` flag is a
+`seat-launch.sh` mechanism.)
 
 **Terminal 1 (PM seat):**
 ```bash
