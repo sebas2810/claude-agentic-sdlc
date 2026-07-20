@@ -54,15 +54,52 @@ if ! git -C "$INTO" rev-parse --show-toplevel >/dev/null 2>&1; then
 fi
 
 # copy the framework's TRACKED files → <product>/agentic-sdlc/ (clean vendor;
-# falls back to a filtered tar copy when run from a non-git download)
-mkdir -p "$INTO/agentic-sdlc"
+# falls back to a filtered tar copy when run from a non-git download).
+#
+# Staged, with an exclusion list — the vendored copy is the PROCESS layer, not
+# a mirror of the framework repo:
+#   instance/        the upstream reference instance is not your overlay — your
+#                    own agentic-sdlc/instance/<name>/ is preserved across
+#                    re-vendors and scaffolded when absent
+#   .github/         workflows are inert in a subdirectory (repo-root only)
+#   .claude-plugin/  the plugin installs from the marketplace, not the vendor
+#   SECURITY.md      framework-repo-specific (points at ITS advisories)
+# LICENSE + NOTICE are KEPT — Apache-2.0 §4 attribution travels with the copy.
+#
+# Re-vendor is CLEAN: everything except instance/ is replaced, so files
+# deleted upstream no longer linger in product repos.
+STAGE="$(mktemp -d -t sdlc-vendor.XXXXXX)"
+trap 'rm -rf "$STAGE"' EXIT
 if git -C "$FW" rev-parse HEAD >/dev/null 2>&1; then
-  git -C "$FW" archive HEAD | tar -x -C "$INTO/agentic-sdlc"
+  git -C "$FW" archive HEAD | tar -x -C "$STAGE"
 else
   tar -C "$FW" --exclude .git --exclude .env.local --exclude '.DS_Store' -cf - . \
-    | tar -x -C "$INTO/agentic-sdlc"
+    | tar -x -C "$STAGE"
 fi
-echo "✓ framework vendored → $INTO/agentic-sdlc/"
+rm -rf "$STAGE/instance" "$STAGE/.github" "$STAGE/.claude-plugin" "$STAGE/SECURITY.md"
+
+if [ -d "$INTO/agentic-sdlc" ]; then
+  find "$INTO/agentic-sdlc" -mindepth 1 -maxdepth 1 ! -name instance -exec rm -rf {} +
+  echo "· clean re-vendor (your instance/ overlay preserved)"
+fi
+mkdir -p "$INTO/agentic-sdlc"
+cp -R "$STAGE"/. "$INTO/agentic-sdlc/"
+
+# instance overlay scaffold — where the product's own skills/rules/standard live
+if [ ! -d "$INTO/agentic-sdlc/instance" ]; then
+  mkdir -p "$INTO/agentic-sdlc/instance"
+  cat > "$INTO/agentic-sdlc/instance/README.md" <<'IREADME'
+# instance/ — your product's overlay
+
+Product-specific skills, rules, engineering standard, and product-mapping live
+here, under `instance/<your-instance>/` (scaffolded by `create-instance.sh` /
+`bootstrap.sh`). This directory is YOURS — re-vendoring the framework never
+touches it. The upstream reference instance lives in the framework repo
+(github.com/sebas2810/claude-agentic-sdlc → `instance/orbis/`), deliberately
+not vendored into product repos.
+IREADME
+fi
+echo "✓ framework vendored → $INTO/agentic-sdlc/  (excl. reference instance · .github · plugin manifests)"
 
 # root CLAUDE.md — the file every Claude Code session auto-loads
 if [ ! -f "$INTO/CLAUDE.md" ]; then
