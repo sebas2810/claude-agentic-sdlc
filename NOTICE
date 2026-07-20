@@ -1,7 +1,4 @@
-Capgemini Agentic SDLC Framework
-Copyright (c) 2026 Capgemini. All rights reserved.
+Capgemini Agentic SDLC Framework (claude-agentic-sdlc)
+Copyright 2026 Capgemini
 
-Licensed for EVALUATION and NON-PRODUCTION use only — see LICENSE.
-Production use requires a separate written agreement with Capgemini.
-
-Contact: Sebastiaan van Wijngaarden <sebastiaan.van.wijngaarden@capgemini.com>
+Licensed under the Apache License, Version 2.0.

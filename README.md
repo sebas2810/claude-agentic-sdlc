@@ -1,10 +1,9 @@
 # Agentic SDLC — a forkable framework
 
-> **Capgemini IP — evaluation / non-production license.** This framework is the
-> intellectual property of **Capgemini**, provided under a **royalty-free license
-> for evaluation and non-production use only**. Production use is not permitted
-> without a separate written agreement with Capgemini — for production licensing,
-> contact Sebastiaan van Wijngaarden <sebastiaan.van.wijngaarden@capgemini.com>. See [`LICENSE`](LICENSE).
+> **License: Apache-2.0.** Copyright © 2026 Capgemini. Open source — free to
+> use, modify, distribute, and run in production under the terms of the
+> [Apache License 2.0](LICENSE) (see also [`NOTICE`](NOTICE)). Contact:
+> Sebastiaan van Wijngaarden <sebastiaan.van.wijngaarden@capgemini.com>.
 
 
 An agentic software-delivery lifecycle: an **Owner**, a **PM-orchestrator**, and
