@@ -38,3 +38,9 @@ AWS_ACCOUNT_ID=""
 # Bootstrap behaviour
 SEED_EPIC="y"                         # seed the guided first epic on first run
 BUILD_APPS="y"                        # macOS: wrap each seat in a .app bundle
+GOLDEN_BOARD=""                       # optional: an existing configured Delivery
+                                      # project NUMBER (same owner) to copy via
+                                      # copyProjectV2 — its VIEWS + fields travel
+                                      # with the copy, so no manual UI step
+                                      # remains. Blank = raw create + the one-time
+                                      # UI views step (workflow/project-boards.md)

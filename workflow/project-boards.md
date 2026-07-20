@@ -96,3 +96,37 @@ Table** views ship automatically.
 > **already has sub-issues** to a project **auto-adds its children** — which is
 > exactly what we want now (one project holds the whole tree); no epics-only pruning
 > anymore.
+
+### Golden template — skip the UI step entirely
+
+Once ONE board on the owner has its views configured, every later instance can
+copy it: set `GOLDEN_BOARD="<project-number>"` in `sdlc.config` before
+bootstrapping (or run `onboarding/setup-board.sh --owner <o> --title "<T>"
+--copy-from <number>` by hand). `copyProjectV2` copies **views and fields** —
+the copy is born fully configured; bootstrap just renames and links it. The
+first board of your first instance is the only one that ever needs the UI step
+below.
+
+### Board views — one-time, ~5 min, in the UI
+
+On the freshly-created Delivery project (no golden board yet):
+
+1. **Board view** (rename the default "View 1"):
+   - Click the view's `▾` → **Layout: Board**.
+   - `▾` → **Column by: Status** (all 7 states appear as columns).
+   - `▾` → **Group by: Seat** (rows per seat lane; skip if you prefer flat columns).
+   - In the view's filter bar paste:
+     `has:status -status:Backlog,Merged,Released,Cancelled`
+     (active flow only — backlog + terminal states stay out of the kanban).
+   - Rename the tab **Board**. **Save changes** (the blue button on the view tab).
+2. **EPICS view**: click **+ New view** →
+   - **Layout: Table**.
+   - Filter bar: `label:level:epic`.
+   - **+** on the column header row → add the **Sub-issues progress** field.
+   - Show fields: `Status`, `Priority`, `Target`, `Sub-issues progress`; hide the rest.
+   - Rename the tab **EPICS**. **Save changes**.
+3. Project **⚙ Settings → Manage access** — confirm the seats' account has write.
+4. Optional: repo **Projects** tab → the project should already be linked
+   (`gh project link` did it); pin it.
+
+Done — and this board is now itself a golden template for the next instance.

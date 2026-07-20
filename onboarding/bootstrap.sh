@@ -172,6 +172,7 @@ AWS_PROFILE="$AWS_PROFILE"
 AWS_ACCOUNT_ID="$AWS_ACCOUNT_ID"
 SEED_EPIC="$SEED_EPIC"
 BUILD_APPS="$BUILD_APPS"
+GOLDEN_BOARD=""
 CFG
   c_ok "sdlc.config written — commit it with the repo (git add sdlc.config)"
 fi
@@ -224,7 +225,11 @@ fi
 # ── 3. GitHub: labels · Delivery board (reused if present) · epics · overlay ──
 c_head "▶ Provisioning GitHub (labels · Delivery board · standing epics · overlay)"
 CI_LOG="$(mktemp -t sdlc-create.XXXXXX)"
-if ! bash "$HERE/create-instance.sh" --instance "$INSTANCE" --owner "$OWNER" --repo "$REPO" | tee "$CI_LOG"; then
+# (macOS bash 3.2: expanding an EMPTY array under set -u is an unbound-variable
+# error — hence the ${arr[@]+...} guard idiom rather than a bare "${arr[@]}")
+GOLDEN_ARGS=()
+[ -n "${GOLDEN_BOARD:-}" ] && GOLDEN_ARGS=(--golden "$GOLDEN_BOARD")
+if ! bash "$HERE/create-instance.sh" --instance "$INSTANCE" --owner "$OWNER" --repo "$REPO" ${GOLDEN_ARGS[@]+"${GOLDEN_ARGS[@]}"} | tee "$CI_LOG"; then
   cat "$CI_LOG" >>"$LOG"; fail_step "create-instance.sh failed"
 fi
 # the board number — emitted by create-instance.sh on a machine-readable line
@@ -363,7 +368,9 @@ cat <<DONE
 
     Config   $CONFIG   ← commit this (git add sdlc.config .claude CLAUDE.md .gitignore)
     Board    https://github.com/$BOARD_PATH/projects/${BOARD_ID:-<see-projects-tab>}
-             (one-time, ~5 min, UI: apply the EPICS + Board views — workflow/project-boards.md)
+             $( [ -n "${GOLDEN_BOARD:-}" ] \
+               && echo "(views + fields copied from golden board #$GOLDEN_BOARD — no UI step)" \
+               || echo "(one-time, ~5 min, UI: apply the EPICS + Board views — the click-path is in workflow/project-boards.md; or set GOLDEN_BOARD in sdlc.config to copy a configured board next time)" )
     Seats    $SEATS
     Apps     $APPS_DIR/
     Start    open a seat (double-click its .app, or 'cd' its worktree and run
