@@ -21,7 +21,7 @@ These are the rules the spine **keeps**. Confirmed and retained in the
 |---|---|
 | [`workflow/always-pr-never-push.md`](workflow/always-pr-never-push.md) | All changes go through PRs; never push directly to `main` |
 | [`workflow/no-claude-attribution.md`](workflow/no-claude-attribution.md) | Drop `Co-Authored-By: Claude` and "Generated with Claude Code" footers |
-| [`workflow/branch-per-epic.md`](workflow/branch-per-epic.md) | One branch per EPIC; multi-phase work lands on one branch |
+| [`workflow/branch-per-epic.md`](workflow/branch-per-epic.md) | One feature branch per EPIC; sub-branch per issue closed INTO it; `main` touched once by a PM-opened PR; a single issue never gets a PR to `main` |
 | [`workflow/seat-label-mirror.md`](workflow/seat-label-mirror.md) | Seat labels mirror the board `Seat` field; scoping is a quadruple write; assignee is never seat routing |
 | [`workflow/minimize-git-actions.md`](workflow/minimize-git-actions.md) | ~3 git actions per unit, not 15–20 — EPIC branch, auto-merge, `Refs` on prereq PRs, PM never merges |
 | [`workflow/deployed-env-smoke-before-ready.md`](workflow/deployed-env-smoke-before-ready.md) | Ready/landed report MUST include deployed-env smoke evidence |

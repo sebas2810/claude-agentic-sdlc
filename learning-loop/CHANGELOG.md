@@ -2,6 +2,30 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-07-21 — Branch-per-EPIC rewritten: sub-branch per issue, `main` touched once, the red line made explicit (owner-directed)
+
+Both engineer seats on a reference instance kept opening **one PR to `main` per
+issue**, firing the full CI/gate chain N times per EPIC. The rule permitted the
+better pattern but framed it as "the exception," so agents defaulted to the
+costly path. Rewritten to make the model unambiguous:
+
+- **The red line, stated first:** a single issue / work-package NEVER gets a PR
+  to `main`; only a whole EPIC does, once, and the **PM** opens it — never the
+  engineer.
+- **Sub-branch per issue is now the named preferred shape** for multi-WP EPICs:
+  `wp/<issue#>-<slug>` off the feature branch, closed back **into the feature
+  branch** (CLI merge = zero CI, or a `--base feat/…` PR for a review record),
+  never into `main`.
+- **The enforceability fact:** the heavy gate chain almost always triggers only
+  on `base=main` PRs — so intermediate WP closures into a feature branch cost
+  ~zero heavy-gate runs and the full chain fires once, at the EPIC→main PR.
+  Adopters are told to verify against their own workflows' `on:` triggers.
+- Added the copy-paste 4-step command block; genericised the cautionary tale
+  (dropped the instance-specific issue numbers); noted the registry coupling
+  (registering a long-lived branch for a rebase-guard exemption can also force
+  the heavy gates onto sub-PRs → close by CLI merge to keep them dormant).
+  Rule: [`../feedback/workflow/branch-per-epic.md`](../feedback/workflow/branch-per-epic.md).
+
 ## 2026-07-18 — New terminal status: `Cancelled` (≠ `Released`) + seeded epics land ON the board
 
 Two changes surfaced by the first koiPond stand-up (the second one a straight port
