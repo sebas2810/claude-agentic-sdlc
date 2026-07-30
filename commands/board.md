@@ -11,7 +11,7 @@ REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 
 **Counts per status** — one cheap exact count each (Search API `total_count`, REST budget):
 ```
-for s in backlog scoped in-progress delivered tested merged released blocked; do
+for s in backlog scoped in-progress delivered tested merged released blocked cancelled; do
   n="$(gh api -X GET search/issues -f q="repo:$REPO is:open is:issue label:status:$s" --jq '.total_count')"
   printf '%-12s %s\n' "$s" "$n"
 done

@@ -1,0 +1,28 @@
+{
+  "description": "The ops label taxonomy. Board Status is canonical; the ops:* label is its cheap discovery mirror (dual-write, same rule as the Delivery board). type:incident + sev:* make MTTR computable (mean signal→resolved on incident-tagged items).",
+  "labels": [
+    { "name": "ops:signal", "color": "FBCA04", "description": "Ops index: watcher-filed anomaly with evidence bundle" },
+    { "name": "ops:triage", "color": "D93F0B", "description": "Ops index: acknowledged, severity being assigned" },
+    { "name": "ops:investigating", "color": "1D76DB", "description": "Ops index: Investigator owns it, RCA in progress" },
+    { "name": "ops:mitigating", "color": "5319E7", "description": "Ops index: RCA posted, remediation proposed/executing" },
+    { "name": "ops:resolved", "color": "0E8A16", "description": "Ops index: restored, verified by independent health signal" },
+    { "name": "ops:postmortem", "color": "6F42C1", "description": "Ops index: sev:1/2 post-mortem in progress (close needs loopback)" },
+
+    { "name": "ops:inbox", "color": "CCCCCC", "description": "Support lane: new item awaiting the support seat" },
+    { "name": "ops:answering", "color": "1D76DB", "description": "Support lane: support seat drafting from KB + code" },
+    { "name": "ops:escalated", "color": "B60205", "description": "Support lane: handed to a human with full context" },
+    { "name": "ops:closed", "color": "6A737D", "description": "Support lane: resolved and confirmed" },
+
+    { "name": "type:incident", "color": "B60205", "description": "An incident — the tag MTTR is computed over" },
+    { "name": "sev:1", "color": "B60205", "description": "User-facing outage / data risk — page a human in parallel, always" },
+    { "name": "sev:2", "color": "D93F0B", "description": "Degradation with a deadline — post-mortem + loopback mandatory" },
+    { "name": "sev:3", "color": "FBCA04", "description": "Anomaly worth a look — may close at resolved" },
+
+    { "name": "runbook:tier-0", "color": "0E8A16", "description": "Runbook granted auto-execution (earned via the promotion rule)" },
+    { "name": "runbook:tier-1", "color": "FBCA04", "description": "Runbook requires an external human approval gate" },
+    { "name": "runbook:tier-2", "color": "B60205", "description": "Runbook is draft-only — a human executes" }
+  ],
+  "standing_epics": [
+    { "title": "Epic: Observability & Alert Quality", "body": "Standing epic on the OPS board. Parents watcher tuning, alert-precision work, dashboard/SLO definitions.", "labels": ["ops:signal"] }
+  ]
+}
