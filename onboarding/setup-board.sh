@@ -66,28 +66,29 @@ echo "  created project #$NUM — $URL"
 
 # Configure Status options + custom fields from the template (logic in node; it shells back to gh).
 NUM="$NUM" OWNER="$OWNER" TEMPLATE="$TEMPLATE" node <<'NODE'
-const { execSync } = require("child_process");
+const { execFileSync } = require("child_process");
 const fs = require("fs");
 const tpl = JSON.parse(fs.readFileSync(process.env.TEMPLATE, "utf8"));
 const NUM = process.env.NUM, OWNER = process.env.OWNER;
-const sh = (c) => execSync(c, { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
+// No shell in between: arg arrays survive apostrophes/parens in template text.
+const gh = (...args) => execFileSync("gh", args, { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
 
 // 1. Status options — find the field id, full-replace (empty board, safe).
-const fields = JSON.parse(sh(`gh project field-list ${NUM} --owner ${OWNER} --format json`)).fields;
+const fields = JSON.parse(gh("project", "field-list", NUM, "--owner", OWNER, "--format", "json")).fields;
 const status = fields.find((f) => f.name === (tpl.statusField?.name || "Status"));
 if (tpl.statusField && status) {
   const lit = tpl.statusField.options
-    .map((o) => `{name:"${o.name}",color:${o.color || "GRAY"},description:${JSON.stringify(o.description || "")}}`)
+    .map((o) => `{name:${JSON.stringify(o.name)},color:${o.color || "GRAY"},description:${JSON.stringify(o.description || "")}}`)
     .join(",");
-  sh(`gh api graphql -f query='mutation{updateProjectV2Field(input:{fieldId:"${status.id}",singleSelectOptions:[${lit}]}){projectV2Field{... on ProjectV2SingleSelectField{id}}}}'`);
+  gh("api", "graphql", "-f", `query=mutation{updateProjectV2Field(input:{fieldId:"${status.id}",singleSelectOptions:[${lit}]}){projectV2Field{... on ProjectV2SingleSelectField{id}}}}`);
   console.log(`  Status → ${tpl.statusField.options.map((o) => o.name).join(" · ")}`);
 }
 
 // 2. Custom fields.
 for (const f of tpl.fields || []) {
-  let cmd = `gh project field-create ${NUM} --owner ${OWNER} --name ${JSON.stringify(f.name)} --data-type ${f.dataType}`;
-  if (f.dataType === "SINGLE_SELECT") cmd += ` --single-select-options ${JSON.stringify((f.options || []).join(","))}`;
-  try { sh(cmd); console.log(`  + field: ${f.name} [${f.dataType}]`); }
+  const args = ["project", "field-create", NUM, "--owner", OWNER, "--name", f.name, "--data-type", f.dataType];
+  if (f.dataType === "SINGLE_SELECT") args.push("--single-select-options", (f.options || []).join(","));
+  try { gh(...args); console.log(`  + field: ${f.name} [${f.dataType}]`); }
   catch (e) { console.log(`  ! field ${f.name} skipped (${String(e.message).split("\n")[0]})`); }
 }
 console.log(`  board #${NUM} configured.`);
