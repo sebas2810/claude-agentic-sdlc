@@ -18,6 +18,15 @@ git fetch origin main && git rebase origin/main
 
 (Replace `main` with the appropriate base branch if you're pushing a hotfix or release-promote.)
 
+## Scope — this is an AUTHORING rule, not a gate rule
+
+It binds seats **pushing work they authored** (engineer / PM). It does **not**
+instruct the merge gate: an already-QA-passed PR that shows `BEHIND` because a
+sibling merged first is **not** a rebase trigger — the SM merges it as-is
+(`MERGEABLE` + `BEHIND`; a real conflict reads `CONFLICTING` and routes back
+here). Reflex-applying this rule at the gate is the K(K−1)/2 CI-cost
+anti-pattern: see [`behind-is-not-dirty.md`](behind-is-not-dirty.md).
+
 ## Why
 
 Multiple engineers + sub-PMs work concurrently. `main` moves between when you started your branch and when you push. Without rebase:

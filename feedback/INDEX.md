@@ -28,7 +28,8 @@ These are the rules the spine **keeps**. Confirmed and retained in the
 | [`workflow/minimize-git-actions.md`](workflow/minimize-git-actions.md) | ~3 git actions per unit, not 15–20 — EPIC branch, auto-merge, `Refs` on prereq PRs, PM never merges |
 | [`workflow/deployed-env-smoke-before-ready.md`](workflow/deployed-env-smoke-before-ready.md) | Ready/landed report MUST include deployed-env smoke evidence |
 | [`workflow/audit-pr-history-before-pickup.md`](workflow/audit-pr-history-before-pickup.md) | Check `gh pr list` before declaring an issue "unstarted" |
-| [`workflow/always-rebase-before-push.md`](workflow/always-rebase-before-push.md) | `git fetch origin main && git rebase origin/main` before every push |
+| [`workflow/always-rebase-before-push.md`](workflow/always-rebase-before-push.md) | `git fetch origin main && git rebase origin/main` before every push — AUTHORING seats only, never the merge gate |
+| [`workflow/behind-is-not-dirty.md`](workflow/behind-is-not-dirty.md) | At the gate, `MERGEABLE`+`BEHIND` merges as-is — rebase-for-BEHIND burns K(K−1)/2 heavy CI runs; the SM never rebases |
 | [`workflow/forward-port-release-hotfixes-same-day.md`](workflow/forward-port-release-hotfixes-same-day.md) | Release-line hotfixes forward-port to main same-day - ENFORCED by the FLOOR-4 gate (#1069) |
 | [`workflow/dont-block-on-irrelevant-ci.md`](workflow/dont-block-on-irrelevant-ci.md) | Don't artificially block on CI that doesn't affect the next step |
 | [`workflow/repo-settings-via-pr.md`](workflow/repo-settings-via-pr.md) | Repo settings changes need explicit owner approval (owner-touchpoint) |
