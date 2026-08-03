@@ -174,10 +174,19 @@ seat drains its queue, and **nothing advances without an operator-initiated
   GraphQL budget). The board `Status` field stays the **canonical record + the
   visual kanban**; the label is its read-replica. Every transition **dual-writes
   both** — set the `status:*` label (REST) **and** the board `Status` field (one
-  cheap single-item mutation) — together, always. A hard invariant for every seat:
-  no label-only mode, no projection Action, no reconcile/validate step; consistency
-  is guaranteed at the point of write. `/check`, `/workload`, `/board`, `/backlog`
-  all run discovery off the label index; the expensive read is never on the hot path.
+  cheap single-item mutation) — together, always, **and ends with a read-back**:
+  one targeted `gh issue view <n> --json labels,projectItems` asserting both
+  halves landed. A dual-write can silently no-op while exiting 0, and a half
+  that didn't land leaves the item invisible to the next seat's discovery while
+  the writer reports success — **the transition is complete when the read-back
+  confirms it, not when the write returns.** A hard invariant for every seat:
+  no label-only mode, no projection Action, no deferred reconcile job; consistency
+  is guaranteed — and verified — at the point of write, by whoever writes.
+  `/check`, `/workload`, `/board`, `/backlog`
+  all run discovery off the label index; the expensive read is never on the hot
+  path. In a repo hosting more than one squad, discovery also carries the
+  **ownership boundary** — the issue `author`; the shared label namespace does
+  not encode squad ([the rule](../feedback/workflow/author-is-the-ownership-boundary.md)).
 - An item **carries its Epic parent** (sub-issue link / `Epic` field) — every
   Story is parented per [`hierarchy.md`](hierarchy.md); an orphan Story has no
   steer to build from.

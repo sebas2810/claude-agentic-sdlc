@@ -4,8 +4,9 @@
 `seat:cas`) and a matching value in the board's **`Seat` field** (TEXT — the field the
 shipped [execution-board template](../../workflow/project-templates/execution-board.json)
 creates), and the scoping write keeps them in lockstep: `Backlog → Scoped` is a
-**quadruple write** — `status:scoped` label +
-board Status field + board Seat field + `seat:<name>` label. Producers discover work
+**quintuple write** — `status:scoped` label +
+board Status field + board Seat field + `seat:<name>` label + an **unconditional
+assignee strip** (`gh issue edit <n> --remove-assignee <login>`). Producers discover work
 with the documented cheap query (`label:status:scoped label:seat:<name>`); the GitHub
 **assignee field is never used for seat routing**.
 
@@ -20,7 +21,11 @@ is the record; the label is the index — the same design as `status:*`.
 two meanings: an engineer **self-assigns at claim** (`Scoped → In Progress`), and QA
 **leaves it on a FAIL** so the rework query re-pulls it. Therefore a scoped item with
 an assignee means REWORK — never "reserved". Owner/stakeholder visibility assignment
-belongs on EPICs only, and is stripped when a story is scoped.
+belongs on EPICs only, and the scoping write strips it **unconditionally** — not as a
+courtesy: observed 2026-08-03, ten freshly-scoped stories carrying an owner-assignment
+each presented to the producer's `/check` as a QA bounce-back, with no QA comments to
+act on. "Freshly scoped" and "QA-rejected" must stay distinguishable, and the strip is
+what keeps them so.
 
 **Instance setup.** `bootstrap.sh` creates the `seat:<name>` labels alongside the
 status labels for every seat configured in `sdlc.config`.
