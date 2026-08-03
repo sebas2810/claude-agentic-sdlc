@@ -2,6 +2,46 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-08-03 — Identity made checkable: author boundary · dual-write read-back · unconditional assignee strip · actor ≠ signature · parity gate
+
+A single session on a repo hosting **two** squads produced seven incidents of
+one shape: a seat inferring identity, ownership, or authority from a signal
+that does not carry it. None was a seat misbehaving — in the headline incident
+the prescribed guard check ran, passed, and the boundary was crossed anyway,
+because the rule named the wrong signal. The fix class is not more prose; it
+is making the existing signals machine-checkable:
+
+- **Author is the ownership boundary** (new rule) — every `/check` and
+  `/backlog` discovery now loads `author` and drops foreign-authored rows
+  before anything else (server-side `author:` for single-account squads).
+  QA/SM discovery (`status:delivered`/`status:tested`) was repo-global before
+  this — exactly how a foreign SM ended up merge-gating another squad's EPIC.
+  Rule: [`../feedback/workflow/author-is-the-ownership-boundary.md`](../feedback/workflow/author-is-the-ownership-boundary.md).
+- **Dual-write read-back** — a transition is complete when one targeted
+  `gh issue view <n> --json labels,projectItems` confirms BOTH halves landed,
+  not when the write returns: a dual-write silently no-op'd on two `Delivered`
+  units, leaving them invisible to QA while the writer reported success.
+  Not a reconcile pass — the read-back lives inside the same transition, by
+  the same writer. (`commands/check.md`, `workflow/state-machine.md`)
+- **Unconditional assignee strip at scoping** — the quadruple write is now
+  quintuple: ten freshly-scoped stories carrying an owner-assignment each
+  presented to the producer's `/check` as a QA bounce-back. "Freshly scoped"
+  and "QA-rejected" must stay distinguishable.
+  (`feedback/workflow/seat-label-mirror.md`, `commands/check.md`)
+- **Actor ≠ signature** (new rule) — SM merge preconditions now include: the
+  `status:tested` flip's timeline actor is a squad account. Prose signatures
+  ("— Nikita (scrum-master)") stop being the source of truth for who holds a
+  gate. Rule: [`../feedback/workflow/actor-not-signature.md`](../feedback/workflow/actor-not-signature.md).
+- **Parity gate** — new [`../onboarding/doctor.sh`](../onboarding/doctor.sh)
+  verifies the repo's labels against the `sdlc.config` roster: missing
+  producer lanes, foreign `seat:*` labels (another squad? retired seat?),
+  missing `status:*` index entries. `sdlc.config` stays the single
+  machine-readable roster — deliberately **no** second `seats.json` to drift.
+
+Deferred pending an owner decision: modelling the multi-squad-per-repo case
+itself (partition the label namespace vs declare one-squad-per-repo the
+supported shape). The author boundary above is the interim defense either way.
+
 ## 2026-07-21 — Branch-per-EPIC rewritten: sub-branch per issue, `main` touched once, the red line made explicit (owner-directed)
 
 Both engineer seats on a reference instance kept opening **one PR to `main` per
