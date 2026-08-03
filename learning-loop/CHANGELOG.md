@@ -2,6 +2,32 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-08-03 — BEHIND is not DIRTY: the merge pass batches, the SM never rebases (owner-directed)
+
+An SM drained three independent main-targeting PRs serially: merged the first,
+rebased **both** remaining PRs (two full heavy-gate CI runs), and the third
+would flip `BEHIND` again the moment the second merged — a second rebase and a
+third full run, the first re-run bought nothing. None of the three ever
+conflicted. Generalized: K ready PRs rebased-after-each-merge ≈ **K(K−1)/2
+wasted full CI runs** — the Actions bill, in one habit. Root cause: the
+authoring-side reflex ([`always-rebase-before-push`](../feedback/workflow/always-rebase-before-push.md))
+applied at the merge gate, where `BEHIND` is bookkeeping, not a defect.
+
+- **New rule** [`../feedback/workflow/behind-is-not-dirty.md`](../feedback/workflow/behind-is-not-dirty.md):
+  `MERGEABLE` + `BEHIND` merges as-is (server-side, against the current tip);
+  only `CONFLICTING` routes to the engineer; the gate-holder's verbs are
+  validate · merge · route — **never rebase**. Strict up-to-date protection
+  forcing updates on green, conflict-free PRs is itself a flow defect to
+  surface (merge queue · branch-per-EPIC · drop strict), and even then the
+  queue advances ONE PR at a time — linear, not quadratic.
+- **SM seat**: the merge-pass discipline is now engrained in
+  `seats/scrum-master/KICKOFF.md` (authority section, drain checklist, and
+  boundaries) and `commands/check.md` (SM drain): batch ready items
+  back-to-back, oldest-first, zero rebases in between.
+- **Scope fix**: `always-rebase-before-push.md` now states it binds authoring
+  pushes only — its cautionary tales were teaching gate-holders the
+  rebase-on-BEHIND reflex.
+
 ## 2026-08-03 — Identity made checkable: author boundary · dual-write read-back · unconditional assignee strip · actor ≠ signature · parity gate
 
 A single session on a repo hosting **two** squads produced seven incidents of
