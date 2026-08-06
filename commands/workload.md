@@ -13,6 +13,10 @@ if [ -z "${SEAT_ROLE:-}" ] && [ -f .env.local ]; then
   SEAT_LABEL="$(sed -n 's/^SEAT_LABEL=//p' .env.local | head -1)"
 fi
 ROLE="${SEAT_ROLE:?not a seat worktree — no SEAT_ROLE in env or ./.env.local}"
+case "$ROLE" in
+  watcher|investigator|operator) echo "Run-loop seat — see /ops-board for the ops picture, /ops-check to act"; exit 0 ;;
+  auditor) echo "Assure-loop seat — /audit lists what's due when run bare"; exit 0 ;;
+esac
 case "${SEAT_LABEL:-}" in seat:*) KEY="${SEAT_LABEL#seat:}" ;; *) KEY="${SEAT_KEY:-$ROLE}" ;; esac
 ```
 Discovery runs against THIS worktree's repo (`gh` resolves it from cwd). Each list is one cheap `gh issue list --search "...status:* label..."` — list, don't act.

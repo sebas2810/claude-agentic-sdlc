@@ -15,6 +15,8 @@
     { "name": "type:test", "color": "0e8a16", "description": "tests / evals only" },
     { "name": "type:spike", "color": "c5def5", "description": "time-boxed investigation" },
     { "name": "type:perf", "color": "fbca04", "description": "performance work" },
+    { "name": "type:security", "color": "b60205", "description": "security work — hardening, vuln remediation, posture" },
+    { "name": "type:audit", "color": "6f42c1", "description": "an assurance finding (filed by the Auditor seat — see assurance/)" },
 
     { "name": "priority:P0", "color": "b60205", "description": "incident / interrupt — preempts WSJF order" },
     { "name": "priority:P1", "color": "e99695", "description": "high" },
@@ -35,6 +37,7 @@
     { "title": "Epic: Maintenance & Tech Debt", "body": "Standing epic. Parents chores, refactors, dep bumps, CI work that isn't part of a feature epic. See workflow/hierarchy.md.", "labels": ["level:epic", "type:chore"] },
     { "title": "Epic: Operations & Incidents", "body": "Standing epic. Parents hotfixes, P0 reactive work, ops. A bug with no clear feature epic homes here. See workflow/hierarchy.md.", "labels": ["level:epic", "type:fix"] },
     { "title": "Epic: Quality & Evals", "body": "Standing epic. Parents the assurance/eval backlog owned by the Quality seat. See workflow/hierarchy.md.", "labels": ["level:epic", "type:test"] },
-    { "title": "Epic: Discovery & Spikes", "body": "Standing epic. Parents time-boxed research/investigation spikes. See workflow/hierarchy.md.", "labels": ["level:epic", "type:spike"] }
+    { "title": "Epic: Discovery & Spikes", "body": "Standing epic. Parents time-boxed research/investigation spikes. See workflow/hierarchy.md.", "labels": ["level:epic", "type:spike"] },
+    { "title": "Epic: Security & Compliance", "body": "Standing epic. Parents security hardening, audit-finding remediation (type:audit), and compliance work. Findings flow in from the Assure loop — see assurance/workflow/audit-lifecycle.md.", "labels": ["level:epic", "type:security"] }
   ]
 }

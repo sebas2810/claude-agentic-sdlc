@@ -81,17 +81,21 @@ CONFIG="$ROOT/sdlc.config"
 
 # curated name pool (the instance style: short first names) + per-role defaults
 NAME_POOL="Pim Finn Cas Noor Vera Otto Dex Max Sam Tess Quin Bo Isa Jip Roos"
-ROLES="pm engineer scrum-master quality-engineer cloud-architect data-architect data-scientist"
+ROLES="pm engineer scrum-master quality-engineer cloud-architect data-architect data-scientist watcher investigator operator auditor"
 default_name(){ case "$1" in
   pm) echo Pim ;; engineer) echo Finn ;; scrum-master) echo Cas ;;
   quality-engineer) echo Noor ;; cloud-architect) echo Otto ;;
-  data-architect) echo Dex ;; data-scientist) echo Vera ;; *) echo "" ;;
+  data-architect) echo Dex ;; data-scientist) echo Vera ;;
+  watcher) echo Bo ;; investigator) echo Isa ;; operator) echo Max ;;
+  auditor) echo Tess ;; *) echo "" ;;
 esac; }
 # model tier by role — capability where errors are expensive / hard to catch
-# (judgment + the independent gate), economy on gated, high-volume work.
-# Override per seat with a role:Name:model triple in SEATS.
+# (judgment + the independent gate + RCA + line-3 assurance), economy on gated,
+# high-volume work; haiku on the read-only sweep. Override per seat with a
+# role:Name:model triple in SEATS.
 default_model(){ case "$1" in
-  pm|orchestrator|quality-engineer) echo opus ;; *) echo sonnet ;;
+  pm|orchestrator|quality-engineer|investigator|auditor) echo opus ;;
+  watcher) echo haiku ;; *) echo sonnet ;;
 esac; }
 # SEATS entries are role:Name or role:Name:model — parse one entry into
 # SEAT_R / SEAT_N / SEAT_M (model empty = role default applies later)
@@ -242,7 +246,7 @@ rm -f "$CI_LOG"
 # pm / scrum-master / quality-engineer key off their role, no lane needed.
 for pair in $SEATS; do
   parse_seat "$pair"
-  case "$SEAT_R" in pm|scrum-master|quality-engineer) continue ;; esac
+  case "$SEAT_R" in pm|scrum-master|quality-engineer|watcher|investigator|operator|auditor) continue ;; esac
   key="$(printf '%s' "$SEAT_N" | tr '[:upper:] ' '[:lower:]-')"
   gh label create "seat:$key" --repo "$REPO" --color "0E8A16" \
     --description "Routing lane: work for $SEAT_N (the $SEAT_R seat)" --force >>"$LOG" 2>&1 \
@@ -315,7 +319,7 @@ for pair in $SEATS; do
     fail_step "could not create the worktree for $name"
   fi
   lane=""
-  case "$role" in pm|scrum-master|quality-engineer) ;; *) lane="seat:$key" ;; esac
+  case "$role" in pm|scrum-master|quality-engineer|watcher|investigator|operator|auditor) ;; *) lane="seat:$key" ;; esac
   cat > "$WT/.env.local" <<ENV
 # $name — per-seat env (gitignored; secrets like GH_TOKEN belong HERE, not in sdlc.config)
 INSTANCE=$INSTANCE
