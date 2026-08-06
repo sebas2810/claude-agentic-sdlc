@@ -8,7 +8,14 @@ Resolve the repo (`gh` reads it from cwd) and the ownership boundary (a repo can
 ```
 REPO="$(gh repo view --json nameWithOwner -q .nameWithOwner)"
 [ -z "${SQUAD_AUTHORS:-}" ] && [ -f .env.local ] && SQUAD_AUTHORS="$(sed -n 's/^SQUAD_AUTHORS=//p' .env.local | head -1)"
-SQUAD_AUTHORS="${SQUAD_AUTHORS:-$(gh repo view --json owner -q .owner.login)}"
+# Unset → infer from repo owner UNIONED with this seat's own gh login, and say so.
+# The owner alone silently shortens the queue whenever seats post as another account.
+if [ -z "${SQUAD_AUTHORS:-}" ]; then
+  _owner="$(gh repo view --json owner -q .owner.login 2>/dev/null)"
+  _me="$(gh api user --jq .login 2>/dev/null || true)"
+  if [ -n "$_me" ] && [ "$_me" != "$_owner" ]; then SQUAD_AUTHORS="$_owner,$_me"; else SQUAD_AUTHORS="$_owner"; fi
+  echo "⚠ SQUAD_AUTHORS unset — inferred '$SQUAD_AUTHORS'. Set it explicitly in .env.local."
+fi
 ```
 
 **The framing queue** — open issues labelled `status:backlog`, oldest-first, with a count and the epic each sits under:

@@ -23,8 +23,23 @@ else. Never scope, build, verify, gate, or merge a foreign-authored item.
 
 ## How to apply
 - `SQUAD_AUTHORS` = the account(s) that author this squad's work (seats share
-  one GitHub account by design; the human owner may author too). Default: the
-  repo owner. Resolve it in the same block as `SEAT_ROLE` (see `commands/check.md`).
+  one GitHub account by design; the human owner may author too). Resolve it in
+  the same block as `SEAT_ROLE` (see `commands/check.md`).
+- **Provision it explicitly — `sdlc.config` → `bootstrap.sh` → each `.env.local`.**
+  It is a comma-separated list, not a single login.
+- **The old default — "the repo owner" — was wrong and is retired.** Seats
+  routinely authenticate as an account that is *not* the repo owner; an
+  owner-only value then makes every seat drop **its own squad's** work. Where
+  unset, the fallback is now the owner **unioned with the logged-in `gh`
+  account**, and it announces what it inferred.
+- **A too-narrow `SQUAD_AUTHORS` is a silent-degradation defect, not a
+  misconfiguration.** It raises no error; it returns a *shorter queue*, which is
+  indistinguishable from "nothing to do". A seat then reports `queue clear —
+  idle` while its work sits unpulled. That is the exact shape the no-false-green
+  invariant forbids, which is why the resolution must be loud and the value
+  explicit. **Observed 2026-08-06:** with the owner-only default, a PM seat's
+  blocked queue returned **1 of 3** items — the two dropped were its own squad's,
+  authored by the seat account.
 - Add `author` to the `--json` list of every `gh issue list` discovery call and
   filter first; a single-account squad pushes it server-side
   (`author:$SQUAD_AUTHORS` in the `--search` string) so the foreign row never returns.
