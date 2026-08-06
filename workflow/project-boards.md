@@ -72,11 +72,55 @@ happens in the **Board view**. Same project, same items — only the lens change
                             Scoped → In Progress → Delivered → Tested → Merged → Released
 ```
 
-## Portfolio across instances
+## Fleet master board — epics across all instances
 
-For 2–3 instances at once, add an **org-level Portfolio project** that aggregates
-issues across the instance repos — the cross-project review lens, above any single
-instance's board.
+When every developer runs their own instance, `onboarding/team-bootstrap.sh`
+creates one **org-level Fleet project** that aggregates epics across all product
+repos. It is the team-lead surface: one board, all epics, nothing below.
+
+### What it shows
+
+| Field | Source |
+|---|---|
+| Epic title | GitHub issue title |
+| Status | Planned · Active · Done · Blocked · Cancelled (set by PM or SM per instance) |
+| Repository | Built-in — which developer's repo owns this epic |
+| Sub-issues progress | Built-in — % of child stories `Released` ÷ total |
+| Owner | Text field — the developer or squad leading this epic |
+| Priority | P0–P3 |
+| Target | Date |
+
+### How it is provisioned
+
+`team-bootstrap.sh` reads `team.config` (see `onboarding/team.config.example`),
+creates the org-level project from
+[`project-templates/fleet-board.json`](project-templates/fleet-board.json),
+links every product repo to it, and injects `TEAM_BOARD_URL` into each repo's
+`sdlc.config`. Re-running `bootstrap.sh --yes` in each repo propagates the URL
+to every seat's `.env.local` and into every session's briefing.
+
+### Fleet board views — one-time UI step
+
+The GitHub Projects API cannot create views. On the freshly-created fleet board:
+
+1. Click **+ New view** → **Layout: Table**.
+2. Filter bar: `label:level:epic`.
+3. **+** on the column header → add **Sub-issues progress**, **Repository**,
+   **Owner**, **Target**, **Priority**.
+4. Rename the tab **EPICS**. **Save changes**.
+5. Optionally add a second **Board view** grouped by **Status** for a kanban-style
+   epic overview.
+
+Once configured, set `FLEET_GOLDEN_BOARD=<project-number>` in `team.config` so
+the next team setup copies views via `copyProjectV2` — no UI step required.
+
+### In the agents' memory
+
+Every seat's `.env.local` carries `TEAM_BOARD_URL` (set when a seat is
+provisioned after `team-bootstrap.sh` has run). `setup-seat.sh` bakes it into
+the seat identity file (`.${INSTANCE}-seat.md`), which the SessionStart hook
+injects at the start of every session. Each seat therefore knows the fleet board
+exists and where it lives — without any manual briefing.
 
 ## Built by the scaffolder
 

@@ -40,6 +40,12 @@ if [ -f "$SEAT_FILE" ]; then
   echo "    seat:   .${INSTANCE}-seat.md present (kept)"
 elif [ -f "$TEMPLATE" ]; then
   sed -e "s/<NAME>/${SEAT_NAME}/g" -e "s/<ROLE>/${SEAT_ROLE}/g" "$TEMPLATE" > "$SEAT_FILE"
+  # If this instance belongs to a team fleet, append the fleet board so every
+  # seat knows it exists (injected at scaffold time from TEAM_BOARD_URL in .env.local).
+  if [ -n "${TEAM_BOARD_URL:-}" ]; then
+    printf '\n## Fleet\n\nThis instance is part of a team fleet. The master board (epics across all instances, read-only context for this seat):\n%s\n' \
+      "$TEAM_BOARD_URL" >> "$SEAT_FILE"
+  fi
   echo "    seat:   .${INSTANCE}-seat.md scaffolded (${SEAT_ROLE}) — set its steer line to your EPIC"
 else
   echo "    seat:   ⚠ no template for role '${SEAT_ROLE}' ($TEMPLATE)"

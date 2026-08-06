@@ -33,6 +33,10 @@ below). `instance/orbis/` is the shipped reference instance — replace it with 
 > This folder is the single source for how the SDLC works. Everything here is
 > live — no history, no old versions.
 
+## Interactive walkthrough
+
+New to the framework? **[Your first Agentic Harness](https://dda24jhk3p9ao.cloudfront.net/your-first-agentic-harness)** is an interactive step-by-step guide that walks you through the concepts, the seat model, and the first bootstrap.
+
 ## Quickstart
 
 Two commands from a clone of this repo to a running instance.
@@ -69,6 +73,18 @@ idempotent — edit `sdlc.config` + re-run to change anything, or run
 It prompts for the repo, owner, seats, and git identity, then provisions
 everything and prints how to start. Full walkthrough + the manual/by-hand steps:
 [`onboarding/new-pair-setup.md`](onboarding/new-pair-setup.md).
+
+### Start the squad
+
+Bootstrap emits one launcher per seat **plus `squad.command`** into
+`~/Code/agents/<instance>/`. Double-click a seat to open it alone — or
+`squad.command` to open **every seat at once**. With
+[agterm](https://github.com/umputun/agterm) installed the seats land as named
+tabs in **one workspace, in SDLC flow order** (PM → Engineer(s) → QA → SM — the
+sidebar reads as the 4-eye chain), and re-runs **replace** the previous squad
+instead of duplicating it; without agterm each seat opens in its own Terminal
+window. Either way the cadence stays operator-driven: seats boot inert and wait
+for `/check`.
 
 ### The seat tooling as a Claude Code plugin
 
@@ -189,6 +205,29 @@ agentic-sdlc/
 ├── feedback/                  ← the portable (framework) rules, by area
 └── instance/<your-instance>/  ← the instance-specific overlay: concrete skills + rules (fork = swap this folder)
 ```
+
+## Team setup
+
+When every developer runs their own instance, a third command wires them into a
+**fleet**: one org-level board that shows only epics — across all repos, with
+status, owner, and sub-issues progress in a single view.
+
+Each developer self-provisions their instance with the two commands above.
+The team lead then runs once from a `team.config` (see
+[`onboarding/team.config.example`](onboarding/team.config.example)):
+
+```bash
+bash agentic-sdlc/onboarding/team-bootstrap.sh
+```
+
+It creates the org-level fleet board
+([`workflow/project-templates/fleet-board.json`](workflow/project-templates/fleet-board.json)),
+links every product repo to it, and injects `TEAM_BOARD_URL` into each repo's
+`sdlc.config`. Re-running `bootstrap.sh --yes` in each repo propagates it to
+every seat's `.env.local` so the fleet board is part of each agent's session
+context from that point on — no manual re-briefing needed.
+
+Full details: [`workflow/project-boards.md` — Fleet master board section](workflow/project-boards.md).
 
 ## Fork it
 
