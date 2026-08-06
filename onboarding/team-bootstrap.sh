@@ -125,7 +125,7 @@ c_head "▶ Injecting TEAM_BOARD_URL"
 if [ -z "$LOCAL_REPOS" ]; then
   c_warn "LOCAL_REPOS not set — skipping sdlc.config injection; add TEAM_BOARD_URL=\"$FLEET_URL\" to each repo's sdlc.config manually, then re-run bootstrap.sh --yes."
 else
-  read -r -a local_arr <<< "$LOCAL_REPOS" 2>/dev/null || local_arr=($LOCAL_REPOS)
+  read -r -a local_arr <<< "$LOCAL_REPOS"
   for local_repo in "${local_arr[@]}"; do
     cfg="$local_repo/sdlc.config"
     if [ ! -f "$cfg" ]; then
@@ -161,7 +161,7 @@ cat <<DONE
 
 DONE
 
-read -r -a local_arr <<< "$LOCAL_REPOS" 2>/dev/null || local_arr=($LOCAL_REPOS)
+read -r -a local_arr <<< "$LOCAL_REPOS"
 for local_repo in "${local_arr[@]-}"; do
   [ -n "$local_repo" ] && printf '              cd %s && bash agentic-sdlc/onboarding/bootstrap.sh --yes\n' "$local_repo"
 done
