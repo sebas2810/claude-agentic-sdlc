@@ -21,9 +21,12 @@ BASE="$HOME/Code"                     # where the seat checkouts live
 #   Values: opus · sonnet · haiku, or a pinned model id (claude-…). Aliases
 #   float with releases — prefer them; pin only when reproducibility matters.
 # Roles: pm · engineer · scrum-master · quality-engineer · cloud-architect ·
-#        data-architect · data-scientist   (a role may appear twice — names
-#        must be unique; the wizard suggests names, e.g. Pim · Finn · Cas ·
-#        Noor · Vera · Otto · Dex · Max · Sam · Tess)
+#        data-architect · data-scientist · watcher · investigator · operator
+#        (Run loop, operations/) · auditor (Assure loop, assurance/)
+#        (a role may appear twice — names must be unique; the wizard suggests
+#        names, e.g. Pim · Finn · Cas · Noor · Vera · Otto · Dex · Bo · Isa ·
+#        Max · Tess). Model defaults: pm + quality-engineer + investigator +
+#        auditor → opus · watcher → haiku · everyone else → sonnet.
 SEATS="pm:Pim engineer:Finn scrum-master:Cas:haiku quality-engineer:Noor engineer:Dex:opus"
 
 # Git identity every seat commits as (applied per-worktree, never globally)

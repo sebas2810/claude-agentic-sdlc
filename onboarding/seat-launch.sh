@@ -95,8 +95,9 @@ EOP
 #    gate) → sonnet. Set SEAT_MODEL="" explicitly to inherit the account default (pass no --model).
 #    `${SEAT_MODEL-…}` keeps an explicit "" distinct from unset.
 case "$SEAT_ROLE" in
-  pm|orchestrator|quality-engineer) DEFAULT_MODEL="opus" ;;
-  *)                                DEFAULT_MODEL="sonnet" ;;
+  pm|orchestrator|quality-engineer|investigator|auditor) DEFAULT_MODEL="opus" ;;
+  watcher)                                               DEFAULT_MODEL="haiku" ;;
+  *)                                                     DEFAULT_MODEL="sonnet" ;;
 esac
 SEAT_MODEL="${SEAT_MODEL-$DEFAULT_MODEL}"
 MODEL_FLAG=(); [ -n "$SEAT_MODEL" ] && MODEL_FLAG=(--model "$SEAT_MODEL")

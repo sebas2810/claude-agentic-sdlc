@@ -15,6 +15,10 @@ if [ -z "${SEAT_ROLE:-}" ] && [ -f .env.local ]; then
   BOARD_OWNER="${BOARD_OWNER:-$(sed -n 's/^BOARD_OWNER=//p' .env.local | head -1)}"
 fi
 ROLE="${SEAT_ROLE:?not a seat worktree — no SEAT_ROLE in env or ./.env.local}"
+case "$ROLE" in
+  watcher|investigator|operator) echo "Run-loop seat — your drain is /ops-check, not /check"; exit 0 ;;
+  auditor) echo "Assure-loop seat — your engagement command is /audit, not /check"; exit 0 ;;
+esac
 case "${SEAT_LABEL:-}" in seat:*) KEY="${SEAT_LABEL#seat:}" ;; *) KEY="${SEAT_KEY:-$ROLE}" ;; esac
 # discovery runs against THIS worktree's repo (gh resolves it from cwd — no hardcode);
 # BOARD_ID/BOARD_OWNER are only needed for the dual-write field flip below.

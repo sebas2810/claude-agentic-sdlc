@@ -64,6 +64,9 @@ fi
 #   .github/         workflows are inert in a subdirectory (repo-root only)
 #   .claude-plugin/  the plugin installs from the marketplace, not the vendor
 #   SECURITY.md      framework-repo-specific (points at ITS advisories)
+#   assurance/       STRUCTURAL INDEPENDENCE — the Assure loop (line 3) runs
+#                    from its own checkout of this framework AGAINST product
+#                    repos, never from inside them (assurance/README.md)
 # LICENSE + NOTICE are KEPT — Apache-2.0 §4 attribution travels with the copy.
 #
 # Re-vendor is CLEAN: everything except instance/ is replaced, so files
@@ -76,7 +79,7 @@ else
   tar -C "$FW" --exclude .git --exclude .env.local --exclude '.DS_Store' -cf - . \
     | tar -x -C "$STAGE"
 fi
-rm -rf "$STAGE/instance" "$STAGE/.github" "$STAGE/.claude-plugin" "$STAGE/SECURITY.md"
+rm -rf "$STAGE/instance" "$STAGE/.github" "$STAGE/.claude-plugin" "$STAGE/SECURITY.md" "$STAGE/assurance"
 
 if [ -d "$INTO/agentic-sdlc" ]; then
   find "$INTO/agentic-sdlc" -mindepth 1 -maxdepth 1 ! -name instance -exec rm -rf {} +

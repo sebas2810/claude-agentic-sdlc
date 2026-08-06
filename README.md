@@ -12,6 +12,17 @@ together under written rules and machine-enforced gates. The spine derives from
 Anthropic's *Building Effective Agents*; the same principles govern the product
 you build and the process you build it with.
 
+**One spine, three loops.** This repo carries the whole operating model:
+**Build** (this folder's delivery SDLC — agents earn trust through code review) ·
+**Run** ([`operations/`](operations/README.md) — monitoring, incidents, cost;
+agents earn trust through *graduated autonomy*) · **Assure**
+([`assurance/`](assurance/README.md) — the independent audit line; agents earn
+trust through *reperformable evidence*). The gate moves from **merge** to
+**execute** to **attest**; mapped to the IIA Three Lines Model, producers are
+line 1, the QE/SM gates line 2, and the Auditor line 3. `assurance/` is
+deliberately **not vendored** into product repos — the auditor doesn't live
+inside what it audits.
+
 **Two layers.** Everything at the top of this folder is the **generic framework**
 (spine, seats, the skill model, learning-loop, onboarding + native-start, the
 portable rules, the production-ready floor). `instance/<your-instance>/`
@@ -167,8 +178,10 @@ agentic-sdlc/
 ├── agentic-operating-model.md ← the spine: roles · 8 phases · 8 invariants
 ├── MODES.md                   ← the operator-driven operating model (the single mode)
 ├── engineering-standard.md    ← the generic production-ready floor (instances add their tiered standard)
-├── commands/                  ← the operator slash-commands: /check · /board · /workload · /backlog
+├── commands/                  ← the operator slash-commands: /check · /board · /workload · /backlog · /ops-check · /ops-board · /audit
 ├── workflow/                  ← the process layer: state machine · DoR/DoD · WSJF · hierarchy · naming · flow metrics · project boards (+ project-templates/)
+├── operations/                ← the RUN loop: ops spine · trust tiers · incident flow · runbook library · Watcher/Investigator/Operator seats · ops skills
+├── assurance/                 ← the ASSURE loop (NOT vendored into product repos): audit spine · Auditor seat · audit lenses (Well-Architected · OWASP Agentic) · evidence store · agent registry
 ├── onboarding/                ← bootstrap.sh (sdlc.config-driven) · vendor-framework.sh · create-instance.sh · setup-board.sh · seat-launch + launcher/app builders · hooks/ (git guard + session brief) · new-pair-setup.md
 ├── seats/                     ← the agentic squad: SQUAD.md roster + a KICKOFF per seat (PM · Engineer · Quality · optional Flow · specialists)
 ├── skills/                    ← the Principal-skill MODEL (structure + how-to)
