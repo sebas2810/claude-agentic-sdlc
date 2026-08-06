@@ -63,6 +63,18 @@ It prompts for the repo, owner, seats, and git identity, then provisions
 everything and prints how to start. Full walkthrough + the manual/by-hand steps:
 [`onboarding/new-pair-setup.md`](onboarding/new-pair-setup.md).
 
+### Start the squad
+
+Bootstrap emits one launcher per seat **plus `squad.command`** into
+`~/Code/agents/<instance>/`. Double-click a seat to open it alone — or
+`squad.command` to open **every seat at once**. With
+[agterm](https://github.com/umputun/agterm) installed the seats land as named
+tabs in **one workspace, in SDLC flow order** (PM → Engineer(s) → QA → SM — the
+sidebar reads as the 4-eye chain), and re-runs **replace** the previous squad
+instead of duplicating it; without agterm each seat opens in its own Terminal
+window. Either way the cadence stays operator-driven: seats boot inert and wait
+for `/check`.
+
 ### The seat tooling as a Claude Code plugin
 
 This repo is also a **plugin marketplace**: the plugin ships the seat commands
