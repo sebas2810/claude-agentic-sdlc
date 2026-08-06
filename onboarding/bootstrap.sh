@@ -328,6 +328,7 @@ AWS_PROFILE=$AWS_PROFILE
 SEAT_LABEL=$lane
 BOARD_ID=$BOARD_ID
 BOARD_OWNER=$OWNER
+TEAM_BOARD_URL=${TEAM_BOARD_URL:-}
 ENV
   c_ok ".env.local written ($name / $role · model $model${lane:+ · lane $lane})"
   if ( cd "$WT" && . ./agentic-sdlc/onboarding/setup-seat.sh ) >>"$LOG" 2>&1; then

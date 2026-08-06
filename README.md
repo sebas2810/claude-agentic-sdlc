@@ -22,6 +22,10 @@ below). `instance/orbis/` is the shipped reference instance — replace it with 
 > This folder is the single source for how the SDLC works. Everything here is
 > live — no history, no old versions.
 
+## Interactive walkthrough
+
+New to the framework? **[Your first Agentic Harness](https://dda24jhk3p9ao.cloudfront.net/your-first-agentic-harness)** is an interactive step-by-step guide that walks you through the concepts, the seat model, and the first bootstrap.
+
 ## Quickstart
 
 Two commands from a clone of this repo to a running instance.
@@ -176,6 +180,29 @@ agentic-sdlc/
 ├── feedback/                  ← the portable (framework) rules, by area
 └── instance/<your-instance>/  ← the instance-specific overlay: concrete skills + rules (fork = swap this folder)
 ```
+
+## Team setup
+
+When every developer runs their own instance, a third command wires them into a
+**fleet**: one org-level board that shows only epics — across all repos, with
+status, owner, and sub-issues progress in a single view.
+
+Each developer self-provisions their instance with the two commands above.
+The team lead then runs once from a `team.config` (see
+[`onboarding/team.config.example`](onboarding/team.config.example)):
+
+```bash
+bash agentic-sdlc/onboarding/team-bootstrap.sh
+```
+
+It creates the org-level fleet board
+([`workflow/project-templates/fleet-board.json`](workflow/project-templates/fleet-board.json)),
+links every product repo to it, and injects `TEAM_BOARD_URL` into each repo's
+`sdlc.config`. Re-running `bootstrap.sh --yes` in each repo propagates it to
+every seat's `.env.local` so the fleet board is part of each agent's session
+context from that point on — no manual re-briefing needed.
+
+Full details: [`workflow/project-boards.md` — Fleet master board section](workflow/project-boards.md).
 
 ## Fork it
 

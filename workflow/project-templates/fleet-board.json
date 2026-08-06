@@ -1,0 +1,20 @@
+{
+  "kind": "fleet",
+  "title_suffix": "Fleet — Epics",
+  "description": "Org-level master board — one entry per epic across all developer instances. Linked to every product repo; filtered to label:level:epic so only epics appear. Two views: an EPICS table (Status · Owner · Sub-issues progress · Target) and optionally a Board view grouped by Status. Provisioned by onboarding/team-bootstrap.sh.",
+  "statusField": {
+    "name": "Status",
+    "options": [
+      { "name": "Planned",   "color": "GRAY",   "description": "not yet started; in the backlog" },
+      { "name": "Active",    "color": "BLUE",   "description": "stories are flowing through the board" },
+      { "name": "Done",      "color": "GREEN",  "description": "all stories released" },
+      { "name": "Blocked",   "color": "RED",    "description": "waiting on a dependency or owner decision" },
+      { "name": "Cancelled", "color": "GRAY",   "description": "closed without shipping" }
+    ]
+  },
+  "fields": [
+    { "name": "Priority", "dataType": "SINGLE_SELECT", "options": ["P0", "P1", "P2", "P3"] },
+    { "name": "Owner",    "dataType": "TEXT" },
+    { "name": "Target",   "dataType": "DATE" }
+  ]
+}

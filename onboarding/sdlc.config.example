@@ -44,3 +44,8 @@ GOLDEN_BOARD=""                       # optional: an existing configured Deliver
                                       # with the copy, so no manual UI step
                                       # remains. Blank = raw create + the one-time
                                       # UI views step (workflow/project-boards.md)
+
+# Fleet — set by team-bootstrap.sh when this instance is part of a team.
+# Propagated to every seat's .env.local so each session knows the fleet exists.
+# Do not set this manually; run onboarding/team-bootstrap.sh instead.
+TEAM_BOARD_URL=""                     # URL of the org-level fleet board (epics only)

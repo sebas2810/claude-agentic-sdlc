@@ -1,0 +1,30 @@
+# team.config — fleet configuration.
+#
+# One file per team, NOT committed to any product repo (keep it alongside your
+# team notes or in a private team-ops repo). team-bootstrap.sh reads it.
+#
+# Run team-bootstrap.sh once, after each developer has self-provisioned their
+# own instance (vendor-framework.sh + bootstrap.sh). It creates one org-level
+# fleet board, links every product repo to it, and injects TEAM_BOARD_URL into
+# each local sdlc.config so bootstrap can propagate it to every seat's .env.local.
+
+# GitHub org (or personal login) that will own the fleet board.
+# Must have the `project` scope — same gh token used for individual instances.
+ORG="myorg"
+
+# Fleet board title (the org-level GitHub Project that shows epics only).
+FLEET_TITLE="Fleet — Epics"
+
+# Optional: project NUMBER of an already-configured fleet board to copy via
+# copyProjectV2 — views + fields travel with the copy, no UI step needed.
+# Blank = raw create + the one-time UI step (workflow/project-boards.md).
+FLEET_GOLDEN_BOARD=""
+
+# Developer repos: space-separated "github-owner/repo" entries.
+# Each repo is linked to the fleet board (so its epics appear there).
+REPOS="alice/product-alpha bob/product-beta charlie/product-gamma"
+
+# Local checkouts of those repos (same order as REPOS): space-separated paths.
+# Used to update each repo's sdlc.config with TEAM_BOARD_URL.
+# Omit (leave blank) to skip the local injection step and do it manually.
+LOCAL_REPOS="$HOME/Code/product-alpha $HOME/Code/product-beta $HOME/Code/product-gamma"
