@@ -186,6 +186,20 @@ for var in INSTANCE REPO OWNER BASE SEATS GIT_USER_NAME GIT_USER_EMAIL; do
   eval "val=\${$var:-}"
   [ -n "$val" ] || die "sdlc.config: $var must be set (empty git identity would make seats commit as nobody)."
 done
+# ── ownership boundary (see feedback/workflow/author-is-the-ownership-boundary.md)
+# The account(s) that AUTHOR this squad's issues. Seats commonly authenticate as an
+# account that is NOT the repo owner — when that happens, an owner-only value makes
+# every seat drop its own squad's work and report an empty queue. So default to the
+# UNION of the owner and the account gh is actually logged in as, and say so.
+if [ -z "${SQUAD_AUTHORS:-}" ]; then
+  GH_LOGIN="$(gh api user --jq .login 2>/dev/null || true)"
+  if [ -n "$GH_LOGIN" ] && [ "$GH_LOGIN" != "$OWNER" ]; then
+    SQUAD_AUTHORS="$OWNER,$GH_LOGIN"
+    c_warn "SQUAD_AUTHORS not set in sdlc.config — defaulting to '$SQUAD_AUTHORS' (owner + the logged-in gh account, which differ). Set it explicitly if more accounts author this squad's work."
+  else
+    SQUAD_AUTHORS="$OWNER"
+  fi
+fi
 USED=""
 for pair in $SEATS; do
   [ "${pair%%:*}" != "$pair" ] || die "sdlc.config: SEATS entries are role:Name (or role:Name:model) — '$pair' has no name."
@@ -332,6 +346,7 @@ AWS_PROFILE=$AWS_PROFILE
 SEAT_LABEL=$lane
 BOARD_ID=$BOARD_ID
 BOARD_OWNER=$OWNER
+SQUAD_AUTHORS=$SQUAD_AUTHORS
 TEAM_BOARD_URL=${TEAM_BOARD_URL:-}
 ENV
   c_ok ".env.local written ($name / $role · model $model${lane:+ · lane $lane})"

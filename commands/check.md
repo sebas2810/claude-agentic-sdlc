@@ -27,7 +27,17 @@ BOARD_ID="${BOARD_ID:-}"; BOARD_OWNER="${BOARD_OWNER:-}"
 # one GitHub account by design; the human owner may author too). Labels, assignees,
 # and titles are shared namespace and carry NO squad ownership — the author does.
 [ -z "${SQUAD_AUTHORS:-}" ] && [ -f .env.local ] && SQUAD_AUTHORS="$(sed -n 's/^SQUAD_AUTHORS=//p' .env.local | head -1)"
-SQUAD_AUTHORS="${SQUAD_AUTHORS:-$(gh repo view --json owner -q .owner.login)}"
+# Unset → infer, and SAY SO. The repo owner alone is a silent-wrong-answer for the
+# common case where seats authenticate as an account that is not the owner: every
+# seat then drops its own squad's work and reports an empty queue. Union the owner
+# with the account this seat actually posts as, and never infer quietly.
+if [ -z "${SQUAD_AUTHORS:-}" ]; then
+  _owner="$(gh repo view --json owner -q .owner.login 2>/dev/null)"
+  _me="$(gh api user --jq .login 2>/dev/null || true)"
+  if [ -n "$_me" ] && [ "$_me" != "$_owner" ]; then SQUAD_AUTHORS="$_owner,$_me"; else SQUAD_AUTHORS="$_owner"; fi
+  echo "⚠ SQUAD_AUTHORS unset — inferred '$SQUAD_AUTHORS' (repo owner + this seat's gh login)."
+  echo "  Set it explicitly in .env.local; an inferred value that is too narrow silently shortens every queue."
+fi
 ```
 
 **The ownership boundary runs in every discovery.** A repo can host more than one squad, and the `status:*` / `seat:*` label namespace is shared — so every query below loads `author`, and you **drop any row whose `author.login` is not in `$SQUAD_AUTHORS` before evaluating anything else**. A single-account squad can push it server-side (append `author:$SQUAD_AUTHORS` to the `--search` string) so the foreign row never returns. Never scope, build, verify, gate, or merge a foreign-authored item — whatever its labels say ([the rule](../feedback/workflow/author-is-the-ownership-boundary.md)).

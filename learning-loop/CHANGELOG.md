@@ -2,6 +2,38 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-08-06 — `SQUAD_AUTHORS` is provisioned, and its owner-only default is retired
+
+The ownership-boundary rule and its consumer shipped together in the previous
+sync; **nothing shipped that actually sets the variable.** `bootstrap.sh`'s
+`.env.local` heredoc wrote nine keys and not this one, `.env.local.example` and
+`sdlc.config.example` never mentioned it, so every instance ran on the documented
+fallback — *the repo owner*.
+
+That fallback is wrong for the common deployment: seats routinely authenticate as
+an account that is **not** the repo owner, and the boundary then excludes the
+squad's own work. **Measured on a live instance 2026-08-06:** a PM seat's blocked
+queue returned **1 of 3** items; the two dropped were its own, authored by the
+seat account. It raised no error — it returned a *shorter list*, which reads
+exactly like "nothing to do". A seat reports `queue clear — idle` with work
+sitting unpulled, which is the no-false-green invariant failing in the discovery
+layer rather than the test layer.
+
+- **Provisioned end-to-end** — `sdlc.config` (new optional key) → `bootstrap.sh`
+  (derives + writes it into every seat's `.env.local`) → `.env.local.example`
+  (documented, with the "too narrow silently shortens the queue" warning).
+- **Default changed from the repo owner to the owner ∪ the logged-in `gh`
+  account**, in `bootstrap.sh` and in both commands that resolve it
+  (`check.md`, `backlog.md`) — and the inference is now **announced**, never
+  silent. On the instance that surfaced this, the new default derives the correct
+  two-account value with no configuration at all.
+- Rule updated with the retirement, the reasoning, and the measured incident:
+  [`../feedback/workflow/author-is-the-ownership-boundary.md`](../feedback/workflow/author-is-the-ownership-boundary.md).
+
+Why it matters beyond one variable: a discovery filter that fails *closed* is
+invisible. Every other gate in this framework announces failure; this one
+returned a plausible empty queue. Guessing was the defect — not the guess.
+
 ## 2026-08-03 — BEHIND is not DIRTY: the merge pass batches, the SM never rebases (owner-directed)
 
 An SM drained three independent main-targeting PRs serially: merged the first,

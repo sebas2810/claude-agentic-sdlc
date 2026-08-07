@@ -11,6 +11,13 @@ REPO="you/my-product"                 # the product repo on GitHub (owner/repo)
 OWNER="you"                           # project-board owner (your login or org)
 BASE="$HOME/Code"                     # where the seat checkouts live
 
+# The account(s) that AUTHOR this squad's issues — the ownership boundary every
+# /check discovery filters on. Leave empty and bootstrap defaults to the owner
+# unioned with the logged-in gh account (and warns when they differ). Set it
+# explicitly when several accounts author this squad's work: too narrow a value
+# does not error, it silently shortens every seat's queue.
+SQUAD_AUTHORS=""                      # e.g. "acme-owner,squad-bot"
+
 # Seats: space-separated role:Name pairs — optionally role:Name:model triples.
 # The NAME is the seat's identity — its checkout is $BASE/<repo>-<name>
 # (lowercased), its launcher/.app is <Name>.app, and producer seats get a
