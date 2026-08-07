@@ -123,7 +123,7 @@ updates flow by plugin version bump instead of re-vendoring. Provisioning
 2. `agentic-sdlc/README.md` — this file
 3. `agentic-sdlc/agentic-operating-model.md` — **the spine**; all seat authority derives from it
    - `MODES.md` — the **operator-driven** operating model (the single mode: the human orchestrates; seats pull work with `/check`) · `workflow/state-machine.md` — the **stateless board state machine** the seats run on
-   - `workflow/` — the **process layer**: [state-machine](workflow/state-machine.md) (the 7 states) · [definition-of-ready-done](workflow/definition-of-ready-done.md) · [prioritization (WSJF)](workflow/prioritization.md) · [hierarchy](workflow/hierarchy.md) (Initiative→Epic→Story→Task) · [naming-conventions](workflow/naming-conventions.md) · [flow-metrics](workflow/flow-metrics.md) · [project-boards](workflow/project-boards.md) (Program ⇄ Execution)
+   - `workflow/` — the **process layer**: [state-machine](workflow/state-machine.md) (the 7 states) · [definition-of-ready-done](workflow/definition-of-ready-done.md) · [prioritization (WSJF)](workflow/prioritization.md) · [hierarchy](workflow/hierarchy.md) (Initiative→Epic→Story→Task) · [naming-conventions](workflow/naming-conventions.md) · [flow-metrics](workflow/flow-metrics.md) · [project-boards](workflow/project-boards.md) (one project, two views · the fleet board) · [team-model](workflow/team-model.md) (operators · squads · the fleet altitude)
 4. Your seat file (authority + work cycle + report protocol in one):
    - **PM** → `seats/pm/KICKOFF.md`
    - **Engineer** → `seats/engineer/KICKOFF.md`
@@ -228,6 +228,9 @@ every seat's `.env.local` so the fleet board is part of each agent's session
 context from that point on — no manual re-briefing needed.
 
 Full details: [`workflow/project-boards.md` — Fleet master board section](workflow/project-boards.md).
+The *model* behind the mechanics — the identity spine, the epic-as-currency
+rule, the Initiative altitude, adoption tiers — is
+[`workflow/team-model.md`](workflow/team-model.md).
 
 ## Fork it
 

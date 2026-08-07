@@ -74,6 +74,8 @@ movement.
   on top of Insights (to diff per-state timestamps and join revert/incident
   history). This is named as a **deliberate follow-up**, not silent debt — Insights
   covers the flow basics today; per-state and DORA are a tracked build on top.
+  The collector's design (label events as the ledger, the agentic-native set,
+  fleet aggregation) is specified in [`team-model.md`](team-model.md).
 
 See also [`prioritization.md`](prioritization.md) for how WSJF orders within a
 state, and [`project-boards.md`](project-boards.md) for which tier each chart
