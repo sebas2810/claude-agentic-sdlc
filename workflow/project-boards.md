@@ -77,6 +77,9 @@ happens in the **Board view**. Same project, same items — only the lens change
 When every developer runs their own instance, `onboarding/team-bootstrap.sh`
 creates one **org-level Fleet project** that aggregates epics across all product
 repos. It is the team-lead surface: one board, all epics, nothing below.
+The *model* behind this board — squads, the Initiative altitude, derived
+coarse states — is [`team-model.md`](team-model.md); this section is the
+provisioning.
 
 ### What it shows
 

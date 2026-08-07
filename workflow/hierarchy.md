@@ -22,7 +22,7 @@ parent link (and the epic roll-up rides it).
 
 | Level | Is | Horizon / framing | Lives on | Lifecycle |
 |---|---|---|---|---|
-| **Initiative** | a strategic outcome | quarters; owner-framed | EPICS view | sub-issue roll-up (no status) |
+| **Initiative** | a strategic outcome | quarters; owner-framed | EPICS view | sub-issue roll-up (no status; coarse lifecycle: [`team-model.md`](team-model.md)) |
 | **Epic** | a shippable capability; **branch-per-Epic**; the **unit of steering**; WIP-limited active set **≤ 3** | weeks; one branch | EPICS view | sub-issue progress (child Stories `Released` ÷ total) |
 | **Story** | one outcome; **fits a PR**; flows the 7 states | days; one PR | Board view | the [7 states](state-machine.md) |
 | **Task** | a sub-unit of a Story, when a Story needs decomposition | a Story-slice | Execution board | the [7 states](state-machine.md) |
@@ -79,4 +79,5 @@ nothing is ever orphaned:
 
 The title, label, and priority conventions that tag each level are
 [`naming-conventions.md`](naming-conventions.md); ordering within a state is
-[`prioritization.md`](prioritization.md).
+[`prioritization.md`](prioritization.md); the multi-squad / fleet altitude is
+[`team-model.md`](team-model.md).

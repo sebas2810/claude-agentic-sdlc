@@ -19,7 +19,8 @@ copy of where the work is.
 The state machine governs **Stories and Tasks** (the execution items). Epics and
 Initiatives don't run the 7 states — they're tracked by **sub-issue progress** in
 the **EPICS view** of the same project ([`project-boards.md`](project-boards.md));
-the hierarchy that connects them is [`hierarchy.md`](hierarchy.md).
+the hierarchy that connects them is [`hierarchy.md`](hierarchy.md), and their
+coarse fleet-altitude lifecycle is [`team-model.md`](team-model.md).
 
 ## The 7 states (+ Blocked · Cancelled)
 
