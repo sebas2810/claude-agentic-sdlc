@@ -40,10 +40,34 @@ SEATS="pm:Pim engineer:Finn scrum-master:Cas:haiku quality-engineer:Noor enginee
 GIT_USER_NAME="Your Name"
 GIT_USER_EMAIL="you@example.com"
 
-# AWS — the ~/.aws profile seats use (blank = no AWS). Optionally pin the
-# account: bootstrap verifies `sts get-caller-identity` matches when set.
+# Cloud / infrastructure provider
+# Options: local | aws | gcp | azure   (default: local — Docker Compose on this machine)
+CLOUD_PROVIDER="local"
+
+# ── local Docker ──────────────────────────────────────────────────────────────
+# Compose file relative to the product repo root (or absolute path).
+# Registry: blank = Docker Hub (public). Private registries need credentials —
+# put DOCKER_REGISTRY_USER + DOCKER_REGISTRY_TOKEN in each worktree's .env.local
+# (gitignored), never here.
+DOCKER_COMPOSE_FILE="docker-compose.yml"
+DOCKER_REGISTRY=""           # e.g. registry.mycompany.nl  or  ghcr.io/myorg
+
+# ── AWS ───────────────────────────────────────────────────────────────────────
+# The ~/.aws profile seats authenticate with (blank = no AWS).
+# Optionally pin the account ID — bootstrap verifies sts get-caller-identity.
 AWS_PROFILE=""
 AWS_ACCOUNT_ID=""
+
+# ── GCP ───────────────────────────────────────────────────────────────────────
+# Application Default Credentials (run `gcloud auth application-default login` once).
+GCP_PROJECT=""
+GCP_REGION="europe-west4"
+
+# ── Azure ─────────────────────────────────────────────────────────────────────
+# Uses `az` CLI credentials (run `az login` once per machine).
+AZURE_SUBSCRIPTION=""
+AZURE_RESOURCE_GROUP=""
+AZURE_REGION="westeurope"
 
 # Bootstrap behaviour
 SEED_EPIC="y"                         # seed the guided first epic on first run
