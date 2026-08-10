@@ -13,19 +13,50 @@ git config extensions.worktreeConfig true
 git config --worktree user.name  "$GIT_USER_NAME"
 git config --worktree user.email "$GIT_USER_EMAIL"
 
-# 2. AWS + GitHub for this session (AWS only when the seat actually has a profile)
-[ -n "${AWS_PROFILE:-}" ] && export AWS_PROFILE
+# 2. Cloud provider + GitHub for this session
 [ -n "${GH_TOKEN:-}" ] && export GH_TOKEN
 
-# 3. verify + report
-if [ -n "${AWS_PROFILE:-}" ]; then
-  AWS_ID="$(aws sts get-caller-identity --query Arn --output text 2>/dev/null || echo 'AWS creds NOT resolving — check AWS_PROFILE')"
-else
-  AWS_ID="(no AWS_PROFILE — skipped)"
-fi
+# 3. verify + report (provider-aware)
+CLOUD_PROVIDER="${CLOUD_PROVIDER:-local}"
+case "$CLOUD_PROVIDER" in
+  aws)
+    [ -n "${AWS_PROFILE:-}" ] && export AWS_PROFILE
+    if [ -n "${AWS_PROFILE:-}" ]; then
+      CLOUD_ID="$(aws sts get-caller-identity --query Arn --output text 2>/dev/null \
+                  || echo 'AWS creds NOT resolving — check AWS_PROFILE')"
+    else
+      CLOUD_ID="(no AWS_PROFILE set)"
+    fi
+    CLOUD_LABEL="aws    ${AWS_PROFILE:-—} → ${CLOUD_ID}"
+    ;;
+  gcp)
+    export CLOUDSDK_CORE_PROJECT="${GCP_PROJECT:-}"
+    CLOUD_ID="$(gcloud config get-value project 2>/dev/null || echo 'gcloud not configured — run: gcloud auth application-default login')"
+    CLOUD_LABEL="gcp    ${GCP_PROJECT:-—} → ${CLOUD_ID} (${GCP_REGION:-region unset})"
+    ;;
+  azure)
+    CLOUD_ID="$(az account show --query id -o tsv 2>/dev/null || echo 'az not configured — run: az login')"
+    CLOUD_LABEL="azure  ${AZURE_SUBSCRIPTION:-—} → ${CLOUD_ID} (${AZURE_REGION:-region unset})"
+    ;;
+  local|*)
+    COMPOSE="${DOCKER_COMPOSE_FILE:-docker-compose.yml}"
+    if ! docker info >/dev/null 2>&1; then
+      CLOUD_ID="Docker NOT running — start Docker Desktop first"
+    elif [ -n "${DOCKER_REGISTRY_USER:-}" ] && [ -n "${DOCKER_REGISTRY_TOKEN:-}" ]; then
+      echo "$DOCKER_REGISTRY_TOKEN" | docker login "${DOCKER_REGISTRY:-}" \
+        --username "$DOCKER_REGISTRY_USER" --password-stdin >/dev/null 2>&1 \
+        && CLOUD_ID="logged in to ${DOCKER_REGISTRY:-Docker Hub}" \
+        || CLOUD_ID="docker login FAILED — check DOCKER_REGISTRY_USER / DOCKER_REGISTRY_TOKEN"
+    else
+      CLOUD_ID="${DOCKER_REGISTRY:-Docker Hub} (no registry credentials)"
+    fi
+    CLOUD_LABEL="local  ${COMPOSE} → ${CLOUD_ID}"
+    ;;
+esac
+
 echo "✓ seat ready — ${SEAT_ROLE}/${SEAT_NAME}"
 echo "    git:    $(git config --worktree user.name) <$(git config --worktree user.email)>"
-echo "    aws:    ${AWS_PROFILE:-—} → ${AWS_ID}"
+echo "    cloud:  ${CLOUD_LABEL}"
 echo "    github: ${GH_TOKEN:+custom token}${GH_TOKEN:-default gh login}"
 
 # 4. native start — scaffold this seat's identity file from its role template

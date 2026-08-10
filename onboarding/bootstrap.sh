@@ -211,12 +211,35 @@ for pair in $SEATS; do
 done
 gh repo view "$REPO" >>"$LOG" 2>&1 \
   || die "repo '$REPO' not reachable on GitHub — publish it first (gh repo create $REPO --private --source . --push) or fix REPO in sdlc.config."
-if [ -n "${AWS_PROFILE:-}" ] && [ -n "${AWS_ACCOUNT_ID:-}" ] && command -v aws >/dev/null 2>&1; then
-  GOT_ACCT="$(aws sts get-caller-identity --profile "$AWS_PROFILE" --query Account --output text 2>>"$LOG" || true)"
-  if [ "$GOT_ACCT" != "$AWS_ACCOUNT_ID" ]; then
-    c_warn "AWS profile '$AWS_PROFILE' resolves to account '${GOT_ACCT:-unresolved}', expected '$AWS_ACCOUNT_ID' — check ~/.aws before the seats do real work."
-  fi
-fi
+CLOUD_PROVIDER="${CLOUD_PROVIDER:-local}"
+case "$CLOUD_PROVIDER" in
+  aws)
+    if [ -n "${AWS_PROFILE:-}" ] && [ -n "${AWS_ACCOUNT_ID:-}" ] && command -v aws >/dev/null 2>&1; then
+      GOT_ACCT="$(aws sts get-caller-identity --profile "$AWS_PROFILE" --query Account --output text 2>>"$LOG" || true)"
+      if [ "$GOT_ACCT" != "$AWS_ACCOUNT_ID" ]; then
+        c_warn "AWS profile '$AWS_PROFILE' resolves to account '${GOT_ACCT:-unresolved}', expected '$AWS_ACCOUNT_ID' — check ~/.aws before seats do real work."
+      fi
+    fi ;;
+  gcp)
+    if command -v gcloud >/dev/null 2>&1; then
+      GOT_PROJ="$(gcloud config get-value project 2>/dev/null || true)"
+      [ "$GOT_PROJ" != "${GCP_PROJECT:-}" ] && [ -n "${GCP_PROJECT:-}" ] \
+        && c_warn "gcloud active project '${GOT_PROJ}' differs from GCP_PROJECT '${GCP_PROJECT}' — run 'gcloud config set project ${GCP_PROJECT}'."
+    else
+      c_warn "CLOUD_PROVIDER=gcp but 'gcloud' not found — install the Google Cloud SDK."
+    fi ;;
+  azure)
+    if command -v az >/dev/null 2>&1; then
+      GOT_SUB="$(az account show --query id -o tsv 2>/dev/null || true)"
+      [ -n "${AZURE_SUBSCRIPTION:-}" ] && [ "$GOT_SUB" != "$AZURE_SUBSCRIPTION" ] \
+        && c_warn "az active subscription '${GOT_SUB}' differs from AZURE_SUBSCRIPTION '${AZURE_SUBSCRIPTION}' — run 'az account set --subscription ${AZURE_SUBSCRIPTION}'."
+    else
+      c_warn "CLOUD_PROVIDER=azure but 'az' not found — install the Azure CLI."
+    fi ;;
+  local)
+    command -v docker >/dev/null 2>&1 \
+      || c_warn "CLOUD_PROVIDER=local but 'docker' not found — install Docker Desktop." ;;
+esac
 
 REPONAME="$(basename "$REPO")"
 APPS_DIR="$BASE/agents/$INSTANCE"
@@ -342,7 +365,22 @@ SEAT_NAME=$name
 SEAT_MODEL=$model
 GIT_USER_NAME="$GIT_USER_NAME"
 GIT_USER_EMAIL="$GIT_USER_EMAIL"
-AWS_PROFILE=$AWS_PROFILE
+# Cloud provider (local | aws | gcp | azure)
+CLOUD_PROVIDER=${CLOUD_PROVIDER:-local}
+# AWS — used when CLOUD_PROVIDER=aws
+AWS_PROFILE=${AWS_PROFILE:-}
+AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID:-}
+# GCP — used when CLOUD_PROVIDER=gcp
+GCP_PROJECT=${GCP_PROJECT:-}
+GCP_REGION=${GCP_REGION:-europe-west4}
+# Azure — used when CLOUD_PROVIDER=azure
+AZURE_SUBSCRIPTION=${AZURE_SUBSCRIPTION:-}
+AZURE_RESOURCE_GROUP=${AZURE_RESOURCE_GROUP:-}
+AZURE_REGION=${AZURE_REGION:-westeurope}
+# Local Docker — used when CLOUD_PROVIDER=local
+DOCKER_COMPOSE_FILE=${DOCKER_COMPOSE_FILE:-docker-compose.yml}
+DOCKER_REGISTRY=${DOCKER_REGISTRY:-}
+# DOCKER_REGISTRY_USER and DOCKER_REGISTRY_TOKEN go here (never in sdlc.config)
 SEAT_LABEL=$lane
 BOARD_ID=$BOARD_ID
 BOARD_OWNER=$OWNER
