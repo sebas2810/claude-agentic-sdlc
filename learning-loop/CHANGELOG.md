@@ -2,6 +2,32 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+
+## 2026-08-12 — two workflow rules upstreamed from a live instance
+
+Both were captured on a running instance and existed only in its vendored
+`agentic-sdlc/`. Every sync tried to delete them, and every sync was reverted
+by hand. Reverting per-sync is a treadmill; upstreaming ends it. Instance-
+specific issue references genericised on the way in.
+
+**`feedback/workflow/unblocking-is-not-a-pull.md`** — when several `Blocked`
+items for the same producer seat become resolvable at once, the PM may rule on
+all of them in one pass but must release only enough to fill that seat's free
+WIP slots. A PM-written `Blocked → In Progress` is a **push**, and the state
+machine is pull-based. Measured 2026-08-07: three items flipped back to
+`In Progress` within twenty minutes against a limit of 2. A PM-authored WIP
+breach is worse than a seat-authored one, because the seat cannot refuse it.
+
+**`feedback/workflow/cross-seat-comment-is-always-allowed.md`** — a
+finding-only `gh issue comment` / `gh pr comment` on an issue your seat does
+not own is **always** permitted. Only *mutation* (labels, status, assignee,
+close) stays role-gated. Trigger: a seat found the root cause of a live P0,
+self-blocked on posting it believing cross-seat writes were restricted, and
+the finding never reached the thread — the assigned engineer re-diagnosed from
+scratch and shipped a symptom fix that QA then failed, costing a full extra
+round-trip. Conflating "I should not decide this" with "I should not even
+speak on this" breaks spine invariant 7: the shared thread is the bus.
+
 ## 2026-08-06 — `SQUAD_AUTHORS` is provisioned, and its owner-only default is retired
 
 The ownership-boundary rule and its consumer shipped together in the previous
