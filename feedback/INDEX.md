@@ -30,6 +30,8 @@ These are the rules the spine **keeps**. Confirmed and retained in the
 | [`workflow/audit-pr-history-before-pickup.md`](workflow/audit-pr-history-before-pickup.md) | Check `gh pr list` before declaring an issue "unstarted" |
 | [`workflow/always-rebase-before-push.md`](workflow/always-rebase-before-push.md) | `git fetch origin main && git rebase origin/main` before every push — AUTHORING seats only, never the merge gate |
 | [`workflow/behind-is-not-dirty.md`](workflow/behind-is-not-dirty.md) | At the gate, `MERGEABLE`+`BEHIND` merges as-is — rebase-for-BEHIND burns K(K−1)/2 heavy CI runs; the SM never rebases |
+| [`workflow/unblocking-is-not-a-pull.md`](workflow/unblocking-is-not-a-pull.md) | Resolve blocked items in a batch, but release only into free WIP slots — a PM-written `Blocked` to `In Progress` is a push |
+| [`workflow/cross-seat-comment-is-always-allowed.md`](workflow/cross-seat-comment-is-always-allowed.md) | A finding-only comment on ANY issue is always allowed — commenting is not mutating; only label/status/assignee/close stays role-gated |
 | [`workflow/forward-port-release-hotfixes-same-day.md`](workflow/forward-port-release-hotfixes-same-day.md) | Release-line hotfixes forward-port to main same-day - ENFORCED by the FLOOR-4 gate (#1069) |
 | [`workflow/dont-block-on-irrelevant-ci.md`](workflow/dont-block-on-irrelevant-ci.md) | Don't artificially block on CI that doesn't affect the next step |
 | [`workflow/repo-settings-via-pr.md`](workflow/repo-settings-via-pr.md) | Repo settings changes need explicit owner approval (owner-touchpoint) |
