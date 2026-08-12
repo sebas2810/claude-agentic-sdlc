@@ -104,4 +104,4 @@ MODEL_FLAG=(); [ -n "$SEAT_MODEL" ] && MODEL_FLAG=(--model "$SEAT_MODEL")
 
 echo "== ${TITLE} · operator-driven (semi-automated) · model: ${SEAT_MODEL:-account-default} — /check to pull work, /board for the overview =="
 echo "worktree: $WORKTREE"
-exec claude "${MODEL_FLAG[@]}" --dangerously-skip-permissions "$PROMPT"
+exec claude "${MODEL_FLAG[@]}" --permission-mode acceptEdits "$PROMPT"
