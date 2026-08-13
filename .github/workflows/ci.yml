@@ -47,3 +47,10 @@ jobs:
         run: bash onboarding/tests/merge-append-only-log.test.sh onboarding/lib/merge-append-only-log.sh
       - name: sync — a running script survives being replaced by its own apply
         run: bash onboarding/tests/atomic-install.test.sh
+      - name: git guard — parity with the instance-fork rules it replaces
+        run: |
+          set -euo pipefail
+          git config --global user.email ci@example.com
+          git config --global user.name ci
+          git config --global init.defaultBranch main
+          bash onboarding/hooks/guard-git.parity.test.sh onboarding/hooks/guard-git.sh

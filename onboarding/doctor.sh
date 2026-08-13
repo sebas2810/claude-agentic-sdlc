@@ -61,6 +61,31 @@ for s in backlog scoped in-progress delivered tested merged released blocked can
   fi
 done
 
+# 3. exactly ONE push-intercepting PreToolUse hook.
+#    A forked second guard drifts silently — it keeps blocking the obvious cases
+#    while quietly losing a rule the other copy learned, and every signal stays
+#    green. One instance ran a fork that had lost the pre-verb bypass fix, so
+#    "never push to a protected ref" did not exist for `git -C <dir> push`, and
+#    nothing noticed until a human read the file.
+#    feedback/architecture/one-control-one-implementation.md
+echo "PreToolUse guard:"
+SETTINGS=".claude/settings.json"
+if [ ! -f "$SETTINGS" ]; then
+  bad "no $SETTINGS — the git guard is not wired at all; re-run bootstrap.sh"
+elif ! command -v jq >/dev/null 2>&1; then
+  ok "skipped (jq not installed)"
+else
+  HOOKS="$(jq -r '[.hooks.PreToolUse[]?.hooks[]?.command // empty] | .[]' "$SETTINGS" 2>/dev/null)"
+  GITHOOKS="$(printf '%s\n' "$HOOKS" | grep -c 'guard-git\|bash-guard' || true)"
+  case "$GITHOOKS" in
+    0) bad "no push-intercepting hook wired in $SETTINGS — the non-negotiables are documented but not enforced" ;;
+    1) if printf '%s\n' "$HOOKS" | grep -q 'guard-git.sh'
+       then ok "exactly one push-intercepting hook, and it is the framework guard"
+       else bad "exactly one push-intercepting hook, but it is NOT guard-git.sh — a forked guard is untested by this framework and drifts silently" ; fi ;;
+    *) bad "$GITHOOKS push-intercepting hooks wired — two guards on one tool WILL drift; consolidate onto guard-git.sh" ;;
+  esac
+fi
+
 if [ "$FAIL" -eq 0 ]
 then echo "✓ parity: labels match the $CFG roster"
 else echo "✗ drift found — fix the above before the next /check"
