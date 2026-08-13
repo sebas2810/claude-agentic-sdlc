@@ -2,6 +2,55 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-08-13 — two silent-control failures in one day: a forked guard, and a default removed on a false premise
+
+Both surfaced within hours of each other on a live instance, both had been true
+for days, and **neither emitted a signal of any kind.** The common root is that
+our enforcement layer has no way to notice a control that stops enforcing —
+every health signal we use measures whether a control *runs*, not whether it
+still *covers* what it used to.
+
+**A forked guard silently lost the Tier-1 rule.** The instance ran
+`.claude/hooks/bash-guard.mjs`, a parallel implementation of
+`onboarding/hooks/guard-git.sh`. `git` accepts options before the subcommand,
+and the fork's detection was adjacency-only: a protected-ref push with `-C`,
+`--no-pager`, or `-c k=v` between `git` and the verb was **allowed**. The
+"never push to a protected ref" gate did not exist for those forms. The shell
+guard already carried the fix, with a comment naming that exact hole; the fork
+never received it. Nothing compared the two. It was found because someone hit
+an unrelated false-positive and read the file.
+
+**A safety default was removed framework-wide on an unverified claim.** An issue
+reported seats exiting at launch and diagnosed `--permission-mode acceptEdits`
+as removed from the claude 2.x CLI. The fix swapped in
+`--dangerously-skip-permissions` and merged as the smaller half of a PR about
+multi-cloud support. The premise was false — the flag was present the whole
+time, verifiable in one command nobody ran. The real cause was a broken local
+symlink pointing at another platform's binary. **For ~53 hours every seat in
+every vendoring instance launched with the permission gate off.**
+`seat-launch.sh` had no test, the change was not the PR's subject, and the file
+is vendored, so its reach was never visible at review time.
+
+- New rule: [`../feedback/architecture/one-control-one-implementation.md`](../feedback/architecture/one-control-one-implementation.md)
+  — one control, one implementation; a second copy is a defect with a deletion
+  date, and single-ownership must be *assertable* or it recurs invisibly.
+- New rule: [`../feedback/architecture/weakening-a-default-must-signal.md`](../feedback/architecture/weakening-a-default-must-signal.md)
+  — gate→allow gets its own PR, the premise verified inline, a test asserting
+  the posture (not the string), and the blast radius named.
+
+Why these are architecture rules rather than workflow ones: neither is a
+process-discipline lapse. Both are the enforcement-layer form of
+[`no-silent-degradation-on-load-bearing-paths`](../feedback/architecture/no-silent-degradation-on-load-bearing-paths.md)
+— a load-bearing path that stopped working and reported nothing. Invariant 5
+already forbids this in product code; these extend it to the controls
+themselves, which is where it is hardest to see, because a weakened control
+looks exactly like a working one from the inside.
+
+Gaps left open deliberately, tracked not fixed: the fork still exists (#53),
+nothing yet detects a weakened default (#64), and the reference instance's live
+hook still carries the bypass until its fix merges (orbis-platform#4063).
+Naming a class is not guarding it.
+
 
 ## 2026-08-12 — two workflow rules upstreamed from a live instance
 
