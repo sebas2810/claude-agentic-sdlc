@@ -55,6 +55,26 @@ git clone --quiet "https://github.com/${CANONICAL_REPO}.git" "$TMPDIR/canonical"
 CANONICAL_SHA="$(cd "$TMPDIR/canonical" && git rev-parse HEAD)"
 echo "  canonical @ ${CANONICAL_SHA}"
 
+# ── Atomic install ───────────────────────────────────────────────────────────
+# `cp` rewrites the destination IN PLACE, reusing its inode. This script is one
+# of the files it syncs, and bash reads a script lazily by byte offset — so
+# overwriting sync-sdlc.sh mid-apply moved the ground under the running process.
+#
+# Observed 2026-08-13: the file grew 6041 -> 7666 bytes during its own apply.
+# Everything past that point — the .sdlc-version write and the completion
+# message — never executed. Exit status looked clean and the pin silently kept
+# its previous value, so the NEXT sync would have diffed against a stale
+# baseline. It fires precisely when the sync updates itself, which is when it
+# matters most.
+#
+# `mv` replaces the directory entry instead, leaving the running process on the
+# old inode. It is also atomic per-file: a reader sees the old file or the new
+# one, never a half-written one.
+install_file() { # $1 = source, $2 = destination
+  local tmp="$2.sync-tmp.$$"
+  cp -p "$1" "$tmp" && mv -f "$tmp" "$2"
+}
+
 # ── Append-only instance logs ────────────────────────────────────────────────
 # Files that record what happened in THIS instance. They diverge by design and
 # can never be "brought up to date" by replacement — a replace is a deletion of
@@ -138,7 +158,7 @@ fi
 while IFS= read -r f; do
   [ -z "$f" ] && continue
   mkdir -p "$ROOT/$(dirname "$f")"
-  cp -p "$TMPDIR/canonical/$f" "$ROOT/$f"
+  install_file "$TMPDIR/canonical/$f" "$ROOT/$f"
   echo "  wrote $f"
 done < "$TMPDIR/added.txt"
 
@@ -158,7 +178,7 @@ while IFS= read -r f; do
       echo "  SKIPPED $f — append-only merge failed; left untouched, reconcile by hand" >&2
     fi
   else
-    cp -p "$TMPDIR/canonical/$f" "$ROOT/$f"
+    install_file "$TMPDIR/canonical/$f" "$ROOT/$f"
     echo "  wrote $f"
   fi
 done < "$CHANGED_FILE"
