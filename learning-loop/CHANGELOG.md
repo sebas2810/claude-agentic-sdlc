@@ -2,6 +2,41 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-08-13 — two more rules come home: the treadmill #61 ended was still running for these
+
+Auditing what a fork actually inherits turned up **two framework-shaped rules
+living in exactly one instance**. Anyone else pulling canonical got neither, and
+every sync proposed deleting both — the same treadmill the 2026-08-12 entry
+described ending, still running quietly for two more files.
+
+- [`../feedback/workflow/stacked-merge-cascade.md`](../feedback/workflow/stacked-merge-cascade.md)
+  — squash-merging a stack parent rewrites its commits, so every dependent
+  double-counts them against the new base. Retargeting the PR base does not fix
+  it; only the boundary-exact `git rebase --onto <parent-headRefOid>` does. The
+  dependent still opens, still shows a diff, and still reports mergeable — what it
+  shows is simply wrong. Hit three times on one instance before the rule existed.
+  Nothing in it was ever instance-specific: it describes git and GitHub squash
+  semantics, which every fork inherits.
+- [`../feedback/workflow/live-eval-owns-its-teardown.md`](../feedback/workflow/live-eval-owns-its-teardown.md)
+  — an eval minting real records against a deployed environment owns marker +
+  idempotent pre-run sweep + `finally` teardown. Orphaned rows are a no-false-green
+  failure: the eval reports success while degrading the environment it measures,
+  which corrupts its own oracle. Generalised on the way up; the instance's schema
+  names and file paths were the only local part. Carries one hard carve-out —
+  **never delete cost-ledger rows**, since a live run's spend is real and deleting
+  its record makes the ledger understate actual billing.
+
+Why this keeps happening, and the fix: a rule is written where the incident
+happened, which is always an instance. Nothing then asks "is this portable?", so
+the default resting place is wherever it was born. The `LOCAL-ONLY` section of
+the sync drift report is the signal — it is not merely "files we must not
+overwrite", it is **a standing list of candidates for upstreaming**, and it
+should be read that way on every `/update` rather than skimmed as noise.
+
+Both were verified portable before moving, not assumed: `stacked-merge-cascade`
+needed only frontmatter and de-instancing of issue numbers; `live-eval` needed
+its schema-specific nouns lifted into generic ones.
+
 ## 2026-08-13 — two silent-control failures in one day: a forked guard, and a default removed on a false premise
 
 Both surfaced within hours of each other on a live instance, both had been true
