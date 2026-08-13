@@ -171,11 +171,27 @@ EOF
 
   # 5: the configured pre-push quality gate, stamped against the current diff so
   # it runs once per change rather than once per push attempt.
+  # The gate command: env first, else a conventional repo-committed script.
+  # Env-only would mean the gate is inactive until every seat exports it — a
+  # control that silently does not run on any seat that missed the setup step,
+  # which is the failure class this guard exists to prevent. A committed
+  # .claude/hooks/pre-push-gate.sh is active for every seat, on clone, with no
+  # per-seat configuration.
   GATE="${AGENTIC_SDLC_GATE_CMD:-}"
+  if [ -z "$GATE" ]; then
+    GRR="$(g rev-parse --show-toplevel 2>/dev/null || true)"
+    [ -n "$GRR" ] && [ -x "$GRR/.claude/hooks/pre-push-gate.sh" ] \
+      && GATE="$GRR/.claude/hooks/pre-push-gate.sh"
+  fi
   if [ -n "$GATE" ]; then
     PID="$(g diff "$BASE"...  2>/dev/null | git patch-id --stable 2>/dev/null | cut -d' ' -f1)"
     [ -n "$PID" ] || PID="$(g rev-parse "$SRC" 2>/dev/null || echo none)"
-    STAMP="${TMPDIR:-/tmp}/agentic-sdlc-gate.${PID}"
+    # Key the stamp by the DIFF *and* the gate definition. Patch-id alone meant
+    # that once a diff passed, changing the gate to something stricter reused the
+    # old pass and the new gate never ran — a stale green on a control that had
+    # been deliberately tightened.
+    GID="$(printf '%s' "$GATE" | cksum | cut -d' ' -f1)"
+    STAMP="${TMPDIR:-/tmp}/agentic-sdlc-gate.${PID}.${GID}"
     if [ ! -f "$STAMP" ]; then
       if ( cd "$TARGET_DIR" && eval "$GATE" ) >/dev/null 2>&1; then
         : > "$STAMP"

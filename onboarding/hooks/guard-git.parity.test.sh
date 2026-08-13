@@ -79,6 +79,21 @@ AGENTIC_SDLC_SKIP_REBASE_CHECK=1 AGENTIC_SDLC_GATE_CMD='true' \
 AGENTIC_SDLC_SKIP_REBASE_CHECK=1 \
   run 0 "no gate configured = unchanged"    "git $V origin work"
 
+echo "── the gate as a committed script, no env needed ──"
+mkdir -p "$T/repo/.claude/hooks"
+echo gate1 >> "$T/repo/f"; git -C "$T/repo" add f; git -C "$T/repo" commit -qm gate1
+printf '#!/usr/bin/env bash\nexit 1\n' > "$T/repo/.claude/hooks/pre-push-gate.sh"
+chmod +x "$T/repo/.claude/hooks/pre-push-gate.sh"
+AGENTIC_SDLC_SKIP_REBASE_CHECK=1 \
+  run 2 "a committed failing gate blocks with NO env set" "git $V origin work"
+echo gate2 >> "$T/repo/f"; git -C "$T/repo" add f; git -C "$T/repo" commit -qm gate2
+printf '#!/usr/bin/env bash\nexit 0\n' > "$T/repo/.claude/hooks/pre-push-gate.sh"
+AGENTIC_SDLC_SKIP_REBASE_CHECK=1 \
+  run 0 "a committed passing gate allows"                 "git $V origin work"
+AGENTIC_SDLC_SKIP_REBASE_CHECK=1 AGENTIC_SDLC_GATE_CMD='false' \
+  run 2 "env still wins over the committed script"        "git $V origin work"
+rm -rf "$T/repo/.claude"
+
 echo "── unrelated commands are never touched ──"
 run 0 "git status"                        "git status"
 run 0 "a non-git command"                 "ls -la"
