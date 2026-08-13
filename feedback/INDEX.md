@@ -39,6 +39,8 @@ These are the rules the spine **keeps**. Confirmed and retained in the
 | [`workflow/run-oversight-gates-locally.md`](workflow/run-oversight-gates-locally.md) | Run local gates before push; never bypass |
 | [`workflow/cancelled-status-state.md`](workflow/cancelled-status-state.md) | `Cancelled` is the terminal state for closed-but-not-shipped work (duplicate/won't-do/obsolete) — distinct from `Released`; keeps release/cost-per-outcome metrics clean |
 | [`workflow/verify-wrap-up-scope.md`](workflow/verify-wrap-up-scope.md) | Verify wrap-up scope concretely; don't estimate "small" without checking each step |
+| [`workflow/stacked-merge-cascade.md`](workflow/stacked-merge-cascade.md) | Squash-merging a stack parent rewrites its commits — cascade the boundary-exact `--onto` rebase immediately, or don't merge; stacks must be declared |
+| [`workflow/live-eval-owns-its-teardown.md`](workflow/live-eval-owns-its-teardown.md) | An eval writing to a deployed env owns marker + pre-run sweep + `finally` teardown; orphaned rows are a no-false-green failure, and never delete cost-ledger rows |
 
 ## Workflow rules reconciled to the spine (2026-05-19)
 
