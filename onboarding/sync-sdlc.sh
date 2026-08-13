@@ -55,6 +55,17 @@ git clone --quiet "https://github.com/${CANONICAL_REPO}.git" "$TMPDIR/canonical"
 CANONICAL_SHA="$(cd "$TMPDIR/canonical" && git rev-parse HEAD)"
 echo "  canonical @ ${CANONICAL_SHA}"
 
+# ── Append-only instance logs ────────────────────────────────────────────────
+# Files that record what happened in THIS instance. They diverge by design and
+# can never be "brought up to date" by replacement — a replace is a deletion of
+# instance history. These are union-merged on apply, never overwritten (#3968).
+APPEND_ONLY=( 'learning-loop/CHANGELOG.md' )
+is_append_only() {
+  local f="$1" a
+  for a in "${APPEND_ONLY[@]}"; do [ "$f" = "$a" ] && return 0; done
+  return 1
+}
+
 # ── Build sorted, repo-relative file lists (instance/ + canonical's own .git/
 #    excluded from both sides) ────────────────────────────────────────────────
 CANON_FILES="$TMPDIR/canon_files.txt"
@@ -86,7 +97,14 @@ echo "ADDED upstream, missing locally (${ADDED_COUNT}):"
 sed 's/^/  + /' "$TMPDIR/added.txt"
 echo ""
 echo "CHANGED upstream vs local (${CHANGED_COUNT}):"
-sed 's/^/  ~ /' "$CHANGED_FILE"
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  if is_append_only "$f"; then
+    echo "  ~ $f   [append-only: MERGED, never overwritten — instance entries kept]"
+  else
+    echo "  ~ $f"
+  fi
+done < "$CHANGED_FILE"
 echo ""
 echo "LOCAL-ONLY, not in canonical (${LOCAL_ONLY_COUNT}) — instance-specific or diverged, NEVER auto-touched:"
 sed 's/^/  ? /' "$TMPDIR/local_only.txt"
@@ -95,7 +113,8 @@ echo ""
 if [ "$APPLY" -eq 0 ]; then
   echo "Report-only (default) — nothing written."
   echo "Re-run with --apply to write the ADDED + CHANGED files above (local-only"
-  echo "files are never touched); apply mode asks for a typed confirmation first."
+  echo "files are never touched, and files marked [append-only] are merged rather"
+  echo "than replaced); apply mode asks for a typed confirmation first."
   exit 0
 fi
 
@@ -125,8 +144,23 @@ done < "$TMPDIR/added.txt"
 
 while IFS= read -r f; do
   [ -z "$f" ] && continue
-  cp -p "$TMPDIR/canonical/$f" "$ROOT/$f"
-  echo "  wrote $f"
+  if is_append_only "$f"; then
+    # Append-only instance log — union-merge, never replace. Overwriting these
+    # silently deleted instance-authored entries on every apply (#3968): the
+    # file got shorter, the script exited 0, and only a human remembering to
+    # re-add them by hand kept the history alive.
+    if bash "$HERE/lib/merge-append-only-log.sh" \
+         "$TMPDIR/canonical/$f" "$ROOT/$f" "$TMPDIR/merged.$$" 2>/dev/null; then
+      mv "$TMPDIR/merged.$$" "$ROOT/$f"
+      echo "  merged $f  (append-only: instance entries kept, canonical entries added)"
+    else
+      # Never fall back to a clobber — that is the defect this replaces.
+      echo "  SKIPPED $f — append-only merge failed; left untouched, reconcile by hand" >&2
+    fi
+  else
+    cp -p "$TMPDIR/canonical/$f" "$ROOT/$f"
+    echo "  wrote $f"
+  fi
 done < "$CHANGED_FILE"
 
 echo "$CANONICAL_SHA" > "$ROOT/.sdlc-version"

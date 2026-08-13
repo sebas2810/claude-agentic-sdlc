@@ -43,3 +43,5 @@ jobs:
           bash onboarding/hooks/guard-git.test.sh onboarding/hooks/guard-git.sh
       - name: seat launcher — the permission gate is never disabled
         run: bash onboarding/tests/seat-launch-permission-posture.test.sh onboarding/seat-launch.sh
+      - name: sync — an append-only instance log is merged, never overwritten
+        run: bash onboarding/tests/merge-append-only-log.test.sh onboarding/lib/merge-append-only-log.sh
