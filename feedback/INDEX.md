@@ -66,6 +66,8 @@ Violating these creates real bugs / outages. Each stands under the spine
 | Rule | One-liner |
 |---|---|
 | [`architecture/no-silent-degradation-on-load-bearing-paths.md`](architecture/no-silent-degradation-on-load-bearing-paths.md) | Load-bearing swallow = defect: surface + health signal; schema-validate structured output pre-persist (FLOOR-2/3) |
+| [`architecture/one-control-one-implementation.md`](architecture/one-control-one-implementation.md) | One control, one implementation — a forked guard keeps passing while silently no longer enforcing; a second copy is a defect with a deletion date |
+| [`architecture/weakening-a-default-must-signal.md`](architecture/weakening-a-default-must-signal.md) | Gate→allow needs its own PR, the premise verified, and a test asserting the posture — every routine signal stays green when a default is removed |
 
 An instance's stack-specific architecture rules (e.g., the reference instance's AgentCore-first, `auth.ts` edge-runtime + Next.js slug gotchas) are in the instance overlay: `instance/<you>/rules/`.
 
