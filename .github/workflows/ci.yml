@@ -24,3 +24,22 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: offline bootstrap smoke test (stubbed gh, fake product repo)
         run: bash onboarding/tests/smoke-bootstrap.sh
+
+  # The controls' own tests. Every check here guards a control that, when it
+  # silently stops enforcing, leaves no trace: the hook still fires, the repo
+  # still builds, CI stays green. Both suites are both-directions — each has been
+  # observed to FAIL against the tree that carried the defect it exists for, so a
+  # pass is evidence rather than decoration.
+  control-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: git guard — protected refs, repo scoping, escape hatch (7 cases)
+        run: |
+          set -euo pipefail
+          git config --global user.email ci@example.com
+          git config --global user.name ci
+          git config --global init.defaultBranch main
+          bash onboarding/hooks/guard-git.test.sh onboarding/hooks/guard-git.sh
+      - name: seat launcher — the permission gate is never disabled
+        run: bash onboarding/tests/seat-launch-permission-posture.test.sh onboarding/seat-launch.sh

@@ -8,7 +8,16 @@
 # The bug: the guard measured the hook's cwd, so a command targeting AHEAD
 # while cwd sat in BEHIND was blocked with a count from the wrong repository.
 set -uo pipefail
+# Resolve to an absolute path. Every case below runs with cwd inside a throwaway
+# repo, so a relative GUARD resolves to nothing there: bash exits 127 on all 7
+# cases and the output reads "the guard is broken" rather than "you passed a
+# relative path". That failure mode is why this suite was easy to leave unwired.
 GUARD="$1"
+case "$GUARD" in
+  /*) ;;
+  *)  GUARD="$(cd "$(dirname "$GUARD")" && pwd)/$(basename "$GUARD")" ;;
+esac
+[ -x "$GUARD" ] || { echo "guard not executable: $GUARD" >&2; exit 1; }
 T="$(mktemp -d)"
 PUSHV="p""ush"   # split so this test file never trips a guard scanning for it
 
