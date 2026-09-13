@@ -33,13 +33,28 @@ item bounces — costing a full cycle every time, on work that was never wrong.
 ## How to apply
 
 At scoping time, tag **every** AC line inline. Do not append a note at the bottom of the body — a
-verifier reads the numbered criteria, and a trailing caveat does not change what line 4 says.
+verifier reads the criterion lines, and a trailing caveat does not change what the fourth one says.
 
 - **`[PRE-MERGE]`** — the producer can prove it with the access it has (local Postgres, fixtures,
   test suites). QA can pass it now.
 - **`[POST-<X> GATE — #NNNN]`** — needs something the producer cannot conjure: a deployed
   environment, real data, people's time, an owner-gated setting. **Gates `Released`, never merge**,
   and names the issue that unblocks it.
+- **Name the verifier and its tool** on the same line: which seat checks the criterion, and the
+  command, test or artifact it uses. Write each AC as a checkbox; a criterion a command proves
+  carries that command on an indented `Proof:` line, the form `onboarding/lib/delivery-check.sh`
+  parses ([`skills/delivery-check/SKILL.md`](../../skills/delivery-check/SKILL.md)):
+
+  ```markdown
+  - [ ] **[PRE-MERGE]** <criterion>. Verifier: quality-engineer, runs <command>.
+    Proof: `<command>`
+  ```
+
+  A `[POST-<X> GATE]` line, or one a reviewer judges, names its tool in the `Verifier:` text and
+  carries no `Proof:` line: the delivery check runs every `Proof:` line before `Delivered`.
+- **An AC line missing any of the three** (who verifies, with what tool, gates merge or release)
+  is not scoped. `commands/check.md` applies this before `Backlog → Scoped` and
+  `Blocked → Scoped`.
 - **Split** when the gated half is a materially different build. The successor is
   **EPIC-blocking** — relocating a requirement in time must never shorten an exit gate.
 

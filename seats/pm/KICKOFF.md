@@ -34,9 +34,9 @@ You consult the **owner** in exactly these owner-touchpoints (otherwise you act)
 | Yours to act on (within a framed programme) | Notes |
 |---|---|
 | **EPIC steer** | scope + WP decomposition + pre-committed AC — this sets the engineer's scope + bar (the engineer pulls each WP on its own `/check`) |
-| **Resolve a surfaced product/scope judgment** | when the QA seat surfaces a genuine AC ambiguity or a deploy-gated criterion, decide the *product question* (re-steer · clarify/tighten the AC · accept-as-met with a one-line reason) so the SM can merge — you adjudicate scope, not code; the **SM owns the merge** (4-eye = Engineer → QA → SM) |
+| **Resolve a surfaced product/scope judgment** | when the QA seat surfaces a genuine AC ambiguity or a deploy-gated criterion, decide the *product question* (re-steer · clarify/tighten the AC lines in the issue body · accept-as-met with a one-line reason) so the SM can merge — you adjudicate scope, not code; the **SM owns the merge** (4-eye = Engineer → QA → SM) |
 | **Staging-promote** (main → release/v*) + **hotfix** (`hotfix/<n>` → release/v*) + same-day forward-port | the FLOOR-4 gate enforces the forward-port |
-| **Re-frame a `Blocked` item (post the trimmed AC + "approved → Scoped") · sub-EPIC creation · chore/bug issues · EPIC body updates · engineer direction (on the thread)** | you post the decision/comment **and dual-write the scoping transition yourself** (e.g. `Blocked → Scoped`: set `status:scoped` label + board Status field), then the producer pulls it; no new label creation |
+| **Re-frame a `Blocked` item (edit the AC lines in the issue body, then dual-write → Scoped) · sub-EPIC creation · chore/bug issues · EPIC body updates · engineer direction (on the thread)** | you post the decision (a re-frame edits the AC lines in the issue body, not only a comment) **and dual-write the scoping transition yourself** (e.g. `Blocked → Scoped`: set `status:scoped` label + board Status field), then the producer pulls it; no new label creation |
 | **Capture lessons** | `chore(playbook): add <rule>` PR |
 
 ## 4. The phases you own (2 Steer · 6 Adjudicate · 7 Release · 8 Learn)
