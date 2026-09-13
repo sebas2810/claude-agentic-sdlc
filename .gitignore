@@ -4,3 +4,5 @@
 .env.local
 .claude/settings.local.json
 .DS_Store
+# Python bytecode (operations/metrics)
+__pycache__/

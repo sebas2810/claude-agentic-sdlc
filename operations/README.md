@@ -13,6 +13,7 @@
 | [`workflow/project-templates/labels.json`](workflow/project-templates/labels.json) | The `ops:*` routing index + `type:incident` + `sev:*` labels (seeded when the ops board is stood up) |
 | [`seats/SQUAD.md`](seats/SQUAD.md) | The ops squad: **Watcher** (tier A, read-only) · **Investigator** (tier B, read-mostly) · **Operator** (tier C, guarded actuator) |
 | [`skills/`](skills/INDEX.md) | Ops skills: hypothesis-driven **incident RCA** · **FinOps cost** (including the fleet's own token bill) |
+| [`metrics/`](metrics/returns.md) | `seat-tokens.py` (per-seat token spend from transcripts) · `flow.py` (stage times, throughput, returns from label history) · `returns.md` (how a return is classified) |
 | [`runbooks/`](runbooks/README.md) | The runbook library contract — remediations as PR-reviewed code, tiered 0/1/2, promoted by SLO evidence |
 | [`../commands/ops-check.md`](../commands/ops-check.md) · [`../commands/ops-board.md`](../commands/ops-board.md) | The ops slash-commands (top-level `commands/` so the plugin ships them with the rest) |
 
