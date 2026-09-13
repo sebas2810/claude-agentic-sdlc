@@ -76,6 +76,15 @@ movement.
   covers the flow basics today; per-state and DORA are a tracked build on top.
   The collector's design (label events as the ledger, the agentic-native set,
   fleet aggregation) is specified in [`team-model.md`](team-model.md).
+- **Per-stage medians, throughput and returns** can be measured now, without
+  waiting for that job: [`operations/metrics/flow.py`](../operations/metrics/flow.py)
+  reads the `status:*` label history over REST and splits returns from
+  `Delivered` into slice returns, verification failures and unclassified. Classify
+  the unclassified rest with [`returns.md`](../operations/metrics/returns.md).
+  What the seats spent to move that work comes from
+  [`operations/metrics/seat-tokens.py`](../operations/metrics/seat-tokens.py),
+  which reads local Claude Code transcripts. Both exit with an error, never an
+  empty report, when their input cannot be read.
 
 See also [`prioritization.md`](prioritization.md) for how WSJF orders within a
 state, and [`project-boards.md`](project-boards.md) for which tier each chart
