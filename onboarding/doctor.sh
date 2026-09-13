@@ -30,10 +30,23 @@ LABELS="$(gh label list --repo "$REPO" -L 200 --json name --jq '.[].name')"
 # 1. every configured PRODUCER seat has its seat:<key> routing lane label
 #    (pm / scrum-master / quality-engineer drain by status: no lane by design)
 EXPECTED=""
+MARKERS=""
 for pair in $SEATS; do
   role="${pair%%:*}" ; rest="${pair#*:}" ; name="${rest%%:*}"
-  case "$role" in pm|scrum-master|quality-engineer) continue ;; esac
   key="$(printf '%s' "$name" | tr '[:upper:] ' '[:lower:]-')"
+  # #4076 drift 2 — pm / scrum-master / quality-engineer drain by `status:` and
+  # get NO routing lane by design. But a `seat:<role>` label for them is not
+  # drift either: it is an OWNERSHIP MARKER, read by humans and mirrored by the
+  # board's Agent field, and nothing routes on it. Check 2 used to report these
+  # as FOREIGN because they never entered EXPECTED — measuring the wrong
+  # property, then asking the repo to delete a live label to make a gate green.
+  case "$role" in
+    pm|scrum-master|quality-engineer)
+      MARKERS="$MARKERS seat:$key"
+      printf '%s\n' "$LABELS" | grep -qx "seat:$key" \
+        && ok "marker seat:$key ($name, $role — ownership only, routes nothing)"
+      continue ;;
+  esac
   EXPECTED="$EXPECTED seat:$key"
   if printf '%s\n' "$LABELS" | grep -qx "seat:$key"
   then ok "lane seat:$key ($name, $role)"
@@ -41,14 +54,22 @@ for pair in $SEATS; do
   fi
 done
 
+# #4076 drift 1 — a repo can host more than one squad. Another roster's lanes
+# will ALWAYS be reported here, so the gate could never go green and would
+# teach people to skip it — worse than not having it. Declare them in
+# sdlc.config (`FOREIGN_LANES="seat:x seat:y"`) so they are a stated fact
+# rather than a permanent finding. Undeclared lanes still fail loudly.
+DECLARED="${FOREIGN_LANES:-}"
+
 # 2. every seat:* label in the repo maps back to a configured seat — a foreign
 #    lane is another squad's (or a retired seat's); label-only filters would
 #    surface its work as yours. Either way: loud.
 while IFS= read -r l; do
   [ -n "$l" ] || continue
-  case " $EXPECTED " in *" $l "*) ;; *)
-    bad "FOREIGN lane $l — maps to no seat in $CFG (another squad in this repo? a retired seat?)" ;;
-  esac
+  case " $EXPECTED " in *" $l "*) continue ;; esac
+  case " $MARKERS "  in *" $l "*) continue ;; esac
+  case " $DECLARED " in *" $l "*) ok "foreign lane $l — declared in $CFG (another squad)"; continue ;; esac
+  bad "FOREIGN lane $l — maps to no seat in $CFG and is not in FOREIGN_LANES (another squad? a retired seat?)"
 done <<EOF
 $(printf '%s\n' "$LABELS" | grep '^seat:' || true)
 EOF

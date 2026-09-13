@@ -19,16 +19,16 @@ case "$ROLE" in
 esac
 case "${SEAT_LABEL:-}" in seat:*) KEY="${SEAT_LABEL#seat:}" ;; *) KEY="${SEAT_KEY:-$ROLE}" ;; esac
 ```
-Discovery runs against THIS worktree's repo (`gh` resolves it from cwd). Each list is one cheap `gh issue list --search "...status:* label..."` — list, don't act.
+Discovery runs against THIS worktree's repo (`gh` resolves it from cwd). Each list is one cheap `gh search issues --include-prs --label "status:*"` (never `gh issue list` — it omits PRs) — list, don't act.
 
 List, by **role** — each line `#num  title  [labels]` (truncate long titles), oldest-first, with a **count** header:
 
 - **engineer** (KEY = `dex`/`sam`/…):
   - **`status:scoped` · `seat:$KEY`** — your build queue, in the exact order `/check` pulls. **One** call, ordered in memory: **`priority:P0` → assigned (rework: QA-failed bounce-backs) → `priority:P1` → `P2` → `P3` → unlabelled**.
-    `gh issue list --search "is:open label:status:scoped label:seat:$KEY sort:created-asc" -L 30 --json number,title,labels,assignees`
+    `gh search issues --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)" --label "status:scoped" --label "seat:$KEY" --state open --include-prs -L 30 --json number,title,labels,assignees,isPullRequest`
     *(An assigned `scoped` item = a QA **FAIL** re-pulled for rework, since a claimed item is `in-progress`. `/check` fixes those before fresh same-or-lower-priority work.)*
   - **`status:in-progress` · `seat:$KEY`** — what you already have in flight.
-- **quality-engineer**: all **`status:delivered`** — your verify queue. `gh issue list --search "is:open label:status:delivered sort:created-asc" -L 30`
+- **quality-engineer**: all **`status:delivered`** — your verify queue. `gh search issues --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)" --label "status:delivered" --state open --include-prs -L 30`
 - **scrum-master**: all **`status:tested`** — your **merge queue** (validate preconditions → squash-merge → drive `→ status:released`); plus a flow view — a count per `status:*` label; and any **`status:blocked`** items needing action — consult-exceptions to **verify + surface to the PM with a verdict** (the PM then re-frames + dual-writes `status:blocked → status:scoped` itself).
 - **pm**: the **`status:backlog`** awaiting framing — your steer queue; plus any product/scope judgement the QA seat flagged, or `status:blocked` consult-exception the SM surfaced, for you to resolve. *(Not a merge queue — the SM merges. The PM dual-writes its own scoping transitions — `Backlog`/`Blocked → Scoped`; producers then pull `status:scoped`.)*
 

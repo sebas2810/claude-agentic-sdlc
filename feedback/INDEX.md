@@ -26,6 +26,7 @@ These are the rules the spine **keeps**. Confirmed and retained in the
 | [`workflow/author-is-the-ownership-boundary.md`](workflow/author-is-the-ownership-boundary.md) | Squad ownership = the issue `author`; every discovery query loads + filters on it — labels/assignees don't carry it |
 | [`workflow/actor-not-signature.md`](workflow/actor-not-signature.md) | Authority = the recorded event actor, never a prose signature; a gate performed by a foreign account is a violation |
 | [`workflow/minimize-git-actions.md`](workflow/minimize-git-actions.md) | ~3 git actions per unit, not 15–20 — EPIC branch, auto-merge, `Refs` on prereq PRs, PM never merges |
+| [`workflow/ac-must-name-who-can-satisfy-it.md`](workflow/ac-must-name-who-can-satisfy-it.md) | Before `Scoped`, every AC names who can satisfy it with what access — else tag it `[POST-<X> GATE]` or split it, EPIC-blocking |
 | [`workflow/deployed-env-smoke-before-ready.md`](workflow/deployed-env-smoke-before-ready.md) | Ready/landed report MUST include deployed-env smoke evidence |
 | [`workflow/audit-pr-history-before-pickup.md`](workflow/audit-pr-history-before-pickup.md) | Check `gh pr list` before declaring an issue "unstarted" |
 | [`workflow/always-rebase-before-push.md`](workflow/always-rebase-before-push.md) | `git fetch origin main && git rebase origin/main` before every push — AUTHORING seats only, never the merge gate |
@@ -41,6 +42,10 @@ These are the rules the spine **keeps**. Confirmed and retained in the
 | [`workflow/verify-wrap-up-scope.md`](workflow/verify-wrap-up-scope.md) | Verify wrap-up scope concretely; don't estimate "small" without checking each step |
 | [`workflow/stacked-merge-cascade.md`](workflow/stacked-merge-cascade.md) | Squash-merging a stack parent rewrites its commits — cascade the boundary-exact `--onto` rebase immediately, or don't merge; stacks must be declared |
 | [`workflow/live-eval-owns-its-teardown.md`](workflow/live-eval-owns-its-teardown.md) | An eval writing to a deployed env owns marker + pre-run sweep + `finally` teardown; orphaned rows are a no-false-green failure, and never delete cost-ledger rows |
+| [`workflow/unmeasured-numbers-must-not-size-work.md`](workflow/unmeasured-numbers-must-not-size-work.md) | A figure not measured on the current build must not size a WP or set an AC threshold — measure first, then scope; a mis-sized WP that still merges records its contribution as zero |
+| [`workflow/a-null-result-is-not-evidence.md`](workflow/a-null-result-is-not-evidence.md) | "Searched and found nothing" is a fact about the query until a positive control or an enumerated scope proves the search would have found it |
+| [`workflow/a-check-must-be-able-to-report-its-own-failure.md`](workflow/a-check-must-be-able-to-report-its-own-failure.md) | `2>/dev/null` + `cmd && A || B` folds an ERROR into a negative answer — verify the input resolves, branch on the real exit code, reserve a third `could-not-determine` outcome |
+| [`workflow/read-back-unlinked-board-via-node-query.md`](workflow/read-back-unlinked-board-via-node-query.md) | On a board not linked to the issues' repo, `projectItems` reads empty even when `Status` is set — read that half back with a project-item node query |
 
 ## Workflow rules reconciled to the spine (2026-05-19)
 

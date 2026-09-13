@@ -183,6 +183,10 @@ seat drains its queue, and **nothing advances without an operator-initiated
   confirms it, not when the write returns.** A hard invariant for every seat:
   no label-only mode, no projection Action, no deferred reconcile job; consistency
   is guaranteed — and verified — at the point of write, by whoever writes.
+  On a board **not linked to the issues' repo** (a personal/unlinked project)
+  `projectItems` reads empty even when `Status` is set — read that half back with
+  a project-item node query
+  ([the rule](../feedback/workflow/read-back-unlinked-board-via-node-query.md)).
   `/check`, `/workload`, `/board`, `/backlog`
   all run discovery off the label index; the expensive read is never on the hot
   path. In a repo hosting more than one squad, discovery also carries the

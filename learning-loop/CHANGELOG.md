@@ -2,6 +2,152 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-09-06 — the check that could not tell me it was broken
+
+A PM seat reported an EPIC branch as carrying 13 days of unshipped work, filed it P1 (#5080),
+told a producer their issue (#4516) was correctly blocked on it, and called it independently
+verified. The branch had promoted on time — PR #4541 to `main`, 2026-08-25 — and been deleted
+on merge, correctly.
+
+Git had said so plainly. `git merge-base --is-ancestor` returns **128** with
+`fatal: Not a valid object name` for a missing ref, and **1** for a real "not merged". The
+check was written as `... 2>/dev/null && echo on-main || echo NOT-an-ancestor`: the redirect
+swallowed the `fatal:`, and `||` folded 128 into the same branch as 1. The "corroborating"
+second check, `git log main..origin/$b` returning 0, had the identical blind spot — so two
+checks agreed while neither could see.
+
+The instructive part is the *first* correction, which was also wrong. It claimed git could not
+distinguish the two cases. Git always could; the invocation destroyed the distinction. That
+version would have taught seats to distrust a working tool rather than to stop suppressing its
+diagnostics — a worse legacy than the original error, and it only surfaced because the owner
+ran the command by hand.
+
+Same class as the three anti-guards found in the same week's triage — a test pinning
+`length === 13` (#4368), a ratchet with 14 units of slack (#4523), a gate greening
+unconditionally (#5038). A control that reports a state it did not establish. This one was
+built by the seat cataloguing the others.
+
+- New rule: [`../feedback/workflow/a-check-must-be-able-to-report-its-own-failure.md`](../feedback/workflow/a-check-must-be-able-to-report-its-own-failure.md)
+  — verify the input resolves before asking a question about it; branch on the real exit code
+  when a tool has more than two outcomes; never `2>/dev/null` a check you intend to act on;
+  reserve a third `could-not-determine` state, because two states force an error to impersonate
+  one of them.
+
+Sibling to [`a-null-result-is-not-evidence`](../feedback/workflow/a-null-result-is-not-evidence.md),
+deliberately kept separate: that rule governs **reading** an absence, this one governs
+**building** the check that produced it.
+
+## 2026-09-01 — the read-back that reports a failure that didn't happen
+
+The dual-write read-back is one call: `gh issue view <n> --json labels,projectItems`, asserting both
+halves of a transition landed. It has a blind spot. `projectItems` only reports projects **linked to
+the issue's repository** — so on an instance whose board is a personal/unlinked project, the board
+half reads `[]` **while the `Status` field is set correctly**. The documented check reports a failure
+that did not occur.
+
+Found while the PM seat scoped #4941 on a board owned by a different account and not linked to the issues' repository. The seat was one step from "fixing" a board field that was already
+right — which would have put a phantom half-write in its report, the precise false signal the
+read-back exists to prevent.
+
+What made it a finding rather than a hunch was the **positive control**: issues on the repo-linked
+board return `projectItems = 1`, the unlinked one returns `0`, and the token carried `project` scope
+the whole time. Without that control it was just "the query returned nothing", which is a fact about
+the query ([`a-null-result-is-not-evidence`](../feedback/workflow/a-null-result-is-not-evidence.md)).
+
+The rule also records what was **not** established: that board is both unlinked *and* cross-owner, and
+separating those requires linking a board — project-structure mutation, owner-gated. So the trigger
+is stated as "unlinked **or** cross-owner", with neither claimed as load-bearing. Naming the limit of
+the evidence is part of the rule, not a caveat appended to it.
+
+- New rule: [`../feedback/workflow/read-back-unlinked-board-via-node-query.md`](../feedback/workflow/read-back-unlinked-board-via-node-query.md)
+  — plus a pointer at both live points-of-use (`commands/check.md`, `workflow/state-machine.md`), since
+  a rule that isn't at the point of use isn't in force. The read-back invariant itself is unchanged and
+  still binding; only *how* you satisfy its board half on an unlinked board is narrowed.
+
+## 2026-08-20 — nine blocked items in one day, and not one was an engineering failure
+
+A single PM seat produced nine blocked items across 2026-08-19/20. Every one was an acceptance
+criterion that named nobody who could satisfy it: a blind panel needing three humans, measurements
+against a DEV database no seat can reach, a *required* check needing branch protection, ">= 20
+real-content exemplars" needing real deals to close, and two incident artifacts that exist nowhere
+in the repo.
+
+Each surfaced only when the quality seat physically reached it, so clearing one exposed the next.
+From the outside that reads as endless churn. It is really **a queue of framing defects being
+discovered in sequence** — the producer builds correctly, the verifier fails it correctly, and a
+full cycle is spent on work that was never wrong.
+
+The seat hand-fixed nine instances before writing the rule, which is the more useful lesson: a
+recurring defect that keeps getting patched one at a time is a missing rule, and the patching is
+the signal.
+
+- New rule: [`../feedback/workflow/ac-must-name-who-can-satisfy-it.md`](../feedback/workflow/ac-must-name-who-can-satisfy-it.md)
+  — before `Scoped`, every AC is checked against "who can satisfy this, with what they have
+  today?" Anything else is tagged inline as `[POST-<X> GATE — #NNNN]` (gating `Released`, never
+  merge) or split into an EPIC-blocking successor. Tag the numbered lines, not a trailing note:
+  a verifier reads line 4, not the footer.
+
+Two supporting findings from the same days, both already carried by existing rules but worth
+naming as this defect's siblings: a ruling that lives only in an issue comment is not in force
+(four bodies still carried retracted instructions while comments said otherwise), and a verifier
+must never be failed-into absorbing infrastructure it cannot reach — it marks the criterion
+unverifiable-by-access and routes it back for re-framing.
+## 2026-08-17 — a turnaround EPIC sized against two numbers nobody had measured, and an absence promoted to proof
+
+One EPIC, one day, four work packages mis-sized or mis-steered — and every one
+traces to the same root: **a premise that was never checked against the running
+system.** Both new rules are that root in its two shapes.
+
+**The number-shaped form.** EPIC #4211's dial set was sized against "a clean
+7-contribution convene takes 20-24 minutes" and "a 7-specialist panel runs 2
+sequential rounds". Neither was measured on a healthy build. The panel is 4, by
+design and in every dispatch line since the concurrency cap was raised 3→4 for a
+named four-specialist panel. And on a working drain the convene measures
+**4m41s** — the 20-24 figure was a symptom of the open defect the EPIC was also
+fixing, not the steady state. So: one dial removed a queueing round that did not
+exist; one dial's headline AC was unreachable and was struck at the QA gate; the
+biggest dial was scoped to cut ~8 minutes off a 14-minute term that does not
+exist at a 4-panel, was built, eval'd, and rejected 0/5 unanimous; and the EPIC's
+exit gate turned out to be **met before any dial merged**. The measuring WP
+existed the whole time — it was simply ordered after the work it was meant to
+size. → [`../feedback/workflow/unmeasured-numbers-must-not-size-work.md`](../feedback/workflow/unmeasured-numbers-must-not-size-work.md)
+
+**The absence-shaped form.** An engineer reported that two terminal-state events
+"never fired" across a 2h42m window — searched in the worker Lambda's log group.
+The PM elevated that absence into a steer ("the code took a path that goes
+through neither"), and told the engineer to drop the database read that would
+have caught it. Both events had fired **7 times each**, in the ECS group where
+the drain actually runs. The engineer had hit that exact scoping trap earlier in
+the same investigation on a sibling event and corrected for it there; neither
+seat carried the lesson to the other two events. A fix was built against the
+wrong mechanism and shipped as a no-op. The arithmetic had been visible
+throughout: 7 rows × a bound of 5 = the 35 attempts observed — the bound worked
+perfectly, and "35 attempts against a bound that never fired" was the same
+evidence read backwards. → [`../feedback/workflow/a-null-result-is-not-evidence.md`](../feedback/workflow/a-null-result-is-not-evidence.md)
+
+**One reconciliation, not a rule.** `CLAUDE.md` carried a carve-out letting the
+PM "build *and* merge its own lower-stakes work (CI / docs / config)". That
+contradicts spine invariant 3 — *the seat that merges it never authored it* —
+and the PM seat KICKOFF, which says the PM never merges. The divergence was not
+theoretical: the PM used it the same day to merge a registry PR its own seat had
+authored. The seat is the boundary, not the individual session, so the carve-out
+is removed: the PM may build low-stakes CI/docs/config work, and it goes through
+QA → SM like anyone else's. Spine wins, per the coherence duty.
+
+What connects all three: **the failure was never a lack of rigour downstream.**
+QA caught every one of them — four FAILs and a BLOCKED, each reproduced both
+directions. The cost was that the checking happened at the gate rather than at
+framing, so four builds were spent on premises that a log query or one
+measurement run would have refuted in minutes. The rules move that check
+upstream, to the seat that writes the premise down.
+
+A footnote worth keeping: the CI guard written the same day to enforce one of
+these lessons **passed on the very file it was written to catch** — its sentinel
+regex missed the quoting the real workflow uses, so it registered no sentinel and
+held no step to one. Caught only by running it against the pre-fix content before
+trusting it. A guard that cannot fail is not a guard, and that applies to the
+guards we write about guards.
+
 ## 2026-08-13 — two more rules come home: the treadmill #61 ended was still running for these
 
 Auditing what a fork actually inherits turned up **two framework-shaped rules
@@ -111,6 +257,50 @@ the finding never reached the thread — the assigned engineer re-diagnosed from
 scratch and shipped a symptom fix that QA then failed, costing a full extra
 round-trip. Conflating "I should not decide this" with "I should not even
 speak on this" breaks spine invariant 7: the shared thread is the bus.
+
+## 2026-08-08 — cross-seat comment is always allowed: the actual blocker was bash-guard's push-detection, not a permission prompt (#3407)
+
+NEW rule `feedback/workflow/cross-seat-comment-is-always-allowed.md`: a
+finding-only `gh issue comment` / `gh pr comment` on an issue your seat
+doesn't own is always permitted — the shared thread is the bus (spine
+invariant 7). Only label/status/assignee/close mutation stays role-gated.
+Trigger: 2026-07-14, a seat found the root cause of a live P0, self-blocked
+on posting it believing cross-seat writes were restricted, and the finding
+never reached the thread — the assigned engineer re-diagnosed from scratch
+and shipped a symptom fix; QA caught it, costing a full extra round-trip.
+
+The first fix (2026-08-07) guessed the cause was a client-side permission
+prompt and added nothing that changed behavior. **QA reproduced the actual
+mechanism live, against this exact issue, the next day:**
+`.claude/hooks/bash-guard.mjs`'s rebase-check matched `git push` as a
+**substring of the whole raw command text**, including inside quotes and
+heredocs — no `gh`-specific logic needed, any command whose *text* merely
+contained the phrase was treated as a push. A QA finding quoting the hook's
+own block message (which itself says "git push") was unpostable by
+construction; two plain `echo` commands differing only in whether their text
+mentioned the phrase reproduced it with no git involved. A second layer
+surfaced during the fix: splitting the command into `&&`/`;`/`||` segments
+*before* stripping quotes meant a semicolon inside quoted prose fragmented
+the quote itself, defeating the stripping. Fixed by masking quoted/heredoc
+regions to a same-length blanked string first (preserving character
+positions), then splitting and matching against the masked text —
+`.claude/hooks/bash-guard.test.mjs` is the mutation-proven regression test
+(reverting the fix turns exactly the false-positive cases red; real pushes
+to main/release/behind-origin stay blocked in both directions).
+
+Separately: this fix hit two agent-tooling boundaries worth naming for
+future sessions. (1) An agent cannot self-edit `.claude/hooks/*.mjs` or
+`.claude/settings.json` — the auto-mode classifier blocks it as a
+self-privilege-escalation pattern, correctly; the fix had to be prepared as
+a verified `git apply`-able patch and applied by the human. (2) A parallel
+`/update --apply` run (`chore(playbook): sync agentic-sdlc to
+canonical@6f503c28`, PR #3960) landed mid-fix and **silently deleted** this
+rule's original CHANGELOG entry and its `feedback/INDEX.md` row — `CHANGELOG.md`
+and `INDEX.md` are `CHANGED` files the sync overwrites wholesale with the
+canonical version, which is correct for files that are purely upstream-owned
+but lossy for these two specifically, since local instances legitimately
+append their own rows to both. Restored here; tracked as a real defect in
+`sync-sdlc.sh` separately (#3968).
 
 ## 2026-08-06 — `SQUAD_AUTHORS` is provisioned, and its owner-only default is retired
 
