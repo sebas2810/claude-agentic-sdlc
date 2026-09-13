@@ -29,17 +29,18 @@ as [`commands/check.md`](../commands/check.md) says. For the item it picks:
 1. Start [`engineer-worker`](../agents/engineer-worker.md) with the `item` and
    `phase: build`, in the seat's own worktree.
 2. On `result=REVIEW-NEEDED`, start [`delivery-reviewer`](../agents/delivery-reviewer.md)
-   yourself, in a fresh context, with the issue's acceptance criteria, the
-   PR's base and head, and a `verdict_file` outside the tracked tree, for
-   example `"$(git rev-parse --git-dir)/delivery-review-<item>-<head>.txt"`.
-   The reviewer writes its full verdict to that file and returns only its
-   `VERDICT:` line. Never copy its rationale into the file or the session
-   yourself: every line the seat handles lands in the seat's context, and
-   keeping it out is what the worker split is for.
+   yourself, in a fresh context, with the issue's acceptance criteria and the
+   PR's base and head. It is read-only and returns a short per-AC verdict
+   (under 40 lines) ending in its `VERDICT:` line. Do not re-read the diff or
+   add to the verdict: every line the seat handles lands in the seat's
+   context, and keeping it out is what the worker split is for.
 3. Start `engineer-worker` again with `phase: deliver`, the PR, the reviewed
-   head and that file.
+   head and the reviewer's response, unchanged. The worker writes it to a file
+   outside the tracked tree, for example
+   `"$(git rev-parse --git-dir)/delivery-review-<item>-<head>.txt"`, and passes
+   that file to `delivery-check.sh`.
 4. On `result=FAILED`, start a rework `phase: build` with the failing lines
-   from the report and the `verdict_file`, then continue from step 2. The item
+   from the report, a reviewer's FAIL lines included, then continue from step 2. The item
    is still `status:in-progress` from its claim, and a rework `build` accepts
    that state. On `DELIVERED`, `BLOCKED` or `SKIPPED`, re-run discovery and
    take the next item. On `STALE` or `ERROR`, report it and stop the drain: an

@@ -21,10 +21,9 @@ carry**. Read those files before you act; do not rely on what a producer
   the ownership filter and the priority order in `commands/check.md`.
 - `phase`: `build` or `deliver`.
 - For `deliver`: `pr`, `reviewed_sha` (the head the reviewer graded) and
-  `verdict_file` (the file the reviewer wrote its full verdict to).
+  `verdict` (the reviewer's response, unchanged, ending in its `VERDICT:` line).
 - For a rework `build`, the rework inputs: the failing lines, from QA's
-  verdict or from a failed `deliver` report, and for a reviewer FAIL the
-  `verdict_file` that holds its reasons.
+  verdict or from a failed `deliver` report, a reviewer's FAIL lines included.
 
 If an input is missing, report `result=ERROR` naming it. Never guess an item.
 
@@ -98,9 +97,11 @@ overlay's rules under `instance/<name>/rules/`.
 1. `git fetch origin --quiet`. Your HEAD and the PR head must both equal
    `reviewed_sha`. A different commit means the reviewer graded something
    else: report `result=STALE` and stop.
-2. `verdict_file` must exist, be readable and hold a `VERDICT:` line.
-   Otherwise report `result=ERROR`.
-3. Run `onboarding/lib/delivery-check.sh --issue <item> --pr <pr> --reviewer-verdict-file <verdict_file>`.
+2. `verdict` must hold a `VERDICT:` line; otherwise report `result=ERROR`.
+   Write it, unchanged, to a file named delivery-review-<item>-<reviewed_sha>.txt
+   in the git dir (`git rev-parse --git-dir`), outside the tracked tree, and
+   read it back. A failed write is `result=ERROR`.
+3. Run `onboarding/lib/delivery-check.sh --issue <item> --pr <pr> --reviewer-verdict-file <that file>`.
    Exit 1: report `result=FAILED` with every failing line (a reviewer FAIL
    included) and stop; the seat starts a rework `build`. Exit 2: report
    `result=ERROR` with the cause.
