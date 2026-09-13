@@ -84,6 +84,14 @@ GOLDEN_BOARD=""                       # optional: an existing configured Deliver
 # Do not set this manually; run onboarding/team-bootstrap.sh instead.
 TEAM_BOARD_URL=""                     # URL of the org-level fleet board (epics only)
 
+# Quality seat: how many Delivered items it verifies at once, each in its own
+# fresh worker and clean worktree (workflow/fresh-context-workers.md). Checks
+# that need the local app, a local database or the browser, or that change the
+# deployed environment, still run one at a time. Copied into every seat's
+# .env.local; a value that is not a whole number from 1 to 999 stops the
+# quality drain with an error.
+QA_MAX_PARALLEL="3"
+
 # Delivery check (skills/delivery-check/SKILL.md) — the instance's own test
 # commands, run for whichever glob a producer's diff touches, before
 # status:delivered. One "<path-glob>:<command>" per line — split on the

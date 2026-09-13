@@ -386,6 +386,7 @@ BOARD_ID=$BOARD_ID
 BOARD_OWNER=$OWNER
 SQUAD_AUTHORS=$SQUAD_AUTHORS
 TEAM_BOARD_URL=${TEAM_BOARD_URL:-}
+QA_MAX_PARALLEL=${QA_MAX_PARALLEL:-3}
 ENV
   c_ok ".env.local written ($name / $role · model $model${lane:+ · lane $lane})"
   if ( cd "$WT" && . ./agentic-sdlc/onboarding/setup-seat.sh ) >>"$LOG" 2>&1; then
