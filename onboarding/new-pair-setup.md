@@ -154,6 +154,38 @@ app: the `--model` flag is a `seat-launch.sh` mechanism, so pick the seat's
 model tier in the UI — the injected seat brief names the tier this seat is
 configured for in `sdlc.config`.)
 
+### Slash-commands: one copy per seat worktree
+
+`seat-launch.sh` and `bootstrap.sh` install the framework's commands into each
+seat worktree's `.claude/commands/`, so every seat runs its own instance's
+`/check`. They never write `~/.claude/commands/`: Claude Code runs a personal
+command before a project command of the same name, so a shared copy there
+decides `/check` for every instance on the machine. The installed files stay
+out of `git status` through the repository's `.git/info/exclude`, and a command
+file your repository tracks under the same name is left untouched and named.
+With the plugin enabled, the same commands are also available namespaced, as
+`/agentic-sdlc:check` and so on.
+
+### Removing the old shared copies
+
+Older launchers copied the commands into `~/.claude/commands/`, and those copies
+still win over every seat's own. `doctor.sh` and `seat-launch.sh` name each one.
+Remove them only once **every** instance on this machine runs the new launcher:
+an old launcher copies them back the next time it starts a seat.
+
+```bash
+# from the root of any product repo that vendors the framework
+for f in agentic-sdlc/commands/*.md; do
+  rm -i "$HOME/.claude/commands/$(basename "$f")"
+done
+bash agentic-sdlc/onboarding/doctor.sh    # its Slash-commands check should now be clean
+```
+
+`rm -i` asks per file, so a personal command you wrote yourself under one of
+those names is not removed by accident. A personal skill with the same name
+(`~/.claude/skills/check/`) shadows the seat's command too; `doctor.sh` names
+it, and it goes the same way.
+
 **Terminal 1 (PM seat):**
 ```bash
 cd ~/Code/<your-repo>-pm

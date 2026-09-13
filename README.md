@@ -112,9 +112,15 @@ just opens the seat's worktree there and has the full seat. Install once:
 }
 ```
 
-The legacy paths (commands copied to `~/.claude/commands`, the bootstrap-wired
-guard hook) keep working and are superseded by the plugin where it is enabled;
-updates flow by plugin version bump instead of re-vendoring. Provisioning
+Without the plugin, `seat-launch.sh` and `bootstrap.sh` install the commands
+into each seat worktree's `.claude/commands/`, never the machine-wide
+`~/.claude/commands/`, where one instance's copy would override every other
+instance's ([removing the old shared copies](onboarding/new-pair-setup.md#removing-the-old-shared-copies));
+the bootstrap-wired guard hook keeps working too. With the plugin, updates flow
+by version bump instead of re-vendoring: a PR that changes `commands/`,
+`skills/`, `agents/`, `onboarding/hooks/` or `.claude-plugin/` must raise the
+`version` in `.claude-plugin/plugin.json`, and CI checks it
+(`onboarding/lib/check-plugin-version-bump.sh`). Provisioning
 (`bootstrap.sh`) stays a shell script — the plugin is distribution, not setup.
 
 ## First thing every session does (read order)

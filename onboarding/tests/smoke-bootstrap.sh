@@ -109,6 +109,16 @@ assert_grep 'fake-seat\.md' "$T/seats/fake-prod-finn/.claude/settings.local.json
 # gates: the git guard is wired at the product root
 assert_grep 'guard-git' "$T/prod/.claude/settings.json" "PreToolUse guard wired"
 
+# slash-commands: per seat worktree, never machine-global (#77)
+if [ -e "$T/home/.claude/commands" ]; then fail "bootstrap wrote ~/.claude/commands (machine-global)"
+else pass "no machine-global ~/.claude/commands"; fi
+if cmp -s "$T/prod/agentic-sdlc/commands/check.md" "$T/seats/fake-prod-finn/.claude/commands/check.md"
+then pass "seat worktree carries this instance's /check"
+else fail "seat worktree lacks this instance's /check"; fi
+if git -C "$T/seats/fake-prod-finn" status --porcelain --untracked-files=all | grep -q '\.claude/commands/'
+then fail "installed commands show in the seat's git status"
+else pass "installed commands stay out of the seat's git status"; fi
+
 echo "── second run (idempotency) ──"
 if OUT2="$(run_bootstrap 2>&1)"; then
   pass "re-run exited 0"

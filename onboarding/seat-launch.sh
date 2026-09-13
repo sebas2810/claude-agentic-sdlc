@@ -69,15 +69,18 @@ if [ -f .claude/settings.local.json ] && command -v jq >/dev/null 2>&1; then
   if jq 'del(.hooks.Stop)' .claude/settings.local.json > "$tmp" 2>/dev/null; then mv "$tmp" .claude/settings.local.json; else rm -f "$tmp"; fi
 fi
 
-# 4c) provision the operator slash-commands (machine-global) from the framework — so /check · /board
-#     · /workload work in every pane of every project that vendors this framework. Idempotent copy;
-#     instance-agnostic (board id/owner come from this seat's env, exported above).
-#     LEGACY PATH — superseded by the agentic-sdlc plugin (which ships the same commands, versioned,
-#     on every Claude Code surface); kept for un-pluginned machines, to be retired after the plugin
-#     pilot (#24).
-if [ -d "$FRAMEWORK/commands" ]; then
-  mkdir -p "$HOME/.claude/commands"
-  cp -f "$FRAMEWORK/commands/"*.md "$HOME/.claude/commands/" 2>/dev/null || true
+# 4c) this seat's slash-commands, installed into THIS worktree's .claude/commands (project scope) and
+#     never into ~/.claude/commands: a personal command beats a project command of the same name, so
+#     a machine-global copy let the last instance launched decide /check for every instance (#77).
+#     A stale personal copy from an older launcher still wins, so it is named here; the launch goes on.
+#     (The agentic-sdlc plugin ships the same commands, namespaced as /agentic-sdlc:<name>.)
+bash "$FRAMEWORK/onboarding/lib/install-seat-commands.sh" "$FRAMEWORK" "$WORKTREE" \
+  || echo "seat-launch: ⚠ slash-commands not fully installed in $WORKTREE/.claude/commands (cause above)" >&2
+if ! SHADOWS="$(bash "$FRAMEWORK/onboarding/lib/check-shadowed-commands.sh" "$FRAMEWORK" 2>&1)"; then
+  while IFS= read -r line; do
+    if [ -n "$line" ]; then echo "seat-launch: ⚠ $line" >&2; fi
+  done <<<"$SHADOWS"
+  echo "seat-launch: ⚠ remove it once every instance on this machine has this launcher (onboarding/new-pair-setup.md)" >&2
 fi
 
 # 5) boot prompt — ONE generic instruction for every role (single-source: the

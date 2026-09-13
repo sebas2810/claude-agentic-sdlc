@@ -107,6 +107,24 @@ else
   esac
 fi
 
+# 4. no personal command or skill shadows this instance's slash-commands (#77). A personal
+#    ~/.claude/commands/check.md runs instead of the seat worktree's copy, for every instance on the
+#    machine. A warning, not label drift; a check that cannot run is still reported as drift.
+echo "Slash-commands:"
+DOCTOR_FW="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+if SHADOWS="$(bash "$DOCTOR_FW/onboarding/lib/check-shadowed-commands.sh" "$DOCTOR_FW" 2>&1)"; then
+  ok "no personal command or skill shadows this instance's commands"
+else
+  case $? in
+    1) while IFS= read -r line; do
+         if [ -n "$line" ]; then
+           printf '  ⚠ %s; remove it (onboarding/new-pair-setup.md, "Removing the old shared copies")\n' "$line"
+         fi
+       done <<<"$SHADOWS" ;;
+    *) bad "could not check for shadowing personal commands: $SHADOWS" ;;
+  esac
+fi
+
 if [ "$FAIL" -eq 0 ]
 then echo "✓ parity: labels match the $CFG roster"
 else echo "✗ drift found — fix the above before the next /check"
