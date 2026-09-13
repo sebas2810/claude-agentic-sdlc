@@ -6,12 +6,21 @@ Run: python3 operations/metrics/tests/test_flow.py
 Known answer, window 2026-01-10 .. 2026-01-20 (10 days), authors alice and bob:
   #1 clean pass           scoped 0h, in-progress +2, delivered +4, tested +1, merged +1
   #2 FAIL return          its status events sit on page 2 of the events listing
-  #3 PASS return          an earlier FAIL in the window is overridden by the later PASS
+  #3 after-pass return    an earlier FAIL in the window loses to the nearer PASS
   #4 unclassified return  its only FAIL verdict is 13h before the return
   #5 started before the window; only its in-window stages count
   #6 mallory              excluded author, carries a FAIL return that must not count
   #7 label events only before the window: not considered
   #8 return lands after END: not counted
+
+Known answer for ReturnMatching, window 2026-02-01 .. 2026-02-02, author alice:
+  #21 delivered, tested, scoped after a PASS; a routing comment carries the reason: after_pass
+  #22 delivered, tested, merged, scoped with no verdict on the thread: after_pass
+  #23 FAIL verdict posted 2 seconds after the scoped label: matched
+  #24 two returns, each verdict posted seconds after its label: each takes its own
+  #25 a return before the window took its verdict; the return inside has none: unclassified
+  #26 FAIL verdict 11 minutes after the return: outside the default 10-minute grace
+  #27 PASS, merged, then a post-merge FAIL 3 seconds after the scoped label: verification_failure
 """
 import json
 import os
@@ -126,7 +135,11 @@ def fixture():
     return {"repo": REPO, "issues": issues, "events": events, "comments": comments}
 
 
-class FlowReport(unittest.TestCase):
+class StubbedGh(unittest.TestCase):
+    """A fake gh on PATH serving self.data(); run_flow runs flow.py against it."""
+    data = staticmethod(fixture)
+    authors = ("alice", "bob")
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.dir = Path(self.tmp.name)
@@ -135,20 +148,23 @@ class FlowReport(unittest.TestCase):
         stub = self.bin / "gh"
         stub.write_text(STUB.replace("{python}", sys.executable))
         stub.chmod(0o755)
-        (self.dir / "data.json").write_text(json.dumps(fixture()))
+        (self.dir / "data.json").write_text(json.dumps(self.data()))
         self.out = self.dir / "flow.json"
         self.log = self.dir / "gh.log"
 
     def tearDown(self):
         self.tmp.cleanup()
 
-    def run_flow(self, start="2026-01-10", end="2026-01-20", path=None, **extra_env):
+    def run_flow(self, start="2026-01-10", end="2026-01-20", path=None, args=(), **extra_env):
         env = dict(os.environ, PATH=path if path is not None else f"{self.bin}{os.pathsep}{os.environ.get('PATH', '')}",
                    FAKE_GH_DATA=str(self.dir / "data.json"), FAKE_GH_LOG=str(self.log), **extra_env)
+        authors = [flag for who in self.authors for flag in ("--author", who)]
         return subprocess.run(
-            [sys.executable, str(SCRIPT), start, end, str(self.out), "--repo", REPO,
-             "--author", "alice", "--author", "bob"],
+            [sys.executable, str(SCRIPT), start, end, str(self.out), "--repo", REPO, *authors, *args],
             capture_output=True, text=True, env=env)
+
+
+class FlowReport(StubbedGh):
 
     def test_known_answer(self):
         proc = self.run_flow()
@@ -166,11 +182,11 @@ class FlowReport(unittest.TestCase):
         self.assertEqual(report["throughput_per_day"], {
             "delivered": 0.7, "in-progress": 0.6, "merged": 0.3, "scoped": 0.8, "tested": 0.3})
         returns = report["returns"]
-        self.assertEqual((returns["total"], returns["slice_return"], returns["verification_failure"],
+        self.assertEqual((returns["total"], returns["after_pass"], returns["verification_failure"],
                           returns["unclassified"]), (3, 1, 1, 1))
         self.assertEqual(returns["per_delivery_pct"], 42.9)
         self.assertEqual([(e["item"], e["class"]) for e in returns["events"]],
-                         [(2, "verification_failure"), (3, "slice_return"), (4, "unclassified")])
+                         [(2, "verification_failure"), (3, "after_pass"), (4, "unclassified")])
         self.assertTrue(any("first time each label was added" in limit for limit in report["limits"]))
         self.assertIn("first time each label was added", proc.stdout)
         calls = self.log.read_text()
@@ -206,8 +222,116 @@ class FlowReport(unittest.TestCase):
         self.assertFalse(self.out.exists())
 
 
+def matching_fixture():
+    issues = [{"number": n, "user": {"login": "alice"}} for n in range(21, 28)]
+    events = {
+        "21": [lab("status:scoped", "2026-02-01T00:00:00Z"),
+               lab("status:in-progress", "2026-02-01T01:00:00Z"),
+               lab("status:delivered", "2026-02-01T03:00:00Z"),
+               lab("status:tested", "2026-02-01T04:00:00Z"),
+               lab("status:scoped", "2026-02-01T06:00:00Z")],
+        "22": [lab("status:scoped", "2026-02-01T00:00:00Z"),
+               lab("status:delivered", "2026-02-01T02:00:00Z"),
+               lab("status:tested", "2026-02-01T03:00:00Z"),
+               lab("status:merged", "2026-02-01T04:00:00Z"),
+               lab("status:scoped", "2026-02-01T05:00:00Z")],
+        "23": [lab("status:scoped", "2026-02-01T08:00:00Z"),
+               lab("status:in-progress", "2026-02-01T09:00:00Z"),
+               lab("status:delivered", "2026-02-01T10:00:00Z"),
+               lab("status:scoped", "2026-02-01T11:00:00Z")],
+        "24": [lab("status:scoped", "2026-02-01T12:00:00Z"),
+               lab("status:in-progress", "2026-02-01T12:30:00Z"),
+               lab("status:delivered", "2026-02-01T13:00:00Z"),
+               lab("status:scoped", "2026-02-01T14:00:00Z"),
+               lab("status:in-progress", "2026-02-01T15:00:00Z"),
+               lab("status:delivered", "2026-02-01T16:00:00Z"),
+               lab("status:scoped", "2026-02-01T17:00:00Z")],
+        "25": [lab("status:scoped", "2026-01-31T20:00:00Z"),
+               lab("status:delivered", "2026-01-31T22:00:00Z"),
+               lab("status:scoped", "2026-01-31T23:00:00Z"),
+               lab("status:in-progress", "2026-02-01T00:00:00Z"),
+               lab("status:delivered", "2026-02-01T01:00:00Z"),
+               lab("status:scoped", "2026-02-01T02:00:00Z")],
+        "26": [lab("status:scoped", "2026-02-01T18:00:00Z"),
+               lab("status:delivered", "2026-02-01T19:00:00Z"),
+               lab("status:scoped", "2026-02-01T20:00:00Z")],
+        "27": [lab("status:scoped", "2026-02-01T21:00:00Z"),
+               lab("status:delivered", "2026-02-01T21:10:00Z"),
+               lab("status:tested", "2026-02-01T21:20:00Z"),
+               lab("status:merged", "2026-02-01T21:30:00Z"),
+               lab("status:scoped", "2026-02-01T22:00:00Z")],
+    }
+    comments = {
+        "21": [com("## QA verification: #21 / PR #90: **PASS**", "2026-02-01T04:00:05Z"),
+               com("PR #90 is CONFLICTING, not merged. Back to Scoped.", "2026-02-01T05:59:50Z")],
+        "23": [com("## QA verification: #23 / PR #91: **FAIL**\n\n- AC2 not met", "2026-02-01T11:00:02Z")],
+        "24": [com("## QA verification: #24 / PR #92: **FAIL**", "2026-02-01T14:00:03Z"),
+               com("## QA re-verification: #24 / PR #92: **FAIL on AC3**", "2026-02-01T17:00:04Z")],
+        "25": [com("## QA verification: #25: **FAIL**", "2026-01-31T23:00:02Z")],
+        "26": [com("## QA verification: #26: **FAIL**", "2026-02-01T20:11:00Z")],
+        "27": [com("## QA verification: #27 / PR #93: **PASS**", "2026-02-01T21:20:02Z"),
+               com("## QA verdict on AC4 (post-merge gate): #27 / PR #93, **FAIL.**", "2026-02-01T22:00:03Z")],
+    }
+    return {"repo": REPO, "issues": issues, "events": events, "comments": comments}
+
+
+class ReturnMatching(StubbedGh):
+    """Returns after a pass get their own class; verdicts posted just after the label are matched."""
+    data = staticmethod(matching_fixture)
+    authors = ("alice",)
+
+    def report(self, *args):
+        proc = self.run_flow("2026-02-01", "2026-02-02", args=args)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        return json.loads(self.out.read_text())["returns"]
+
+    def events(self, returns, item):
+        return [(e["returned_at"], e["class"], e["verdict_at"]) for e in returns["events"] if e["item"] == item]
+
+    def test_a_return_after_a_pass_is_after_pass_not_a_slice_return(self):
+        returns = self.report()
+        self.assertEqual(self.events(returns, 21), [("2026-02-01T06:00:00Z", "after_pass", "2026-02-01T04:00:05Z")])
+        self.assertEqual(self.events(returns, 22), [("2026-02-01T05:00:00Z", "after_pass", None)])
+        self.assertEqual([(e["verdict"], e["pass_label"]) for e in returns["events"] if e["item"] in (21, 22)],
+                         [("PASS", "tested"), (None, "merged")])
+        self.assertNotIn("slice_return", returns)
+
+    def test_a_verdict_posted_just_after_the_label_is_matched(self):
+        returns = self.report()
+        self.assertEqual(self.events(returns, 23),
+                         [("2026-02-01T11:00:00Z", "verification_failure", "2026-02-01T11:00:02Z")])
+
+    def test_a_second_return_takes_the_verdict_posted_just_after_it(self):
+        returns = self.report()
+        self.assertEqual(self.events(returns, 24),
+                         [("2026-02-01T14:00:00Z", "verification_failure", "2026-02-01T14:00:03Z"),
+                          ("2026-02-01T17:00:00Z", "verification_failure", "2026-02-01T17:00:04Z")])
+
+    def test_a_fail_after_a_merge_is_a_verification_failure(self):
+        returns = self.report()
+        self.assertEqual(self.events(returns, 27),
+                         [("2026-02-01T22:00:00Z", "verification_failure", "2026-02-01T22:00:03Z")])
+        self.assertEqual([(e["verdict"], e["pass_label"]) for e in returns["events"] if e["item"] == 27],
+                         [("FAIL", "merged")])
+
+    def test_the_verdict_of_a_return_before_the_window_is_not_reused(self):
+        returns = self.report()
+        self.assertEqual(self.events(returns, 25), [("2026-02-01T02:00:00Z", "unclassified", None)])
+
+    def test_counts_and_grace(self):
+        returns = self.report()
+        self.assertEqual((returns["total"], returns["after_pass"], returns["verification_failure"],
+                          returns["unclassified"]), (8, 2, 4, 2))
+        self.assertEqual(self.events(returns, 26), [("2026-02-01T20:00:00Z", "unclassified", None)])
+        method = json.loads(self.out.read_text())["method"]
+        self.assertEqual(method["verdict_grace_minutes"], 10.0)
+        wider = self.report("--verdict-grace-minutes", "15")
+        self.assertEqual(self.events(wider, 26),
+                         [("2026-02-01T20:00:00Z", "verification_failure", "2026-02-01T20:11:00Z")])
+
+
 class VerdictHeadings(unittest.TestCase):
-    """classify() reads a comment's heading, in the wordings verdicts are written in."""
+    """classify_returns() reads a comment's heading, in the wordings verdicts are written in."""
 
     @classmethod
     def setUpClass(cls):
@@ -222,17 +346,17 @@ class VerdictHeadings(unittest.TestCase):
         returned = dt.datetime(2026, 1, 12, 12, 0, tzinfo=dt.timezone.utc)
         comments = [{"created_at": f"2026-01-12T{8 + i:02d}:00:00Z", "body": body}
                     for i, body in enumerate(bodies)]
-        kind, _ = self.flow.classify(comments, returned, dt.timedelta(hours=12),
-                                     re.compile(self.flow.DEFAULT_FAIL),
-                                     re.compile(self.flow.DEFAULT_PASS), 12)
+        [(kind, _, _)] = self.flow.classify_returns(
+            [(returned, None)], comments, dt.timedelta(hours=12), dt.timedelta(minutes=10),
+            re.compile(self.flow.DEFAULT_FAIL), re.compile(self.flow.DEFAULT_PASS), 12)
         return kind
 
     def test_verdict_heading_wordings(self):
         cases = [
             ("## QA verdict: #12 / PR #34 @ `abc1234`, **FAIL on AC3, narrowly.** AC1 and AC2 PASS.", "verification_failure"),
-            ("## QA verdict: #12 / PR #35 @ `def5678`, **PASS on the slice.** AC2 stays open.", "slice_return"),
+            ("## QA verdict: #12 / PR #35 @ `def5678`, **PASS on the slice.** AC2 stays open.", "after_pass"),
             ("## QA verdict on AC4 (post-merge gate): #12, **FAIL.**", "verification_failure"),
-            ("## QA re-verification: #12, **PASS**. The earlier FAIL is resolved.", "slice_return"),
+            ("## QA re-verification: #12, **PASS**. The earlier FAIL is resolved.", "after_pass"),
             ("## QA verification: #12 / PR #36: **FAIL**", "verification_failure"),
         ]
         for body, expected in cases:
@@ -245,7 +369,7 @@ class VerdictHeadings(unittest.TestCase):
 
     def test_the_latest_verdict_wins(self):
         self.assertEqual(self.verdict("## QA verdict: #12, **FAIL on AC1.**",
-                                      "## QA verdict: #12, **PASS on AC1.**"), "slice_return")
+                                      "## QA verdict: #12, **PASS on AC1.**"), "after_pass")
 
 
 if __name__ == "__main__":
