@@ -1,0 +1,38 @@
+{
+  "session_id": "fixture-session",
+  "model": {
+    "id": "claude-opus-5",
+    "display_name": "Opus 5"
+  },
+  "workspace": {
+    "current_dir": "/home/seat/project",
+    "project_dir": "/home/seat/project"
+  },
+  "version": {
+    "VERSION": "2.1.270"
+  },
+  "output_style": {
+    "name": "default"
+  },
+  "cost": {
+    "total_cost_usd": 1.2345,
+    "total_duration_ms": 42000,
+    "total_api_duration_ms": 31000,
+    "total_lines_added": 120,
+    "total_lines_removed": 40
+  },
+  "context_window": {
+    "total_input_tokens": 212000,
+    "total_output_tokens": 4300,
+    "context_window_size": 1000000,
+    "current_usage": {
+      "input_tokens": 5000,
+      "cache_creation_input_tokens": 2000,
+      "cache_read_input_tokens": 205000,
+      "output_tokens": 4300
+    },
+    "used_percentage": 21.2,
+    "remaining_percentage": 78.8
+  },
+  "exceeds_200k_tokens": true
+}

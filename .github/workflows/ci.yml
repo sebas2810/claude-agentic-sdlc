@@ -58,6 +58,8 @@ jobs:
           bash onboarding/hooks/guard-git.parity.test.sh onboarding/hooks/guard-git.sh
       - name: setup-seat — settings.local.json written idempotently (#76 AC4)
         run: bash onboarding/tests/setup-seat-settings.test.sh onboarding/setup-seat.sh
+      - name: seat statusline — shows context TOKENS against a real 2.1.270 payload (#76 AC4 re-delivery)
+        run: bash onboarding/tests/seat-statusline.test.sh onboarding/lib/seat-statusline.sh
       - name: metrics - seat-tokens.py known answer, and an error on unreadable input
         run: python3 operations/metrics/tests/test_seat_tokens.py
       - name: metrics - flow.py known answer, and an error when gh fails
