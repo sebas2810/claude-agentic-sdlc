@@ -92,6 +92,9 @@ assert_grep '^SEAT_LABEL=seat:dex$'  "$T/seats/fake-prod-dex/.env.local"  "produ
 assert_grep '^SEAT_LABEL=$'          "$T/seats/fake-prod-pim/.env.local"  "pm has no lane"
 assert_grep '^SEAT_LABEL=$'          "$T/seats/fake-prod-cas/.env.local"  "scrum-master has no lane"
 
+# the quality seat's parallel cap reaches each seat's env (default 3 when sdlc.config leaves it out)
+assert_grep '^QA_MAX_PARALLEL=3$' "$T/seats/fake-prod-finn/.env.local" "QA_MAX_PARALLEL default propagated"
+
 # secret safety: the PRODUCT root ignores the seat env/identity files
 assert_grep '^\.env\.local$' "$T/prod/.gitignore" "root .gitignore covers .env.local"
 assert_grep '^\.claude/settings\.local\.json$' "$T/prod/.gitignore" "root .gitignore covers settings.local.json"

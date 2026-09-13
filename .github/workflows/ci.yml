@@ -71,3 +71,7 @@ jobs:
           git config --global user.name ci
           git config --global init.defaultBranch main
           bash onboarding/tests/delivery-check.test.sh onboarding/lib/delivery-check.sh onboarding/hooks/guard-git.sh
+      - name: workers - each worker definition still carries its seat rules
+        run: bash onboarding/tests/worker-definitions.test.sh onboarding/lib/check-worker-definitions.sh
+      - name: workers - the quality seat's parallel cap is resolved or refused, never guessed
+        run: bash onboarding/tests/resolve-qa-max-parallel.test.sh onboarding/lib/resolve-qa-max-parallel.sh
