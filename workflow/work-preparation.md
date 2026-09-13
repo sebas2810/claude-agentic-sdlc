@@ -54,7 +54,7 @@ its issue, with live status.
 ## Boundaries (the bounce rules)
 
 - SM hits a missing/ambiguous AC, an unclear outcome, or a scope question → **bounce to the PM** (comment on the Epic; do not guess).
-- PM wants a WP split/resized for flow → that's an SM proposal the PM approves; the SM never silently re-scopes product intent.
+- Work that needs more than one PR → the PM splits it at framing, one sub-issue per PR ([the slice path](state-machine.md#the-slice-path-work-planned-as-more-than-one-pr)). A split or resize the SM spots while exploding an Epic is an SM proposal the PM approves; the SM never silently re-scopes product intent. Both paths end in sub-issues before `Scoped`.
 - Neither merges work they prepared the readiness of without the independent gates (produce ≠ adjudicate, 4-eye) — see [state machine](state-machine.md).
 
 ---

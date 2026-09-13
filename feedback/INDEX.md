@@ -46,6 +46,7 @@ These are the rules the spine **keeps**. Confirmed and retained in the
 | [`workflow/a-null-result-is-not-evidence.md`](workflow/a-null-result-is-not-evidence.md) | "Searched and found nothing" is a fact about the query until a positive control or an enumerated scope proves the search would have found it |
 | [`workflow/a-check-must-be-able-to-report-its-own-failure.md`](workflow/a-check-must-be-able-to-report-its-own-failure.md) | `2>/dev/null` + `cmd && A || B` folds an ERROR into a negative answer — verify the input resolves, branch on the real exit code, reserve a third `could-not-determine` outcome |
 | [`workflow/read-back-unlinked-board-via-node-query.md`](workflow/read-back-unlinked-board-via-node-query.md) | On a board not linked to the issues' repo, `projectItems` reads empty even when `Status` is set — read that half back with a project-item node query |
+| [`workflow/a-slice-landing-does-not-make-the-item-merged.md`](workflow/a-slice-landing-does-not-make-the-item-merged.md) | `Merged` means every AC landed, not that a PR merged. Multi-PR work splits into sub-issues at framing, the parent stays `In Progress`, a "Partial" PR never moves its issue to `merged`, and a passed slice never returns to `Scoped` |
 
 ## Workflow rules reconciled to the spine (2026-05-19)
 
@@ -53,7 +54,7 @@ Rewritten or pointer-updated to the de-gated, one-PM-seat model.
 
 | Rule | One-liner | Reconciliation |
 |---|---|---|
-| [`workflow/finish-report-stop.md`](workflow/finish-report-stop.md) | Finish → one check → report → STOP and wait for the human (no loops, no polling); merge authority = 4-eye Engineer builds → QA verifies → SM merges (the SM merges on the QA PASS; engineer never self-merges; PM is oversight, not the merge gate — **the PM dual-writes its own scoping transitions (`Backlog`/`Blocked → Scoped`) but still never merges; the SM is the independent merge authority**) | Light-confirm only on the no-loops part; merge authority moved to the SM in v1.1 (was Engineer→PM); v1.2 PM-decisions-only/SM-operationalizes reversed for scoping in v1.5 (PM dual-writes its own `Backlog`/`Blocked → Scoped`) |
+| [`workflow/finish-report-stop.md`](workflow/finish-report-stop.md) | Finish → one check → report → STOP and wait for the human (no loops, no polling); merge authority = 4-eye Engineer builds → QA verifies → SM merges (the SM merges on the QA PASS; engineer never self-merges; PM is oversight, not the merge gate — **the PM dual-writes its own scoping transitions (`Backlog`/`Blocked → Scoped` + a split parent's `→ In Progress`, [rule](workflow/a-slice-landing-does-not-make-the-item-merged.md)) but still never merges; the SM is the independent merge authority**) | Light-confirm only on the no-loops part; merge authority moved to the SM in v1.1 (was Engineer→PM); v1.2 PM-decisions-only/SM-operationalizes reversed for scoping in v1.5 (PM dual-writes its own `Backlog`/`Blocked → Scoped`) |
 | [`workflow/engineer-ready-signal.md`](workflow/engineer-ready-signal.md) | After a unit lands, one report then continue the steered EPIC; no per-unit gate; no self-merge | Rewritten: per-unit "wait for next trigger" retired (steer-as-trigger) |
 | [`workflow/pm-routes-via-github.md`](workflow/pm-routes-via-github.md) | The shared GitHub thread is the bus; the owner is never the relay | Rewritten to spine invariant 7; one PM seat |
 

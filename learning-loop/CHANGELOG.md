@@ -2,6 +2,32 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-09-13 — a slice is a state, not a return to Scoped
+
+One instance classified every return from `Delivered` to `Scoped` over 14 days: 121 returns, 39 of
+them slices. None of the 39 was a failure. A partial PR passed verification, and the scrum-master
+moved the item back to `Scoped` for its next slice, because the state machine had no state meaning
+"this slice landed, the item continues". Five of the 39 were corrections of an item labelled
+`merged` too early.
+
+Both exits were wrong. Back to `Scoped`, a passed slice re-ran a full drain and read as rework.
+Forward to `merged`, the item dropped out of every queue with ACs still open. The same instance had
+already met the second form: five items flipped to `merged` in about 24 hours, each because a PR
+merged, one of them on a PR that said "Partial" in its own close section.
+
+The fix is a path, not a reminder. Work planned as more than one PR is split into sub-issues at
+framing, one PR each; the parent stays `In Progress` and closes when every child is `Released`. No
+transition returns a passed slice to `Scoped`, so a `Delivered → Scoped` means a FAIL again, and the
+flow report (#78) counts any slice returns that still happen separately from verification failures.
+
+- New rule: [`../feedback/workflow/a-slice-landing-does-not-make-the-item-merged.md`](../feedback/workflow/a-slice-landing-does-not-make-the-item-merged.md)
+- [`../workflow/state-machine.md`](../workflow/state-machine.md): the slice path section, the split-parent
+  transitions, the FAIL-only `Delivered → Scoped`, and the partial-PR route to `Blocked`.
+- [`../commands/check.md`](../commands/check.md): the rule at each drain's decision point. The PM splits at
+  framing, the producer raises a consult-exception instead of shipping a "Partial" PR, QA sends only a
+  FAIL to `scoped`, and the scrum-master neither moves a partial PR's issue to `merged` nor returns a
+  passed item to `scoped`.
+
 ## 2026-09-06 — the check that could not tell me it was broken
 
 A PM seat reported an EPIC branch as carrying 13 days of unshipped work, filed it P1 (#5080),

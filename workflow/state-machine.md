@@ -87,15 +87,18 @@ The operator runs `/check` in the seat that should advance; that seat does the
 | From → To | Driver (operator runs `/check` in the seat) | Gate |
 |---|---|---|
 | Backlog → Scoped | PM steers | **DoR**: scope + pre-committed AC + sized + parented to an Epic |
+| Backlog → In Progress (split parent) | PM, at framing, when the item needs more than one PR: one sub-issue per PR, each framed `→ Scoped`; the parent gets no `seat:` lane and no assignee ([the slice path](#the-slice-path-work-planned-as-more-than-one-pr)) | every child meets **DoR**; together the children carry every parent AC |
 | Scoped → In Progress | the producer pulls its next `Scoped` → claims + branches | a free WIP slot |
 | In Progress → Delivered | producer (PR + ready-signal) | local gates green + a real DEV round-trip |
 | Delivered → Tested | quality-engineer pulls its next `Delivered` → verifies on the deployed env (or runs evals) | **evals (oracle) + AC, deployed-env, perturbed** |
 | Tested → Merged | SM pulls its next `Tested` → validates preconditions (real QA PASS + CI green + PR mergeable/clean) → squash-merges | **produce ≠ adjudicate**, once, by the non-author at the gate |
-| Delivered → Scoped | quality-engineer verification FAIL → back to `Scoped` with per-criterion comments, **left assigned to the engineer** (QA does not unassign); the engineer's `/check` **rework query** (`status:scoped` + `assignee:@me`) re-pulls it **first** | a failed gate is a blocker, not a note — and must not be re-`delivered` without a fix |
-| Tested → (routed) | SM finds a precondition unmet → routes, never force-merges: dirty/conflicting PR → engineer rebases; no QA verdict → back to QA | real QA PASS + CI green + PR clean |
+| Delivered → Scoped | quality-engineer verification FAIL → back to `Scoped` with per-criterion comments, **left assigned to the engineer** (QA does not unassign); the engineer's `/check` **rework query** (`status:scoped` + `assignee:@me`) re-pulls it **first** | **FAIL only: a PASS never returns an item to `Scoped`.** A failed gate is a blocker, not a note — and must not be re-`delivered` without a fix |
+| Tested → (routed) | SM finds a precondition unmet → routes, never force-merges: dirty/conflicting PR → engineer rebases; no QA verdict → back to QA; a PR that covers only some of its issue's ACs, or says "Partial" → `Blocked` for the PM to split, **never `Merged` and never `Scoped`** | real QA PASS on every AC of the issue + CI green + PR clean |
 | Merged → Released | SM deploys (staging); PROD = owner | **canary before irreversible**; PROD owner-gated |
-| any → Blocked | the producer (on a **consult-exception**) — does not build; posts the **full context to the issue** (file-cited findings · the fork/options · its recommendation) + assigns itself; the SM then **verifies the claims before surfacing** to the PM with a verdict | the 3 consult-exceptions / owner-touchpoints |
+| In Progress → Released (split parent) | SM, in the pass that releases the parent's last child; closes the parent | every child `Released`. The parent has no PR, so it never enters `Delivered`, `Tested` or `Merged` |
+| any → Blocked | the producer (on a **consult-exception**) — does not build; posts the **full context to the issue** (file-cited findings · the fork/options · its recommendation) + assigns itself; the SM then **verifies the claims before surfacing** to the PM with a verdict. **Or the SM, for one case:** at the merge gate, a PR that covers only some of its issue's ACs, or says "Partial", goes `→ Blocked` for the PM to split ([the slice path](#the-slice-path-work-planned-as-more-than-one-pr)) | the 3 consult-exceptions / owner-touchpoints |
 | Blocked → Scoped | **PM re-frames + dual-writes it itself** — the PM posts the decision (trimmed AC + "approved → Scoped") and sets the `status:scoped` label + board `Status` field; the producer then re-pulls it | the PM's re-frame/approval posted + dual-written (the PM scopes its own items) |
+| Blocked → In Progress (split parent) | PM, answering a consult-exception that the item needs more than one PR (or a partial PR the SM routed): splits it as at framing; work already on a branch or PR moves to the child that carries it | as for the framing split. Not a push ([rule](../feedback/workflow/unblocking-is-not-a-pull.md)): no one can claim the parent, and the producer pulls the children |
 | any → Cancelled | the adjudicator of the close (PM for product calls; SM at the `Blocked` sweep) — closes as `NOT_PLANNED` + dual-writes (`status:cancelled` label + board `Cancelled`) in the same write | duplicate · won't-do · obsolete · premise-invalid — **never** `Released`, which stays *shipped-only* ([the rule](../feedback/workflow/cancelled-status-state.md)) |
 | Blocked → (other prior) | PM / owner resolves on the thread; the PM dual-writes the resulting `Status` flip | — |
 
@@ -103,6 +106,42 @@ The operator runs `/check` in the seat that should advance; that seat does the
 regardless of when the operator triggers it.** The operator's pacing changes
 *when* a step runs, never *who* runs it or *whether* its gate holds — so a safety
 gate can never be skipped.
+
+## The slice path (work planned as more than one PR)
+
+`Merged` means every AC of an item landed, not that a PR merged. So an item never
+rides the states once per PR: work that needs more than one PR is split, and each
+slice travels as its own item. The rule and the evidence behind it:
+[`a-slice-landing-does-not-make-the-item-merged.md`](../feedback/workflow/a-slice-landing-does-not-make-the-item-merged.md).
+
+- **Split at framing.** When the PM frames an item whose ACs cannot land in one PR
+  (the DoR's *Sized* box fails), it creates one sub-issue per PR, one level down
+  [the hierarchy](hierarchy.md): a Story's slices are Tasks. Each child carries the
+  ACs its PR lands and meets the DoR on its own; together the children carry every
+  parent AC. Each child is framed `→ Scoped` with its lane label and flows the states
+  like any other item.
+- **The parent stays `In Progress`.** The PM dual-writes the parent `→ In Progress`
+  with no `seat:` lane label and no assignee, so no drain discovers it as work and it
+  counts against no producer's WIP limit. The parent has no PR of its own, so it never
+  enters `Delivered`, `Tested` or `Merged`. It goes `→ Released` and closes when every
+  child is `Released`; the SM does that in the pass that releases the last child.
+- **A split found mid-build.** A producer who finds that an item needs more than one
+  PR stops and posts a consult-exception (`→ Blocked`), and the PM splits it as above
+  (`Blocked → In Progress` for the parent). Work already on a branch or PR moves to
+  the child that carries it. The producer never ships a PR marked "Partial" against
+  the whole item.
+- **No return to `Scoped` for a passed slice.** No transition leads from `Tested` or
+  `Merged` back to `Scoped`, and `Delivered → Scoped` fires only on a verification
+  FAIL. A PR that covers only some of its issue's ACs, or says "Partial", cannot move
+  that issue to `Merged`: the SM routes it `→ Blocked` for the PM to split, and the
+  child that carries exactly those ACs takes the PR.
+
+Without this path a passed slice had two exits, and both were wrong: back to
+`Scoped`, where it re-ran a full drain and read as rework, or forward to `Merged`,
+where it dropped out of every queue with ACs still open. With it, a
+`Delivered → Scoped` is a verification failure again. The flow report (#78) counts
+slice returns separately from verification failures, so any that still happen show
+as a framing defect, not as rework.
 
 ## The board as the reducer (drain the queue per `/check`)
 
@@ -121,14 +160,19 @@ on /check in <seat>:
   if active_epics > 3 or wip_breached: finish_in_flight_first
   while (item = next actionable item for <seat>'s role) is not EMPTY:   # one cheap label query per pull; most-advanced first
     case item.status:
+      backlog    (pm)       -> frame; needs >1 PR ? (one sub-issue per PR -> scoped; parent -> in-progress, no lane, no assignee) : -> scoped
       scoped     (producer) -> pick = order(scoped@seat): P0 > assigned(rework) > P1 > P2 > P3 > none  # ONE search, sort in memory
                              pick.assigned ? fix EXISTING branch/PR -> re-deliver : (if free_wip: claim; branch; build -> in-progress -> delivered)
       delivered  (quality)  -> v = verify(item)            # independent: Quality seat / evals, deployed-env
                                v.pass ? -> tested : (comment per-criterion; -> scoped, KEEP assignee)   # FAIL: engineer re-pulls rework first (assignee:@me)
+                               # scoped is the FAIL route only: a PASS never goes -> scoped
       tested     (sm)       -> p = check_preconditions(item)   # real QA PASS + CI green + PR clean; SM did not author -> produce != adjudicate
                                p.ok ? (squash-merge; -> merged) : route(item)   # dirty PR -> engineer rebase; no verdict -> back to QA; never force-merge
+                               # PR covers only some ACs, or says "Partial" -> not p.ok: -> blocked for the PM to split; never -> merged, never -> scoped
       merged     (sm)       -> deploy(item); canary; -> released   # PROD is owner-gated, never automated
+                               # last child of a split parent released -> parent -> released + closed
       blocked    (producer) -> post full consult-exception to the ISSUE (findings·options·recommendation); -> blocked; assign self; do NOT build
+                               # "needs more than one PR" is a consult-exception: never ship a Partial PR against the whole item
       blocked    (sm)       -> verify claims vs codebase/board; surface to PM with a verdict (legit/avoidable/needs-PM-call). The PM re-frames AND dual-writes (-> scoped) itself; the SM does not operationalize scoping
     # every transition DUAL-WRITES: set the status:* label (REST, the discovery mirror) + the board Status field
     #   (one cheap single-item mutation, the canonical record) — always both; no label-only mode, no projection Action
