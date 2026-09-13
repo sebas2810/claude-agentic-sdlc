@@ -21,8 +21,10 @@ carry**. Read those files before you act; do not rely on what a producer
   the ownership filter and the priority order in `commands/check.md`.
 - `phase`: `build` or `deliver`.
 - For `deliver`: `pr`, `reviewed_sha` (the head the reviewer graded) and
-  `verdict_file` (the reviewer's response, saved by the seat).
-- For a rework `build`: the failing lines from the reviewer or from QA.
+  `verdict_file` (the file the reviewer wrote its full verdict to).
+- For a rework `build`, the rework inputs: the failing lines, from QA's
+  verdict or from a failed `deliver` report, and for a reviewer FAIL the
+  `verdict_file` that holds its reasons.
 
 If an input is missing, report `result=ERROR` naming it. Never guess an item.
 
@@ -58,32 +60,38 @@ overlay's rules under `instance/<name>/rules/`.
 
 1. **Refresh and re-check.** `git fetch origin --quiet`, then
    `gh issue view <item> --json number,title,body,labels,assignees,state,author`.
-   The item must still be open, `status:scoped`, and authored by an account in
-   `$SQUAD_AUTHORS`. If not, report `result=SKIPPED` with what you found and stop.
+   The item must still be open, authored by an account in `$SQUAD_AUTHORS`,
+   and in one of two states: `status:scoped`, or, only when you received
+   rework inputs, `status:in-progress` assigned to the seat's account
+   (`gh api user --jq .login`). The second is where a failed `deliver` leaves
+   the item; skipping it would strand the item In Progress. Anything else:
+   report `result=SKIPPED` with what you found and stop.
 2. **Audit before pickup.** An open or merged PR for this item means it is not
    unstarted. Rework continues on the existing branch and PR.
 3. **Claim** as the producer drain in `commands/check.md` says: dual-write
    `status:scoped` to `status:in-progress` with the board field, assign the
-   seat's account, and read back both halves.
-4. **Re-anchor.** Run the producer drain's **per-item re-anchor** step in
-   `commands/check.md` before writing code. If your checkout of that file has
-   no such step, say so in your report.
-5. **Block protocol before building.** An AC that cannot be met as written, a
-   product fork, scope creep, or work that needs more than one PR: do not
-   build. Post the full consult-exception on the issue, dual-write
+   seat's account, and read back both halves. An item already
+   `status:in-progress` for a rework is already claimed: read back both
+   halves and write nothing.
+4. **Block protocol, before building and whenever it applies during the
+   build.** An AC that cannot be met as written, a product fork, scope creep,
+   work that needs more than one PR, or work that would ship less than an AC
+   asks (a narrowed PR is a consult-exception: block, don't ship): do not
+   build on. Post the full consult-exception on the issue, dual-write
    `status:blocked`, assign the seat, read back, report `result=BLOCKED`, stop.
-6. **Build** per `seats/engineer/KICKOFF.md` section 4: branch off
+5. **Build** per `seats/engineer/KICKOFF.md` section 4: branch off
    `origin/main` (or the item's registered integration branch), run the
    instance's gates, get a real deployed-environment round-trip, rebase before
    every push, and open ONE PR.
-7. **Run the mechanical delivery check:**
+6. **Run the mechanical delivery check:**
    `onboarding/lib/delivery-check.sh --issue <item> --pr <pr>`.
-   You cannot start the `delivery-reviewer` subagent: a subagent cannot start
-   another subagent, and a reviewer started from the context that built the
-   fix would not be independent. So on this run the one acceptable failing
-   line is the missing reviewer verdict. Fix every other failing line and
-   re-run. When only that line fails, report `result=REVIEW-NEEDED` with the
-   PR, the head SHA and the base the check resolved.
+   You cannot start the `agents/delivery-reviewer.md` subagent: a subagent
+   cannot start another subagent, and a reviewer started from the context
+   that built the fix would not be independent. So on this run the one
+   acceptable failing line is the missing reviewer verdict. Fix every other
+   failing line and re-run. When only that line fails, report
+   `result=REVIEW-NEEDED` with the PR, the head SHA and the base the check
+   resolved.
 
 ## Phase `deliver`
 

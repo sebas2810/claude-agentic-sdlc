@@ -26,8 +26,15 @@ skip() { printf '  SKIP  %s\n' "$1"; }
 
 fresh_copy() {
   rm -rf "$T/fw" && mkdir -p "$T/fw"
-  tar -C "$FW" -cf - agents commands seats skills workflow feedback operations | tar -x -C "$T/fw"
+  tar -C "$FW" -cf - agents commands seats skills workflow feedback operations onboarding | tar -x -C "$T/fw"
 }
+# add_rule <worker> <path>: list one more rule path in a copy's definition
+add_rule() {
+  awk -v p="$2" '{ print } /^## Rules you carry$/ { print ""; print "- `" p "`" }' \
+    "$T/fw/agents/$1.md" > "$T/edit" && mv "$T/edit" "$T/fw/agents/$1.md"
+}
+# A file just outside the copied framework root, so a climbing path resolves.
+printf 'outside the framework root\n' > "$T/outside.md"
 
 # expect <exit-code> <text the output must contain> <description>
 expect() {
@@ -99,6 +106,47 @@ if [ "$rc" -eq 2 ] && printf '%s' "$out" | grep -qF "not a directory"; then
 else
   bad "a missing framework root must exit 2 (exit $rc): $out"
 fi
+
+# 10. A listed path that climbs out of the framework root, to a file that exists.
+fresh_copy
+add_rule engineer-worker "../outside.md"
+expect 1 'agents/engineer-worker.md: lists `../outside.md`, which climbs out of the framework root' \
+  "a listed path with '..' fails even when it resolves"
+
+# 11. The same climb in the middle of a path.
+fresh_copy
+add_rule quality-worker "feedback/../../outside.md"
+expect 1 'agents/quality-worker.md: lists `feedback/../../outside.md`, which climbs out of the framework root' \
+  "a '..' segment anywhere in a listed path fails"
+
+# 12. An absolute listed path.
+fresh_copy
+add_rule quality-worker "$T/outside.md"
+expect 1 "agents/quality-worker.md: lists \`$T/outside.md\`, an absolute path" \
+  "an absolute listed path fails and is named"
+
+# 13-15. A repo path the body names in backticks, deleted. The worker still
+# runs, and now follows a step whose file is gone.
+fresh_copy
+rm "$T/fw/skills/INDEX.md"
+expect 1 'agents/engineer-worker.md: mentions `skills/INDEX.md`, which does not resolve' \
+  "a deleted file the body names (skills/INDEX.md) fails and is named"
+
+fresh_copy
+rm "$T/fw/onboarding/lib/delivery-check.sh"
+expect 1 'agents/engineer-worker.md: mentions `onboarding/lib/delivery-check.sh`, which does not resolve' \
+  "a deleted script the body runs (delivery-check.sh) fails and is named"
+
+fresh_copy
+rm "$T/fw/agents/delivery-reviewer.md"
+expect 1 'agents/engineer-worker.md: mentions `agents/delivery-reviewer.md`, which does not resolve' \
+  "a deleted agent the body names (delivery-reviewer) fails and is named"
+
+# 16. A body path that climbs out of the framework root, to a file that exists.
+fresh_copy
+printf '\nSee `../outside.md` before you start.\n' >> "$T/fw/agents/quality-worker.md"
+expect 1 'agents/quality-worker.md: mentions `../outside.md`, which climbs out of the framework root' \
+  "a body path with '..' fails even when it resolves"
 
 echo ""
 if [ "$fails" -eq 0 ]; then

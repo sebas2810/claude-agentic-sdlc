@@ -29,15 +29,21 @@ as [`commands/check.md`](../commands/check.md) says. For the item it picks:
 1. Start [`engineer-worker`](../agents/engineer-worker.md) with the `item` and
    `phase: build`, in the seat's own worktree.
 2. On `result=REVIEW-NEEDED`, start [`delivery-reviewer`](../agents/delivery-reviewer.md)
-   yourself, in a fresh context, with the issue's acceptance criteria and the
-   PR's base and head. Save its whole response to a file outside the tracked
-   tree, for example `"$(git rev-parse --git-dir)/delivery-review-<item>-<head>.txt"`.
+   yourself, in a fresh context, with the issue's acceptance criteria, the
+   PR's base and head, and a `verdict_file` outside the tracked tree, for
+   example `"$(git rev-parse --git-dir)/delivery-review-<item>-<head>.txt"`.
+   The reviewer writes its full verdict to that file and returns only its
+   `VERDICT:` line. Never copy its rationale into the file or the session
+   yourself: every line the seat handles lands in the seat's context, and
+   keeping it out is what the worker split is for.
 3. Start `engineer-worker` again with `phase: deliver`, the PR, the reviewed
    head and that file.
-4. On `result=FAILED`, start a rework `phase: build` with the failing lines,
-   then continue from step 2. On `DELIVERED`, `BLOCKED` or `SKIPPED`, re-run
-   discovery and take the next item. On `STALE` or `ERROR`, report it and stop
-   the drain: an error is not a result to drain past.
+4. On `result=FAILED`, start a rework `phase: build` with the failing lines
+   from the report and the `verdict_file`, then continue from step 2. The item
+   is still `status:in-progress` from its claim, and a rework `build` accepts
+   that state. On `DELIVERED`, `BLOCKED` or `SKIPPED`, re-run discovery and
+   take the next item. On `STALE` or `ERROR`, report it and stop the drain: an
+   error is not a result to drain past.
 
 The seat starts the reviewer, not the worker, for two reasons: a subagent
 cannot start another subagent, and a reviewer started from the context that
@@ -50,23 +56,30 @@ Producer items run one after another, because they share the seat's worktree.
 1. Resolve the cap: `CAP="$(bash onboarding/lib/resolve-qa-max-parallel.sh)"`.
    It reads `QA_MAX_PARALLEL` from the environment, then from `.env.local`
    (bootstrap copies it there from `sdlc.config`), and defaults to 3. A value
-   that is not a whole number of at least 1 exits 2 with the cause: report it
-   and stop, rather than run with a cap nobody chose
+   that is not a whole number from 1 to 999, or a `.env.local` line that
+   mentions `QA_MAX_PARALLEL` in any form but `QA_MAX_PARALLEL=<n>`, exits 2
+   with the cause: report it and stop, rather than run with a cap nobody chose
    ([the rule](../feedback/architecture/weakening-a-default-must-signal.md)).
 2. Discover `status:delivered` and drop rows authored outside
    `$SQUAD_AUTHORS`, as `commands/check.md` says.
 3. Start one [`quality-worker`](../agents/quality-worker.md) per row in
    `mode: parallel`, at most `$CAP` at a time, each in its own clean worktree
-   at the PR head. When one reports, start the next row, until every row has
-   had a worker.
+   at the PR head. Note each item number as its worker starts. When one
+   reports, start the next row, until every row has had a worker.
 4. Run the rows reported `NEEDS-SERIAL` one at a time, in `mode: serial`.
-5. Re-run discovery immediately before reporting, and drain again if new
-   `Delivered` items appeared.
+   That serial run is the only second worker an item gets in one drain.
+5. Re-run discovery immediately before reporting. Drain again only for
+   `Delivered` rows whose number you have not noted. A `CONSULT` or an `ERROR`
+   writes no label, so those items still read `Delivered`; another worker
+   would repeat the run and post the consult twice. Report them instead.
 
 Checks that need the local app, a local database or the browser run one at a
-time because each is one resource per machine. Two workers driving the same
-browser or resetting the same database produce verdicts about each other, not
-about their items.
+time because each is one resource per machine. Checks that change the
+deployed environment (a deploy, a migration, seeding or resetting data, a
+config or flag change) run one at a time for the same reason: every worker
+shares that environment. Two workers driving the same browser, resetting the
+same database or redeploying the same environment produce verdicts about each
+other, not about their items.
 
 ## What a worker carries
 
@@ -74,8 +87,10 @@ A subagent does not load personal memory or the seat's conversation. Each
 worker definition therefore lists, under `## Rules you carry`, the repo files
 that hold the seat's load-bearing rules, and reads them before acting.
 [`check-worker-definitions.sh`](../onboarding/lib/check-worker-definitions.sh)
-fails CI when a required file is dropped from a worker's list or no longer
-resolves; its test is
+fails CI when a required file is dropped from a worker's list, when a listed
+file or a repo path the definition names in backticks no longer resolves, or
+when a path is absolute or climbs out of the framework root with `..`; its
+test is
 [`worker-definitions.test.sh`](../onboarding/tests/worker-definitions.test.sh).
 
 A seat running the framework as a plugin gets the workers registered from
@@ -92,25 +107,44 @@ the labels and the issue threads carry the state.
 ## Measuring it
 
 The producer criterion is "the seat session's context grows by less than 10k
-tokens across one real item". Measure it on the seat's own transcript, not the
-workers':
+tokens across one real item". Only a real item can show it, so it is checked
+after adoption, not before merge:
 
-1. Run a producer `/check` that takes exactly one item from `Scoped` to `Delivered`.
-2. Open that seat session's transcript, `~/.claude/projects/<seat folder>/<session id>.jsonl`.
-   Worker transcripts sit under `subagents/` and are not part of the seat's context.
-3. List each assistant call's context and the tools it called:
+- **Who:** the quality engineer. The producer seat ran the item, so it does
+  not grade its own measurement.
+- **Which item:** the first item a producer seat takes from `Scoped` to
+  `Delivered` after the seats restart on the framework version that carries
+  the workers.
+- **Which transcript:** that producer seat's own session, not its workers'.
+  It is `~/.claude/projects/<folder>/<session id>.jsonl` on the producer's
+  machine, where `<folder>` is the seat worktree's absolute path with each
+  `/` replaced by `-`; the session is the one that started the item's
+  `engineer-worker`. Worker transcripts sit under `<session id>/subagents/`
+  and are not part of the seat's context.
+
+1. List the seat's own model calls in order, with each call's context size
+   and the subagents it started:
 
    ```
-   jq -c 'select(.type == "assistant" and .message.usage != null)
-          | {t: .timestamp, id: .message.id,
-             ctx: (.message.usage.input_tokens + .message.usage.cache_creation_input_tokens + .message.usage.cache_read_input_tokens),
-             tools: [.message.content[]? | select(.type == "tool_use") | .name]}' <session id>.jsonl
+   jq -s -c '
+     map(select(.type == "assistant" and .isSidechain != true and .message.usage != null))
+     | group_by(.message.id)
+     | map({t: (map(.timestamp) | min),
+            id: .[0].message.id,
+            ctx: (.[0].message.usage | .input_tokens + (.cache_creation_input_tokens // 0) + (.cache_read_input_tokens // 0)),
+            started: [.[].message.content[]? | select(.type == "tool_use" and (.name == "Agent" or .name == "Task"))
+                      | "\(.input.subagent_type // "general-purpose"): \(.input.description // "")"]})
+     | sort_by(.t) | .[]' <session id>.jsonl
    ```
 
-   A call repeats once per content block; keep one line per `id`.
-4. `before` is the `ctx` of the call that started the item's first
+   A call is written once per content block, so its lines are grouped by
+   `id`. `isSidechain != true` keeps only the seat's own calls.
+2. `before` is the `ctx` of the first call whose `started` names the item's
    `engineer-worker`. `after` is the `ctx` of the first call after the item's
-   last worker report came back. The criterion holds when `after - before < 10000`.
+   last worker report came back (the `deliver` run that reported `DELIVERED`).
+3. **Pass line:** `after - before` is under 10000. Post `before`, `after`,
+   the difference, the session id and PASS or FAIL on the issue that carries
+   the criterion.
 
 For drains as a whole, `operations/metrics/seat-tokens.py` reports each seat's
 average context and spend per active day across a window, so a window before

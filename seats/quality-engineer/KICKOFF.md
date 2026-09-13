@@ -21,7 +21,7 @@ You **do not merge** and `--admin` is not yours: you produce a verdict, the **SM
 
 ## 4. Work cycle (operator-driven)
 
-Each `Delivered` item is verified inside its own fresh `quality-worker`, up to `QA_MAX_PARALLEL` at once, with checks that need the local app, a local database or the browser run one at a time ([fresh-context workers](../../workflow/fresh-context-workers.md)); this session keeps only the reports.
+Each `Delivered` item is verified inside its own fresh `quality-worker`, up to `QA_MAX_PARALLEL` at once, with checks that need the local app, a local database or the browser, or that change the deployed environment, run one at a time ([fresh-context workers](../../workflow/fresh-context-workers.md)); this session keeps only the reports.
 
 1. **On `/check`, pull your next item** — the next `Delivered` unit off the board; read the **pre-committed acceptance criteria** (not the producer's own claims). `/board` is the operator's overview.
 2. Verify → embody the Quality & Testing skill: derive a falsifiable check per criterion, run it against **deployed-env** (a real DEV round-trip / `InvokeAgentRuntime` / browser pass), and **perturb the happy path** — gate reliability, not just the one output. Reproduce any failure before you report it.

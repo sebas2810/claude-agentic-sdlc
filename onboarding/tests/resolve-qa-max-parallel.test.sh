@@ -43,6 +43,17 @@ printf 'QA_MAX_PARALLEL=\n' > "$T/empty.env"
 printf 'QA_MAX_PARALLEL=0\n' > "$T/zero.env"
 printf 'QA_MAX_PARALLEL=1\nQA_MAX_PARALLEL=4\n' > "$T/twice.env"
 mkdir -p "$T/seat" && printf 'QA_MAX_PARALLEL=7\n' > "$T/seat/.env.local"
+printf 'QA_MAX_PARALLEL=4 \r\n' > "$T/crlf.env"
+printf 'QA_MAX_PARALLEL=999\n' > "$T/three-digits.env"
+printf '# QA_MAX_PARALLEL=5\n  # QA_MAX_PARALLEL=6\n' > "$T/commented.env"
+printf 'QA_MAX_PARALLEL=3 4\n' > "$T/inner-space.env"
+printf 'QA_MAX_PARALLEL="3 4"\n' > "$T/quoted-inner-space.env"
+printf 'QA_MAX_PARALLEL=99999999999999999999\n' > "$T/huge.env"
+printf 'export QA_MAX_PARALLEL=5\n' > "$T/export.env"
+printf 'QA_MAX_PARALLEL = 5\n' > "$T/spaced.env"
+printf '  QA_MAX_PARALLEL=0\n' > "$T/indented.env"
+printf 'QA_MAX_PARALLEL=2\nexport QA_MAX_PARALLEL=5\n' > "$T/strict-then-loose.env"
+EXAMPLE="$(cd "$(dirname "$S")/.." && pwd)/.env.local.example"
 
 value "unset everywhere resolves to the default 3" 3 env -u QA_MAX_PARALLEL bash "$S" "$NONE"
 value "the environment value is used" 5 env QA_MAX_PARALLEL=5 bash "$S" "$NONE"
@@ -52,6 +63,10 @@ value "quotes and a trailing comment are stripped" 6 env -u QA_MAX_PARALLEL bash
 value "the last assignment in the env file wins" 4 env -u QA_MAX_PARALLEL bash "$S" "$T/twice.env"
 value "an empty value counts as unset" 3 env -u QA_MAX_PARALLEL bash "$S" "$T/empty.env"
 value "the default env file is ./.env.local" 7 sh -c "cd '$T/seat' && env -u QA_MAX_PARALLEL bash '$S'"
+value "whitespace and a CR at the ends of the value are stripped" 4 env -u QA_MAX_PARALLEL bash "$S" "$T/crlf.env"
+value "three digits is the most a cap has" 999 env -u QA_MAX_PARALLEL bash "$S" "$T/three-digits.env"
+value "a commented-out line is not a setting" 3 env -u QA_MAX_PARALLEL bash "$S" "$T/commented.env"
+value "the shipped .env.local.example resolves" 3 env -u QA_MAX_PARALLEL bash "$S" "$EXAMPLE"
 
 refused "a non-number is refused, naming the value and where it came from" \
   "QA_MAX_PARALLEL='abc' (from environment)" env QA_MAX_PARALLEL=abc bash "$S" "$NONE"
@@ -59,6 +74,27 @@ refused "zero is refused, naming the file it came from" \
   "(from $T/zero.env)" env -u QA_MAX_PARALLEL bash "$S" "$T/zero.env"
 refused "a negative number is refused" \
   "QA_MAX_PARALLEL='-1'" env QA_MAX_PARALLEL=-1 bash "$S" "$NONE"
+
+# The cap must be the number somebody wrote. Each case below once resolved to a
+# different number, or to the default, with exit 0.
+refused "a space inside the value is refused, not squeezed out ('3 4' is not 34)" \
+  "QA_MAX_PARALLEL='3 4'" env -u QA_MAX_PARALLEL bash "$S" "$T/inner-space.env"
+refused "a space inside a quoted value is refused" \
+  "QA_MAX_PARALLEL='3 4'" env -u QA_MAX_PARALLEL bash "$S" "$T/quoted-inner-space.env"
+refused "more than 3 digits from the environment is refused, not wrapped" \
+  "has more than 3 digits" env QA_MAX_PARALLEL=99999999999999999999 bash "$S" "$NONE"
+refused "more than 3 digits from the env file is refused, not wrapped" \
+  "has more than 3 digits" env -u QA_MAX_PARALLEL bash "$S" "$T/huge.env"
+refused "four digits is refused" \
+  "QA_MAX_PARALLEL='1000'" env QA_MAX_PARALLEL=1000 bash "$S" "$NONE"
+refused "an export line is refused, not skipped for the default" \
+  "'export QA_MAX_PARALLEL=5'" env -u QA_MAX_PARALLEL bash "$S" "$T/export.env"
+refused "spaces around = are refused, not skipped for the default" \
+  "'QA_MAX_PARALLEL = 5'" env -u QA_MAX_PARALLEL bash "$S" "$T/spaced.env"
+refused "an indented line is refused, not skipped for the default" \
+  "'  QA_MAX_PARALLEL=0'" env -u QA_MAX_PARALLEL bash "$S" "$T/indented.env"
+refused "a loose line is refused even next to a strict one" \
+  "'export QA_MAX_PARALLEL=5'" env -u QA_MAX_PARALLEL bash "$S" "$T/strict-then-loose.env"
 
 if [ "$(id -u)" -eq 0 ]; then
   skip "unreadable env file (root reads a mode-000 file)"

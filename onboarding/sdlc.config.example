@@ -86,9 +86,10 @@ TEAM_BOARD_URL=""                     # URL of the org-level fleet board (epics 
 
 # Quality seat: how many Delivered items it verifies at once, each in its own
 # fresh worker and clean worktree (workflow/fresh-context-workers.md). Checks
-# that need the local app, a local database or the browser still run one at a
-# time. Copied into every seat's .env.local; a value that is not a whole number
-# of at least 1 stops the quality drain with an error.
+# that need the local app, a local database or the browser, or that change the
+# deployed environment, still run one at a time. Copied into every seat's
+# .env.local; a value that is not a whole number from 1 to 999 stops the
+# quality drain with an error.
 QA_MAX_PARALLEL="3"
 
 # Delivery check (skills/delivery-check/SKILL.md) — the instance's own test

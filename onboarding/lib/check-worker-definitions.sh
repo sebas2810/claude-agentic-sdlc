@@ -16,6 +16,16 @@
 #   - have a "## Rules you carry" section
 #   - list every required path for that worker as a "- `path`" item there
 #   - have every "- `path`" item in that section resolve to a file
+#   - have every repo path its text names in backticks resolve to a file: a
+#     token inside `...` shaped like dir/file.ext (a step that runs
+#     `onboarding/lib/x.sh --flag`, a pointer to `skills/INDEX.md`). Delete the
+#     file and the worker still follows the step. Fenced code blocks are skipped.
+#
+# Every path is relative to the framework root. A path with a '..' segment
+# climbs out of it and an absolute path ignores it, so both are findings even
+# when they resolve: they point at files this framework does not ship. (In the
+# text, only the '..' form is read as a path; an absolute path there is not a
+# repo path and is not checked.)
 #
 # Usage:  check-worker-definitions.sh [framework-root]   (default: this checkout)
 # Exit 0: every worker conforms.
@@ -74,6 +84,36 @@ EOF
 findings=0
 finding() { printf '  %s\n' "$1" >&2; findings=$((findings + 1)); }
 
+# check_ref <definition> <lists|mentions> <path>: a finding unless the path is
+# repo-relative, stays inside the framework root, and resolves to a file.
+check_ref() {
+  local rel="$1" how="$2" path="$3"
+  case "$path" in
+    /*) finding "$rel: $how \`$path\`, an absolute path (paths are relative to the framework root)"; return ;;
+  esac
+  case "/$path/" in
+    */../*) finding "$rel: $how \`$path\`, which climbs out of the framework root with '..'"; return ;;
+  esac
+  [ -f "$ROOT/$path" ] || finding "$rel: $how \`$path\`, which does not resolve to a file"
+}
+
+# body_paths <file>: the repo paths a definition's text names in backticks,
+# outside the frontmatter, fenced code blocks and the rules list itself.
+body_paths() {
+  awk '
+    NR == 1 && $0 == "---" { front = 1; next }
+    front { if ($0 == "---") front = 0; next }
+    /^```/ { fence = !fence; next }
+    fence { next }
+    /^## / { rules = ($0 ~ /^## Rules you carry[[:space:]]*$/) }
+    rules && /^- `/ { next }
+    { print }
+  ' "$1" \
+    | grep -o '`[^`]*`' | tr -d '`' | tr -s '[:blank:]' '\n' \
+    | grep -E '^[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)+$' | grep -E '/[^/]*[^./][^/]*\.[A-Za-z0-9]+$' \
+    | sort -u
+}
+
 for worker in $WORKERS; do
   rel="agents/$worker.md"
   file="$ROOT/$rel"
@@ -99,8 +139,15 @@ for worker in $WORKERS; do
 
   while IFS= read -r path; do
     [ -n "$path" ] || continue
-    [ -f "$ROOT/$path" ] || finding "$rel: lists \`$path\`, which does not resolve to a file"
+    check_ref "$rel" lists "$path"
   done <<< "$listed"
+
+  mentioned="$(body_paths "$file")"
+  while IFS= read -r path; do
+    [ -n "$path" ] || continue
+    printf '%s\n' "$listed" | grep -qxF -- "$path" && continue
+    check_ref "$rel" mentions "$path"
+  done <<< "$mentioned"
 
   required="$(required_rules "$worker")" || exit 2
   while IFS= read -r path; do
