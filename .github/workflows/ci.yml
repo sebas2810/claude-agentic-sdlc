@@ -56,3 +56,5 @@ jobs:
           git config --global user.name ci
           git config --global init.defaultBranch main
           bash onboarding/hooks/guard-git.parity.test.sh onboarding/hooks/guard-git.sh
+      - name: setup-seat — settings.local.json written idempotently (#76 AC4)
+        run: bash onboarding/tests/setup-seat-settings.test.sh onboarding/setup-seat.sh
