@@ -63,7 +63,7 @@
 set -uo pipefail
 
 ISSUE=""; PR=""; BASE_REF=""
-ISSUE_BODY_FILE=""; PR_BODY_FILE=""; PR_MERGEABLE_OVERRIDE=""
+ISSUE_BODY_FILE=""; PR_BODY_FILE=""; PR_MERGEABLE_OVERRIDE=""; PR_BASE_REF_OVERRIDE=""
 REVIEWER_VERDICT_FILE=""
 TEST_CMDS_FILE=""
 SDLC_CONFIG=""
@@ -73,11 +73,13 @@ usage() {
   cat >&2 <<'EOF'
 usage: delivery-check.sh --issue <n> [--pr <n>] [--base <ref>]
          [--issue-body-file <f>] [--pr-body-file <f>] [--pr-mergeable <v>]
-         [--reviewer-verdict-file <f>] [--test-cmds-file <f>]
-         [--sdlc-config <f>] [--stamp-dir <d>]
+         [--pr-base-ref <ref>] [--reviewer-verdict-file <f>]
+         [--test-cmds-file <f>] [--sdlc-config <f>] [--stamp-dir <d>]
 
 --base defaults to onboarding/lib/resolve-integration-base.sh's resolution
 for HEAD (the registered integration branch, else origin/main).
+--pr-base-ref defaults to the PR's actual baseRefName (via gh); compared
+against --base — a PR opened against the wrong branch fails this check.
 --test-cmds-file defaults to DELIVERY_TEST_CMDS sourced from --sdlc-config
 (which itself defaults to <repo-root>/sdlc.config, if present).
 EOF
@@ -92,6 +94,7 @@ while [ $# -gt 0 ]; do
     --issue-body-file) ISSUE_BODY_FILE="${2:-}"; shift 2 ;;
     --pr-body-file) PR_BODY_FILE="${2:-}"; shift 2 ;;
     --pr-mergeable) PR_MERGEABLE_OVERRIDE="${2:-}"; shift 2 ;;
+    --pr-base-ref) PR_BASE_REF_OVERRIDE="${2:-}"; shift 2 ;;
     --reviewer-verdict-file) REVIEWER_VERDICT_FILE="${2:-}"; shift 2 ;;
     --test-cmds-file) TEST_CMDS_FILE="${2:-}"; shift 2 ;;
     --sdlc-config) SDLC_CONFIG="${2:-}"; shift 2 ;;
@@ -162,7 +165,7 @@ else
     || { echo "could not fetch issue #$ISSUE body" >&2; exit 2; }
 fi
 
-PR_BODY=""; PR_MERGEABLE="UNKNOWN"
+PR_BODY=""; PR_MERGEABLE="UNKNOWN"; PR_BASE_REF=""
 if [ -n "$PR" ]; then
   if [ -n "$PR_BODY_FILE" ]; then
     [ -f "$PR_BODY_FILE" ] || { echo "no such file: $PR_BODY_FILE" >&2; exit 2; }
@@ -174,6 +177,13 @@ if [ -n "$PR" ]; then
     PR_MERGEABLE="$PR_MERGEABLE_OVERRIDE"
   elif command -v gh >/dev/null 2>&1; then
     PR_MERGEABLE="$(gh pr view "$PR" --json mergeable -q .mergeable 2>/dev/null || echo UNKNOWN)"
+  fi
+  if [ -n "$PR_BASE_REF_OVERRIDE" ]; then
+    PR_BASE_REF="$PR_BASE_REF_OVERRIDE"
+  elif command -v gh >/dev/null 2>&1; then
+    PR_BASE_REF="$(gh pr view "$PR" --json baseRefName -q .baseRefName 2>/dev/null || true)"
+  else
+    PR_BASE_REF=""
   fi
 fi
 
@@ -202,8 +212,20 @@ printf '%s\n' "$ISSUE_BODY" | awk '
 ' > "$AC_TMP"
 
 UNTICKED_COUNT="$(printf '%s\n' "$ISSUE_BODY" | grep -cE '^[[:space:]]*-[[:space:]]\[[[:space:]]\]' || true)"
+TICKED_COUNT="$(printf '%s\n' "$ISSUE_BODY" | grep -cE '^[[:space:]]*-[[:space:]]\[[xX]\]' || true)"
+TOTAL_CHECKBOX_COUNT="$((UNTICKED_COUNT + TICKED_COUNT))"
 AC_COUNT="$(wc -l < "$AC_TMP" | tr -d ' ')"
-note "found $AC_COUNT AC line(s) with a Proof: command, $UNTICKED_COUNT unticked AC line(s) total"
+note "found $AC_COUNT AC line(s) with a Proof: command, $UNTICKED_COUNT unticked / $TICKED_COUNT ticked checkbox line(s) total"
+
+# #5239 QA re-delivery check 1: an issue body with ZERO recognized GFM
+# task-list checkboxes (framework #73's own body is a numbered list, not
+# checkboxes) must not silently read as "nothing to check, so PASS" — that
+# is exactly the "no criterion was proven" gap QA found live. No recognized
+# AC line means this script cannot verify anything, so it refuses, loudly,
+# rather than reporting a clean PASS with zero content behind it.
+if [ "$TOTAL_CHECKBOX_COUNT" -eq 0 ]; then
+  bad "no acceptance-criteria checkboxes ('- [ ] ...') found in the issue body — cannot verify anything; rewrite the issue's Acceptance Criteria as GFM task-list items (see skills/delivery-check/SKILL.md)"
+fi
 
 # ── run each AC's proof command both ways ────────────────────────────────
 if [ "$AC_COUNT" -gt 0 ]; then
@@ -270,11 +292,28 @@ fi
 # ── AC3: PR checks ────────────────────────────────────────────────────────
 if [ -n "$PR_BODY" ]; then
   if printf '%s' "$PR_BODY" | grep -Eiq "(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)[[:space:]]+#${ISSUE}([^0-9]|$)"; then
-    if [ "$UNTICKED_COUNT" -gt 0 ]; then
+    if [ "$TOTAL_CHECKBOX_COUNT" -eq 0 ]; then
+      bad "PR body closes #$ISSUE but no AC checkboxes were found to verify against — cannot confirm none are open"
+    elif [ "$UNTICKED_COUNT" -gt 0 ]; then
       bad "PR body closes #$ISSUE with $UNTICKED_COUNT unticked AC line(s) still open"
     else
       ok "close keyword present, no unticked ACs remain"
     fi
+  fi
+fi
+
+# #5239 QA re-delivery check 3: the check resolved a base to prove ACs
+# against, but never confirmed the PR was actually OPENED against that same
+# base — a PR opened against the wrong branch (e.g. main, for an item that
+# belongs on an integration branch) passed silently. Compare the PR's real
+# baseRefName (GitHub, unprefixed) against the resolved --base
+# (origin/<branch> form) with the origin/ prefix stripped for the compare.
+if [ -n "$PR" ] && [ -n "$PR_BASE_REF" ] && [ -n "$BASE_REF" ]; then
+  RESOLVED_BASE_UNPREFIXED="${BASE_REF#origin/}"
+  if [ "$PR_BASE_REF" = "$RESOLVED_BASE_UNPREFIXED" ]; then
+    ok "PR is opened against the resolved base ($PR_BASE_REF)"
+  else
+    bad "PR is opened against '$PR_BASE_REF' but the resolved base is '$RESOLVED_BASE_UNPREFIXED' — wrong target branch"
   fi
 fi
 

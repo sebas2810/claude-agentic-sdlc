@@ -29,20 +29,36 @@ git config --global user.name t 2>/dev/null || true
 git config --global init.defaultBranch main 2>/dev/null || true
 
 # ── fixture: a tiny repo with a "bug", a branch that "fixes" it ────────────
+# Pushed with a real bare "origin" and upstream tracking on `work` — #5239
+# QA re-delivery check 5 requires HEAD to match its pushed upstream before a
+# stamp is honored, so every fixture representing "ready to deliver" needs
+# one, not just a local-only commit.
 mkrepo() { # $1 = name
   local d="$T/$1"
-  mkdir -p "$d"
+  mkdir -p "$T/$1.origin" "$d"
+  git -C "$T/$1.origin" init -q --bare
   git -C "$d" init -q
   git -C "$d" config user.email t@example.com
   git -C "$d" config user.name t
+  git -C "$d" remote add origin "$T/$1.origin"
   printf 'buggy\n' > "$d/f.txt"
   git -C "$d" add f.txt
   git -C "$d" commit -qm base
   git -C "$d" branch -M main
+  git -C "$d" push -q origin main 2>/dev/null
   git -C "$d" checkout -qb work
   printf 'fixed\n' > "$d/f.txt"
   git -C "$d" add f.txt
   git -C "$d" commit -qm "fix: #1 the bug"
+  git -C "$d" push -qu origin work 2>/dev/null
+}
+
+# Re-push `work`'s current HEAD to its already-tracked origin — for a case
+# that adds a commit AFTER the initial mkrepo push and still needs to count
+# as "pushed" (contrast with a case that deliberately does NOT call this,
+# to prove an unpushed HEAD is refused).
+pushwork() { # $1 = name
+  git -C "$T/$1" push -q origin work 2>/dev/null
 }
 
 runguard() { # $1 = cwd, $2 = command, $3 = stamp dir -> exit code on stdout as "exit=N"
@@ -238,6 +254,145 @@ if [ "$rc" -eq 0 ]; then
   ok "the proof still runs correctly against the auto-resolved base"
 else
   bad "delivery-check should still pass with the auto-resolved base — got rc=$rc: $out"
+fi
+
+# ═══ 7. criteria written as a numbered list must block, write no stamp ══
+# QA re-delivery check 1 (found reviewing #73's own adoption): its own
+# body (six numbered criteria, zero GFM checkboxes) read as "0 AC lines, 0
+# unticked" and PASSED — no criterion was proven, yet the stamp was written.
+mkrepo numbered
+cat > "$T/numbered/issue-body.md" <<'EOF'
+## Acceptance criteria
+
+1. **[PRE-MERGE]** Some criterion, in prose, no checkbox.
+2. **[PRE-MERGE]** A second criterion, also no checkbox.
+EOF
+echo "VERDICT: PASS" > "$T/numbered/verdict.txt"
+SDIR="$T/numbered-stamps"; mkdir -p "$SDIR"
+out="$(cd "$T/numbered" && bash "$CHECK" --issue 1 --base main \
+  --issue-body-file issue-body.md --reviewer-verdict-file verdict.txt \
+  --stamp-dir "$SDIR" 2>&1)"; rc=$?
+if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi 'no acceptance-criteria checkboxes'; then
+  ok "a numbered-list body (no checkboxes) is refused, not silently passed"
+else
+  bad "a body with zero recognized AC checkboxes MUST fail loudly — got rc=$rc: $out"
+fi
+if [ -z "$(ls -A "$SDIR" 2>/dev/null)" ]; then
+  ok "no stamp written for the numbered-list body"
+else
+  bad "a stamp was written despite zero criteria being provable"
+fi
+
+# ═══ 8. a close keyword against a numbered (unverifiable) body must fail ═
+# QA re-delivery check 2: "found 0 AC line(s)... PASS close keyword present,
+# no unticked ACs remain" — a close keyword raced ahead of six open,
+# unverified criteria and the check said PASS.
+cat > "$T/numbered/pr-body.md" <<'EOF'
+Closes #1
+EOF
+SDIR="$T/numbered-stamps2"; mkdir -p "$SDIR"
+out="$(cd "$T/numbered" && bash "$CHECK" --issue 1 --pr 99 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt --stamp-dir "$SDIR" 2>&1)"; rc=$?
+if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi 'no AC checkboxes were found'; then
+  ok "close keyword against an unverifiable (numbered) body fails, names the gap"
+else
+  bad "a close keyword with zero verifiable ACs MUST fail — got rc=$rc: $out"
+fi
+
+# ═══ 9. a PR opened against the wrong base branch must fail ═════════════
+# QA re-delivery check 3: the check resolves a base but never reads the
+# PR's own base branch — a PR opened against main for an item that belongs
+# on an integration branch was not caught.
+SDIR="$T/base-mismatch-stamps"; mkdir -p "$SDIR"
+out="$(cd "$T/pass" && bash "$CHECK" --issue 1 --pr 99 --base main \
+  --issue-body-file issue-body.md --pr-base-ref "some-other-branch" \
+  --reviewer-verdict-file verdict.txt --stamp-dir "$SDIR" 2>&1)"; rc=$?
+if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi 'wrong target branch'; then
+  ok "a PR opened against a base that does not match the resolved base fails"
+else
+  bad "a PR base/resolved-base mismatch MUST fail — got rc=$rc: $out"
+fi
+SDIR2="$T/base-match-stamps"; mkdir -p "$SDIR2"
+out2="$(cd "$T/pass" && bash "$CHECK" --issue 1 --pr 99 --base main \
+  --issue-body-file issue-body.md --pr-base-ref "main" \
+  --reviewer-verdict-file verdict.txt --stamp-dir "$SDIR2" 2>&1)"; rc2=$?
+if [ "$rc2" -eq 0 ]; then
+  ok "a PR opened against the matching base passes this check"
+else
+  bad "a matching PR base MUST NOT be flagged — got rc=$rc2: $out2"
+fi
+
+# ═══ 10. guard-git.sh's four other status:delivered write routes ════════
+# QA re-delivery check 4, each verified live against the merged PR: `gh pr
+# edit` (wrong subcommand matched), a label held in a shell variable
+# (opaque — the literal text never appears in the command), `gh api`
+# piping JSON via `--input -` (payload never in the command text), and a
+# GraphQL `addLabelsToLabelable` mutation. "Refusing a label it cannot
+# read counts as blocking" — QA's own framing, and the fail-closed design
+# this case pins.
+mkrepo routes
+SDIR="$T/routes-stamps"; mkdir -p "$SDIR"
+routes_ok=1
+check_route() { # $1 = label, $2 = command, $3 = expect (block|allow)
+  local rc
+  rc="$(runguard "$T/routes" "$2" "$SDIR")"
+  case "$3" in
+    block) [ "$rc" != "0" ] && return 0 ;;
+    allow) [ "$rc" = "0" ] && return 0 ;;
+  esac
+  bad "route '$1' expected $3, got exit=$rc"
+  routes_ok=0
+}
+check_route "gh pr edit --add-label" 'gh pr edit 1 --add-label status:delivered' block
+check_route "label in a shell variable" 'L=status:delivered; gh issue edit 1 --add-label "$L"' block
+check_route "gh api --input - stdin JSON" 'gh api -X POST repos/o/r/issues/1/labels --input -' block
+check_route "gh api graphql addLabelsToLabelable" "gh api graphql -f query='mutation{addLabelsToLabelable(input:{labelableId:\"x\",labelIds:[\"y\"]}){clientMutationId}}'" block
+# A second independent review of THIS fix (before it shipped) found a fifth
+# live bypass: `--add-label` legitimately repeats, and the first cut only
+# inspected the FIRST occurrence's literal (`head -1`) — a second,
+# malicious `--add-label status:delivered` after a harmless first one
+# passed uninspected. Both flag orders, since the bug was position-blind.
+check_route "repeated --add-label, malicious second" 'gh issue edit 1 --add-label seat:someone --add-label status:delivered' block
+check_route "repeated --add-label, malicious first" 'gh issue edit 1 --add-label status:delivered --add-label seat:someone' block
+# GitHub matches label names case-insensitively; a case-differing literal
+# is not a different, safe label.
+check_route "case-differing literal (Status:Delivered)" 'gh issue edit 1 --add-label "Status:Delivered"' block
+check_route "unrelated literal label (seat:seb)" 'gh issue edit 1 --add-label "seat:seb"' allow
+check_route "unrelated literal label (status:in-progress)" 'gh issue edit 1 --add-label "status:in-progress"' allow
+check_route "repeated --add-label, both safe" 'gh issue edit 1 --add-label seat:someone --add-label P1' allow
+[ "$routes_ok" = 1 ] && ok "all bypass routes blocked; routine (incl. repeated-flag) label writes still allowed"
+
+# ═══ 11. a stamp for an unpushed commit does not let the write through ══
+# QA re-delivery check 5: "the stamp is keyed to local git rev-parse HEAD…
+# not to the PR's head. A commit that was never pushed gets a stamp." This
+# is distinct from case 3 (a NEW commit invalidates the old SHA's stamp) —
+# here the SHA matches its own stamp exactly; what's missing is that HEAD
+# was ever pushed anywhere reviewable.
+mkrepo unpushed
+cat > "$T/unpushed/issue-body.md" <<'EOF'
+## Acceptance criteria
+
+- [ ] The file says "fixed".
+  Proof: `grep -q fixed f.txt`
+EOF
+echo "VERDICT: PASS" > "$T/unpushed/verdict.txt"
+SDIR="$T/unpushed-stamps"; mkdir -p "$SDIR"
+( cd "$T/unpushed" && bash "$CHECK" --issue 1 --base main \
+  --issue-body-file issue-body.md --reviewer-verdict-file verdict.txt \
+  --stamp-dir "$SDIR" >/dev/null 2>&1 )
+git -C "$T/unpushed" commit -q --allow-empty -m "a real commit, never pushed"
+SDIR2="$T/unpushed-stamps2"; mkdir -p "$SDIR2"
+( cd "$T/unpushed" && bash "$CHECK" --issue 1 --base main \
+  --issue-body-file issue-body.md --reviewer-verdict-file verdict.txt \
+  --stamp-dir "$SDIR2" >/dev/null 2>&1 )
+gexit_unpushed="$(runguard "$T/unpushed" "$DELIVER_CMD" "$SDIR2")"
+pushwork unpushed
+gexit_pushed="$(runguard "$T/unpushed" "$DELIVER_CMD" "$SDIR2")"
+if [ "$gexit_unpushed" != "0" ] && [ "$gexit_pushed" = "0" ]; then
+  ok "a valid stamp for an unpushed HEAD is refused; pushing the same commit then allows it"
+else
+  bad "expected unpushed=block(nonzero), pushed=allow(0) — got unpushed=$gexit_unpushed pushed=$gexit_pushed"
 fi
 
 echo ""

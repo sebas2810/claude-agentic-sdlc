@@ -219,23 +219,90 @@ if printf '%s' "$MASKED" | grep -Eq "(^|[;&|[:space:]])${GIT_VERB}commit"; then
 fi
 
 # ── 6: status:delivered label write without a passing delivery-check stamp ───
-# Matches both `gh issue edit <n> --add-label status:delivered` and the REST
-# form (`gh api ... issues/<n>/labels -f labels[]=status:delivered`) — either
-# is a real dual-write half. Verb on MASKED (structural); the label text is
-# matched anchored to --add-label / labels[]= specifically, on the raw $CMD
-# — same split as rule 2, and for the same reason (the label is normally
-# inside a quoted argument, and masking blanks quoted CONTENT, so a masked
-# scan never sees it) — anchored, not a bare substring search, so an
-# unrelated `--body "...mentions status:delivered..."` does not false-block.
-if printf '%s' "$MASKED" | grep -Eq '(^|[;&|[:space:]])gh[[:space:]]+(issue[[:space:]]+edit|api)' \
-   && printf '%s' "$CMD" | grep -Eq -- '--add-label[[:space:]=]+"?[^"[:space:]]*status:delivered|labels\[\][[:space:]]*=[[:space:]]*"?status:delivered'; then
-  if [ "${AGENTIC_SDLC_SKIP_DELIVERY_CHECK:-}" != "1" ]; then
+# FAIL-CLOSED (found in independent QA re-delivery review of #73): the first
+# cut only matched an --add-label whose value CONTAINED the literal text
+# "status:delivered" — every one of these bypassed it, each verified live:
+#   gh pr edit 1 --add-label status:delivered            (wrong subcommand)
+#   L=status:delivered; gh issue edit 1 --add-label "$L"  (opaque variable)
+#   gh api -X POST .../labels --input -                   (opaque stdin JSON)
+#   gh api graphql -f query='mutation{addLabelsToLabelable(...)}'
+# The fix inverts the default: first detect the ROUTE (issue edit, PR edit,
+# REST labels, GraphQL mutation) on MASKED (structural, verb-only) — any
+# match means "this command can write a label" and is gated UNLESS a
+# concrete, inspectable literal value is found that provably does NOT say
+# status:delivered. No extractable literal (a variable, stdin, a GraphQL
+# payload) is treated as UNSAFE, not safe — "refusing a label it cannot
+# read counts as blocking" (QA's own framing). A routine label write with a
+# literal value (`--add-label seat:seb`, `--add-label "status:in-progress"`)
+# still needs no stamp; only status:delivered, and anything opaque, does.
+LABEL_ROUTE=0
+if printf '%s' "$MASKED" | grep -Eq '(^|[;&|[:space:]])gh[[:space:]]+(issue|pr)[[:space:]]+edit[[:space:]]+.*--add-label'; then
+  LABEL_ROUTE=1
+fi
+if printf '%s' "$MASKED" | grep -Eq '(^|[;&|[:space:]])gh[[:space:]]+api'; then
+  printf '%s' "$MASKED" | grep -Eq '/labels([[:space:]]|$)' && LABEL_ROUTE=1
+  printf '%s' "$CMD" | grep -q 'addLabelsToLabelable' && LABEL_ROUTE=1
+fi
+
+if [ "$LABEL_ROUTE" = 1 ]; then
+  # A "safe" literal: --add-label (space or =) followed by a FULLY quoted
+  # (single or double) token with NO `$` inside, or a genuinely bare token
+  # containing none of space/$/quote (a `$` means a variable/substitution —
+  # opaque, not a literal we can trust). The bare-token class EXCLUDES both
+  # quote characters — without that exclusion, `--add-label "$L"` matches
+  # the bare-token alternative against the lone opening `"` (stopping at the
+  # `$` that immediately follows), capturing a one-character "literal" that
+  # trivially doesn't contain status:delivered and is wrongly marked SAFE.
+  # A quote character appearing outside a closed quote pair means the value
+  # could not be read as a real literal — no alternative should match it,
+  # and the `+`/`*` there are non-greedy-by-exclusion, not size, so a
+  # zero-width match (e.g. `labels[]=$L`, nothing before the `$`) is also
+  # excluded by requiring at least one real character. `--input` (stdin
+  # JSON) and any addLabelsToLabelable GraphQL mutation are ALWAYS unsafe —
+  # their payload is never in $CMD to inspect.
+  # `gh issue/pr edit` legitimately accepts a REPEATED --add-label flag
+  # (also true of `-f labels[]=` on `gh api`) — `... --add-label seat:x
+  # --add-label status:delivered` bypassed a `head -1`-on-first-match
+  # design (found in the SAME independent review that reported this fix as
+  # ready), because only the FIRST occurrence's literal was ever inspected.
+  # The fix counts: every `--add-label`/`labels[]=` MARKER present (on
+  # MASKED — structural) must pair 1:1 with a successfully-extracted safe
+  # LITERAL (on $CMD); any unpaired marker (an occurrence whose value could
+  # not be read as a clean literal) makes the whole command unsafe, same as
+  # zero extractable literals does. Case-INsensitive substring match on
+  # "status:delivered", since GitHub's own label matching is.
+  SAFE=0
+  if ! printf '%s' "$CMD" | grep -q 'addLabelsToLabelable' \
+     && ! printf '%s' "$MASKED" | grep -Eq -- '(^|[[:space:]])--input([[:space:]]|=)'; then
+    MARKER_COUNT="$(printf '%s' "$MASKED" | grep -Eo -- '--add-label|labels\[\][[:space:]]*=' | wc -l | tr -d ' ')"
+    LITERALS="$(printf '%s' "$CMD" | grep -Eo -- '--add-label[[:space:]=]+"[^"$]*"|--add-label[[:space:]=]+'"'"'[^'"'"'$]*'"'"'|--add-label[[:space:]=]+[^[:space:]$"'"'"']+|labels\[\][[:space:]]*=[[:space:]]*"[^"$]*"|labels\[\][[:space:]]*=[^[:space:]$"'"'"']+')"
+    LITERAL_COUNT="$(printf '%s\n' "$LITERALS" | grep -c . || true)"
+    if [ "$MARKER_COUNT" -gt 0 ] && [ "$MARKER_COUNT" = "$LITERAL_COUNT" ] \
+       && ! printf '%s\n' "$LITERALS" | grep -qi 'status:delivered'; then
+      SAFE=1
+    fi
+  fi
+
+  if [ "$SAFE" != 1 ] && [ "${AGENTIC_SDLC_SKIP_DELIVERY_CHECK:-}" != "1" ]; then
     SHA="$(g rev-parse HEAD 2>/dev/null || echo none)"
     SDIR="${AGENTIC_SDLC_DELIVERY_STAMP_DIR:-${TMPDIR:-/tmp}}"
     STAMP="$SDIR/agentic-sdlc-delivery.$SHA"
+    REPO="$(g rev-parse --show-toplevel 2>/dev/null || echo "$TARGET_DIR")"
     if [ ! -f "$STAMP" ]; then
-      REPO="$(g rev-parse --show-toplevel 2>/dev/null || echo "$TARGET_DIR")"
-      block "no passing delivery-check stamp for HEAD ($SHA) in $REPO — run onboarding/lib/delivery-check.sh first, it writes the stamp on PASS. A new commit invalidates the old stamp (re-run after any change). If that is not the repository you meant, check the -C / cd target. Owner exception: AGENTIC_SDLC_SKIP_DELIVERY_CHECK=1 (one-off, sebas2810/claude-agentic-sdlc#73)."
+      block "no passing delivery-check stamp for HEAD ($SHA) in $REPO, or this label write could not be verified safe (opaque value / route) — run onboarding/lib/delivery-check.sh first, it writes the stamp on PASS. A new commit invalidates the old stamp (re-run after any change). If that is not the repository you meant, check the -C / cd target. Owner exception: AGENTIC_SDLC_SKIP_DELIVERY_CHECK=1 (one-off, sebas2810/claude-agentic-sdlc#73)."
+    fi
+    # The stamp proves local HEAD passed; it says nothing about whether HEAD
+    # was ever PUSHED — a stamp for content nobody can review on the actual
+    # PR is not proof of anything reviewable. Require HEAD to be exactly
+    # what its upstream already has.
+    UPSTREAM="$(g rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
+    if [ -z "$UPSTREAM" ]; then
+      block "HEAD ($SHA) in $REPO has no upstream tracking branch — push first so the stamped commit is verifiably what is on the remote/PR, then retry."
+    else
+      UPSTREAM_SHA="$(g rev-parse "$UPSTREAM" 2>/dev/null || true)"
+      if [ "$UPSTREAM_SHA" != "$SHA" ]; then
+        block "HEAD ($SHA) in $REPO has not been pushed to $UPSTREAM (which is at ${UPSTREAM_SHA:-unknown}) — a stamp for unpushed content proves nothing about the PR. Push, then retry."
+      fi
     fi
   fi
 fi
