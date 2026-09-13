@@ -3,7 +3,7 @@ title: BEHIND is not DIRTY — at the merge gate, merge-ready PRs are never reba
 status: active
 scope: scrum-master (and any seat holding a merge gate)
 added: 2026-08-03
-last-confirmed: 2026-08-03
+last-confirmed: 2026-08-14
 ---
 
 ## Rule
@@ -28,7 +28,11 @@ is authoring work and never yours**.
 ## How to apply
 ```bash
 gh pr view <n> --json mergeable,mergeStateStatus
-# MERGEABLE + CLEAN|BEHIND      → merge now (squash); no rebase, no waiting
+# MERGEABLE + CLEAN             → merge now (squash); no rebase, no waiting
+# MERGEABLE + BEHIND            → merge now, UNLESS the base enforces a
+#                                 strict required-status-checks policy (see
+#                                 below) — under strict, BEHIND is a BLOCKING
+#                                 state, not a mergeable one
 # CONFLICTING / DIRTY           → route to the engineer (a real conflict)
 # MERGEABLE + BLOCKED on a      → branch protection's strict up-to-date is
 #   green, conflict-free PR        forcing the update: advance ONE PR at a
@@ -39,6 +43,29 @@ gh pr view <n> --json mergeable,mergeStateStatus
 #                                  · branch-per-EPIC (a drain should rarely
 #                                  hold >1 main-targeting PR) · drop strict
 ```
+### Check for a strict policy BEFORE trusting BEHIND
+
+`BEHIND` merges as-is only when the base does **not** require up-to-date
+branches. When `strict_required_status_checks_policy` is on, GitHub still
+reports `BEHIND` (not `BLOCKED`) and the merge is simply refused — "add the
+`--auto` flag" with every check green and no conflict is the tell.
+
+**A 404 from the branch-protection API is not proof the branch is
+unprotected.** Repository *rulesets* enforce the same constraints and are
+invisible to that endpoint. Check both:
+
+```bash
+gh api repos/<o>/<r>/branches/main/protection --jq .required_status_checks.strict
+#   404 "Branch not protected"  →  NOT conclusive, check rulesets:
+gh api repos/<o>/<r>/rules/branches/main \
+  --jq '.[]|select(.type=="required_status_checks")|.parameters.strict_required_status_checks_policy'
+#   true  →  BEHIND is blocking; advance ONE PR at a time (as for BLOCKED)
+```
+
+Under a strict policy the anti-quadratic guidance is unchanged and matters
+more, not less: update **only the PR being merged next**, never the whole
+queue, and surface the config as the flow defect it is.
+
 Decide on those two fields — never on GitHub's "update branch" button, and
 never by reflex-applying [`always-rebase-before-push.md`](always-rebase-before-push.md),
 which binds seats **pushing authored work**, not the gate.

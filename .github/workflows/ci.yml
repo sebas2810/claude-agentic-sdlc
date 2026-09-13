@@ -47,6 +47,8 @@ jobs:
         run: bash onboarding/tests/merge-append-only-log.test.sh onboarding/lib/merge-append-only-log.sh
       - name: sync — a running script survives being replaced by its own apply
         run: bash onboarding/tests/atomic-install.test.sh
+      - name: sync — an index carrying local-only rows is never overwritten
+        run: bash onboarding/tests/check-no-local-only-rows.test.sh onboarding/lib/check-no-local-only-rows.sh
       - name: git guard — parity with the instance-fork rules it replaces
         run: |
           set -euo pipefail

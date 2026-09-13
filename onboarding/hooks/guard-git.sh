@@ -141,14 +141,22 @@ if printf '%s' "$MASKED" | grep -Eq "(^|[;&|[:space:]])${GIT_VERB}push"; then
   # Base to measure against: a registered long-lived integration branch that
   # SRC descends from, else origin/main. Sub-PRs targeting an epic branch are
   # legitimately "behind" main and must not be blocked for it.
+  #
+  # #4543 — REGISTRY SHAPE. One file per branch under agentic-sdlc/
+  # integration-branches/, the file's path equal to the branch name (e.g.
+  # agentic-sdlc/integration-branches/feat/4489-journey-rail). Branch names
+  # are recovered by listing the directory tree (recursively, since a branch
+  # name's own "/" becomes a real subdirectory) and stripping the registry
+  # root prefix — never a second hand-maintained list. Replaces a single
+  # JSON array (see agentic-sdlc/integration-branches/README.md for why).
   BASE="origin/main"
-  REG="${AGENTIC_SDLC_INTEGRATION_BRANCHES:-}"
-  if [ -z "$REG" ]; then
+  REG_DIR="${AGENTIC_SDLC_INTEGRATION_BRANCHES:-}"
+  if [ -z "$REG_DIR" ]; then
     RR="$(g rev-parse --show-toplevel 2>/dev/null || true)"
-    [ -n "$RR" ] && [ -f "$RR/agentic-sdlc/integration-branches.json" ] \
-      && REG="$RR/agentic-sdlc/integration-branches.json"
+    [ -n "$RR" ] && [ -d "$RR/agentic-sdlc/integration-branches" ] \
+      && REG_DIR="$RR/agentic-sdlc/integration-branches"
   fi
-  if [ -n "$REG" ] && [ -f "$REG" ]; then
+  if [ -n "$REG_DIR" ] && [ -d "$REG_DIR" ]; then
     while IFS= read -r b; do
       [ -n "$b" ] || continue
       if g rev-parse --verify -q "origin/$b" >/dev/null 2>&1 \
@@ -156,7 +164,7 @@ if printf '%s' "$MASKED" | grep -Eq "(^|[;&|[:space:]])${GIT_VERB}push"; then
         BASE="origin/$b"; break
       fi
     done <<EOF
-$(jq -r '.branches[]? // empty' "$REG" 2>/dev/null)
+$(find "$REG_DIR" -type f ! -name 'README.md' 2>/dev/null | sed "s|^$REG_DIR/||")
 EOF
   fi
 
@@ -165,7 +173,7 @@ EOF
     BEHIND="$(g rev-list --count "$SRC".."$BASE" 2>/dev/null || echo 0)"
     if [ "${BEHIND:-0}" -gt 0 ]; then
       REPO="$(g rev-parse --show-toplevel 2>/dev/null || echo "$TARGET_DIR")"
-      block "'$SRC' is $BEHIND commit(s) behind $BASE in $REPO — 'git fetch origin && git rebase $BASE', rerun gates, then retry (feedback/workflow/always-rebase-before-push.md). If that is not the repository you meant, check the -C / cd target. If this targets an unregistered long-lived branch, add it to integration-branches.json."
+      block "'$SRC' is $BEHIND commit(s) behind $BASE in $REPO — 'git fetch origin && git rebase $BASE', rerun gates, then retry (feedback/workflow/always-rebase-before-push.md). If that is not the repository you meant, check the -C / cd target. If this targets an unregistered long-lived branch, register it: touch agentic-sdlc/integration-branches/<branch-name>."
     fi
   fi
 

@@ -86,6 +86,25 @@ is_append_only() {
   return 1
 }
 
+# ── Guarded link-table indexes ───────────────────────────────────────────────
+# The other half of #3968. These are NOT append-only logs and must not go
+# through merge-append-only-log.sh: that merger keys on `## <heading>` and
+# orders by the ISO date in it, while feedback/INDEX.md is 30+ table rows under
+# mostly-undated headings. Feeding it there would drop undated sections while
+# reporting a successful merge — worse than the clobber it replaces.
+#
+# An index should normally be pure canonical (instance rules live under
+# instance/<name>/rules/, already excluded above). So instead of inventing a
+# second merge semantics, detect the condition that makes a clobber lossy and
+# REFUSE. A local-only row means either a rule that belongs upstream or one
+# that belongs in the instance overlay — both want a human, not a merge.
+GUARDED_INDEX=( 'feedback/INDEX.md' )
+is_guarded_index() {
+  local f="$1" a
+  for a in "${GUARDED_INDEX[@]}"; do [ "$f" = "$a" ] && return 0; done
+  return 1
+}
+
 # ── Build sorted, repo-relative file lists (instance/ + canonical's own .git/
 #    excluded from both sides) ────────────────────────────────────────────────
 CANON_FILES="$TMPDIR/canon_files.txt"
@@ -176,6 +195,16 @@ while IFS= read -r f; do
     else
       # Never fall back to a clobber — that is the defect this replaces.
       echo "  SKIPPED $f — append-only merge failed; left untouched, reconcile by hand" >&2
+    fi
+  elif is_guarded_index "$f"; then
+    # Guarded index — overwrite only if the instance has no rows canonical
+    # lacks. The guard exits non-zero and lists them; never clobber past it.
+    if bash "$HERE/lib/check-no-local-only-rows.sh" \
+         "$TMPDIR/canonical/$f" "$ROOT/$f"; then
+      install_file "$TMPDIR/canonical/$f" "$ROOT/$f"
+      echo "  wrote $f  (guarded index: no local-only rows, safe to replace)"
+    else
+      echo "  SKIPPED $f — local-only rows would be lost; left untouched, reconcile by hand" >&2
     fi
   else
     install_file "$TMPDIR/canonical/$f" "$ROOT/$f"
