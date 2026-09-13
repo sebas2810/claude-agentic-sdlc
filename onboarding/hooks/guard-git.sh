@@ -10,6 +10,8 @@
 #      checked against the locally-cached ref, never fetches)
 #   4. `gh pr merge --admin`                        (branch-protection bypass)
 #   5. a configured pre-push gate that has not passed for the current diff
+#   6. writing the `status:delivered` label without a passing delivery-check
+#      stamp for the current HEAD (sebas2810/claude-agentic-sdlc#73)
 #
 # THIS IS THE ONLY PUSH-INTERCEPTING HOOK AN INSTANCE SHOULD RUN. A second,
 # forked implementation drifts silently: it keeps blocking the obvious cases
@@ -25,6 +27,10 @@
 #   AGENTIC_SDLC_OWNER_ADMIN_MERGE=<n> authorises `--admin` for PR <n> only
 #   AGENTIC_SDLC_GATE_CMD=<command>    pre-push gate; must exit 0 for the
 #                                      current patch-id before a push is allowed
+#   AGENTIC_SDLC_SKIP_DELIVERY_CHECK=1 one-off exception to rule 6
+#   AGENTIC_SDLC_DELIVERY_STAMP_DIR=<dir> where delivery-check.sh's stamps
+#                                      live (default ${TMPDIR:-/tmp}, matching
+#                                      the script's own default)
 #   AGENTIC_SDLC_INTEGRATION_BRANCHES=<path to json>
 #                                      {"branches":["feat/123-x"]} — a branch
 #                                      descending from a registered integration
@@ -43,11 +49,13 @@
 # exit 2 blocks the call and stderr is fed back to the seat; exit 0 allows.
 # Fails OPEN on missing jq / unparseable input — a guard must never brick a seat.
 set -uo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+RESOLVE_BASE="$SCRIPT_DIR/../lib/resolve-integration-base.sh"
 command -v jq >/dev/null 2>&1 || exit 0
 IN="$(cat 2>/dev/null || true)"
 CMD="$(printf '%s' "$IN" | jq -r '.tool_input.command // empty' 2>/dev/null)"
 [ -n "$CMD" ] || exit 0
-case "$CMD" in *git*|*gh\ pr*) : ;; *) exit 0 ;; esac   # cheap prefilter
+case "$CMD" in *git*|*gh\ pr*|*gh\ issue*|*gh\ api*) : ;; *) exit 0 ;; esac   # cheap prefilter
 
 block() { printf 'BLOCKED (agentic-sdlc guard): %s\n' "$1" >&2; exit 2; }
 
@@ -149,23 +157,16 @@ if printf '%s' "$MASKED" | grep -Eq "(^|[;&|[:space:]])${GIT_VERB}push"; then
   # name's own "/" becomes a real subdirectory) and stripping the registry
   # root prefix — never a second hand-maintained list. Replaces a single
   # JSON array (see agentic-sdlc/integration-branches/README.md for why).
-  BASE="origin/main"
-  REG_DIR="${AGENTIC_SDLC_INTEGRATION_BRANCHES:-}"
-  if [ -z "$REG_DIR" ]; then
-    RR="$(g rev-parse --show-toplevel 2>/dev/null || true)"
-    [ -n "$RR" ] && [ -d "$RR/agentic-sdlc/integration-branches" ] \
-      && REG_DIR="$RR/agentic-sdlc/integration-branches"
-  fi
-  if [ -n "$REG_DIR" ] && [ -d "$REG_DIR" ]; then
-    while IFS= read -r b; do
-      [ -n "$b" ] || continue
-      if g rev-parse --verify -q "origin/$b" >/dev/null 2>&1 \
-         && g merge-base --is-ancestor "origin/$b" "$SRC" 2>/dev/null; then
-        BASE="origin/$b"; break
-      fi
-    done <<EOF
-$(find "$REG_DIR" -type f ! -name 'README.md' 2>/dev/null | sed "s|^$REG_DIR/||")
-EOF
+  #
+  # Resolved by onboarding/lib/resolve-integration-base.sh, the ONE place
+  # this logic lives — delivery-check.sh (sebas2810/claude-agentic-sdlc#73)
+  # shares it rather than re-deriving its own copy. Fails open to
+  # origin/main if the shared script is missing (an old checkout) — a
+  # guard must never brick a seat.
+  if [ -x "$RESOLVE_BASE" ]; then
+    BASE="$("$RESOLVE_BASE" "$TARGET_DIR" "$SRC" 2>/dev/null || echo origin/main)"
+  else
+    BASE="origin/main"
   fi
 
   if [ "${AGENTIC_SDLC_SKIP_REBASE_CHECK:-}" != "1" ] \
@@ -214,6 +215,28 @@ fi
 if printf '%s' "$MASKED" | grep -Eq "(^|[;&|[:space:]])${GIT_VERB}commit"; then
   if printf '%s' "$CMD" | grep -Eqi 'co-authored-by:[[:space:]]*claude|generated with .{0,3}claude code'; then
     block "no AI attribution in commits — drop the Co-Authored-By / Generated-with footer and commit again (feedback/workflow/no-claude-attribution.md)."
+  fi
+fi
+
+# ── 6: status:delivered label write without a passing delivery-check stamp ───
+# Matches both `gh issue edit <n> --add-label status:delivered` and the REST
+# form (`gh api ... issues/<n>/labels -f labels[]=status:delivered`) — either
+# is a real dual-write half. Verb on MASKED (structural); the label text is
+# matched anchored to --add-label / labels[]= specifically, on the raw $CMD
+# — same split as rule 2, and for the same reason (the label is normally
+# inside a quoted argument, and masking blanks quoted CONTENT, so a masked
+# scan never sees it) — anchored, not a bare substring search, so an
+# unrelated `--body "...mentions status:delivered..."` does not false-block.
+if printf '%s' "$MASKED" | grep -Eq '(^|[;&|[:space:]])gh[[:space:]]+(issue[[:space:]]+edit|api)' \
+   && printf '%s' "$CMD" | grep -Eq -- '--add-label[[:space:]=]+"?[^"[:space:]]*status:delivered|labels\[\][[:space:]]*=[[:space:]]*"?status:delivered'; then
+  if [ "${AGENTIC_SDLC_SKIP_DELIVERY_CHECK:-}" != "1" ]; then
+    SHA="$(g rev-parse HEAD 2>/dev/null || echo none)"
+    SDIR="${AGENTIC_SDLC_DELIVERY_STAMP_DIR:-${TMPDIR:-/tmp}}"
+    STAMP="$SDIR/agentic-sdlc-delivery.$SHA"
+    if [ ! -f "$STAMP" ]; then
+      REPO="$(g rev-parse --show-toplevel 2>/dev/null || echo "$TARGET_DIR")"
+      block "no passing delivery-check stamp for HEAD ($SHA) in $REPO — run onboarding/lib/delivery-check.sh first, it writes the stamp on PASS. A new commit invalidates the old stamp (re-run after any change). If that is not the repository you meant, check the -C / cd target. Owner exception: AGENTIC_SDLC_SKIP_DELIVERY_CHECK=1 (one-off, sebas2810/claude-agentic-sdlc#73)."
+    fi
   fi
 fi
 

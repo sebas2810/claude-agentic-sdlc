@@ -83,3 +83,15 @@ GOLDEN_BOARD=""                       # optional: an existing configured Deliver
 # Propagated to every seat's .env.local so each session knows the fleet exists.
 # Do not set this manually; run onboarding/team-bootstrap.sh instead.
 TEAM_BOARD_URL=""                     # URL of the org-level fleet board (epics only)
+
+# Delivery check (skills/delivery-check/SKILL.md) — the instance's own test
+# commands, run for whichever glob a producer's diff touches, before
+# status:delivered. One "<path-glob>:<command>" per line — split on the
+# FIRST colon only, so a command containing its own colon (an npm script
+# name like `test:unit`) is not itself broken apart. No stack hardcoded here:
+# blank means only the AC-level Proof: commands and the PR checks run.
+DELIVERY_TEST_CMDS=""
+# Example (uncomment + adapt — do not ship these literal commands, they are
+# illustrative only):
+#   DELIVERY_TEST_CMDS="onboarding/**:bash onboarding/tests/smoke-bootstrap.sh
+#   src/**:npm test"
