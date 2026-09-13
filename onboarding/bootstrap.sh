@@ -394,6 +394,11 @@ ENV
   else
     c_warn "setup-seat.sh had trouble — run 'source ./agentic-sdlc/onboarding/setup-seat.sh' in the worktree (log: $LOG)"
   fi
+  if bash "$HERE/lib/install-seat-commands.sh" "$ROOT/agentic-sdlc" "$WT" >>"$LOG" 2>&1; then
+    c_ok "slash-commands → this worktree's .claude/commands (this instance's copy)"
+  else
+    c_warn "couldn't install the slash-commands into $WT/.claude/commands (log: $LOG)"
+  fi
   if bash "$HERE/make-launcher.sh" --worktree "$WT" --out "$APPS_DIR" >>"$LOG" 2>&1; then
     c_ok "launcher → $APPS_DIR/${key}.command"
   else
@@ -402,11 +407,12 @@ ENV
 done
 
 # ── 4b. operator slash-commands — EVERY launch path, not just the .app ────────
-# (a bare `cd worktree && claude` must find /check too)
-mkdir -p "$HOME/.claude/commands"
-cp -f "$ROOT/agentic-sdlc/commands/"*.md "$HOME/.claude/commands/" 2>>"$LOG" \
-  && c_ok "slash-commands installed (/check · /board · /workload · /backlog)" \
-  || c_warn "couldn't install the slash-commands (log: $LOG)"
+# Installed per seat worktree above (a bare `cd worktree && claude` finds /check too), never into
+# ~/.claude/commands, where the last instance bootstrapped would decide /check for all (#77). A
+# personal copy left by an older bootstrap still overrides them, so name it.
+if ! SHADOWS="$(bash "$HERE/lib/check-shadowed-commands.sh" "$ROOT/agentic-sdlc" 2>&1)"; then
+  c_warn "a personal command shadows this instance's copy: $SHADOWS (see agentic-sdlc/onboarding/new-pair-setup.md)"
+fi
 
 # ── 5. wrap launchers into macOS .app bundles (optional) ──────────────────────
 if yes_p "$BUILD_APPS" && [ "$(uname)" = "Darwin" ]; then

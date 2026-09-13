@@ -75,3 +75,21 @@ jobs:
         run: bash onboarding/tests/worker-definitions.test.sh onboarding/lib/check-worker-definitions.sh
       - name: workers - the quality seat's parallel cap is resolved or refused, never guessed
         run: bash onboarding/tests/resolve-qa-max-parallel.test.sh onboarding/lib/resolve-qa-max-parallel.sh
+      - name: seat commands - each instance's seats run their own /check, ~/.claude/commands untouched (#77)
+        run: bash onboarding/tests/seat-commands-per-instance.test.sh
+      - name: plugin version - a shipped command, skill, agent or hook change must raise it (#77)
+        run: bash onboarding/tests/check-plugin-version-bump.test.sh onboarding/lib/check-plugin-version-bump.sh
+
+  # A shipped change (commands, skills, agents, hooks, the manifest) without a higher plugin version
+  # leaves every installed plugin cache on the old commands (#77). Needs full history for the merge-base.
+  plugin-version:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: plugin.json version raised when shipped plugin content changes
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: bash onboarding/lib/check-plugin-version-bump.sh "origin/$BASE_REF"
