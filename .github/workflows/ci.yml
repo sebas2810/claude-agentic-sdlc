@@ -62,3 +62,10 @@ jobs:
         run: python3 operations/metrics/tests/test_seat_tokens.py
       - name: metrics - flow.py known answer, and an error when gh fails
         run: python3 operations/metrics/tests/test_flow.py
+      - name: delivery-check — proof before Delivered (pass, hollow proof, stale stamp, close-keyword)
+        run: |
+          set -euo pipefail
+          git config --global user.email ci@example.com
+          git config --global user.name ci
+          git config --global init.defaultBranch main
+          bash onboarding/tests/delivery-check.test.sh onboarding/lib/delivery-check.sh onboarding/hooks/guard-git.sh
