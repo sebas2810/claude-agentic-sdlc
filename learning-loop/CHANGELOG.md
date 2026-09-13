@@ -2,6 +2,30 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-09-13 - the framing rules: an AC names its verifier, and a narrowed PR is a consult-exception
+
+In the same 14 days of returns, 11 came from framing rather than building: 7 acceptance criteria
+the verifier could not check as written, 2 PM reframes that never reached the text the producer
+built from, and 2 producers who narrowed scope without a ruling. Separately, a PM seat moved 4
+items to `Delivered` on a ruling, with nothing new built.
+
+- Amended rule: [`../feedback/workflow/ac-must-name-who-can-satisfy-it.md`](../feedback/workflow/ac-must-name-who-can-satisfy-it.md)
+  now asks every AC line to name its verifier and the tool it uses, not only whether it gates
+  merge or release, written as a checkbox with an indented `Proof:` line (the form the delivery
+  check parses). `commands/check.md` applies it before `Backlog → Scoped` and
+  `Blocked → Scoped`: an AC line missing any of the three is not scoped.
+- A PM ruling that changes what must be built is written into the issue body before the item
+  returns to the producer. A re-frame edits the AC lines, then dual-writes `→ Scoped`; the PM,
+  scrum-master and state-machine text that read as posting a comment now says so.
+- A producer that would ship less than an AC asks blocks instead of opening a narrower PR:
+  `commands/check.md` and `seats/engineer/KICKOFF.md` list it with the other consult-exceptions.
+- Only a producer seat writes `status:delivered`. This is the rule; the tool-level enforcement
+  is tracked in #75 AC3.
+
+The three framing categories are rows 4 to 6 of
+[`../operations/metrics/returns.md`](../operations/metrics/returns.md), so the next
+classification run shows whether this moved them.
+
 ## 2026-09-13 — a slice is a state, not a return to Scoped
 
 One instance classified every return from `Delivered` to `Scoped` over 14 days: 121 returns, 39 of
