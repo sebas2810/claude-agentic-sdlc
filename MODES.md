@@ -32,7 +32,7 @@ watch **`/board`** → run **`/check`** in the seat that should advance.
    - **producer** (`engineer`) → next `Scoped` for its `seat:` lane → claim → build → `Delivered`. **Block protocol:** on a genuine consult-exception (AC unmeetable as written · a real product fork · out-of-scope creep) it does **not** build — it posts the **full context to the GitHub issue** (file-cited findings · options · recommendation), sets `Blocked` (+ assigns itself), and stops; the issue comment is the board item's context.
    - **quality-engineer** → next `Delivered` → verify on the deployed env → PASS `Tested` / FAIL `Scoped` (+ comments — the engineer re-pulls it)
    - **scrum-master** → next `Tested` → validate (real QA verdict, CI green, PR clean) + merge (squash) → drive `Merged → Released`; plus board hygiene (explode Epics into sub-issues, WIP, sweep). On `Blocked`: for each `Blocked` consult-exception **verify the claims, then surface to the PM with a verdict** (legit / avoidable / needs-PM-call), never a bare relay.
-   - **pm** → oversight + product: frame the next `Backlog` → `Scoped` with its pre-committed AC, re-frame a `Blocked` consult-exception the SM surfaced, own the roadmap + owner touchpoints, resolve the rare product/scope judgment the QA seat surfaces (not in the routine merge path). The PM **dual-writes its own scoping transitions** — `Backlog → Scoped` (framing) and `Blocked → Scoped` (re-framing): set the `status:*` label **and** the board `Status` field together; producers then pull `status:scoped` directly. The PM **still never merges** — the SM is the merge authority.
+   - **pm** → oversight + product: frame the next `Backlog` → `Scoped` with its pre-committed AC, re-frame a `Blocked` consult-exception the SM surfaced, own the roadmap + owner touchpoints, resolve the rare product/scope judgment the QA seat surfaces (not in the routine merge path). The PM **dual-writes its own scoping transitions** — `Backlog → Scoped` (framing), `Blocked → Scoped` (re-framing), and a split parent's `→ In Progress` (no `seat:` lane, no assignee; [the rule](feedback/workflow/a-slice-landing-does-not-make-the-item-merged.md)): set the `status:*` label **and** the board `Status` field together; producers then pull `status:scoped` directly. The PM **still never merges** — the SM is the merge authority.
 3. **Drain your queue per `/check`, then idle.** Don't stop after one item — after each item (report
    posted, status flipped) immediately **re-run your role's cheap discovery query** (one
    `gh issue list --search` on the `status:*` label index) and handle the next eligible item
@@ -58,11 +58,11 @@ watch **`/board`** → run **`/check`** in the seat that should advance.
   `Tested → Merged` and drives `Merged → Released`. The PM frames + adjudicates product/scope but is
   out of the routine merge path. The operator triggering `/check` changes *when* a step runs, never *who* runs it.
 - **Role boundary — the PM scopes its own work; the SM is the merge authority.** The **PM dual-writes its
-  own scoping transitions** — for `Backlog → Scoped` (framing) and `Blocked → Scoped` (re-framing) it sets
+  own scoping transitions** — for `Backlog → Scoped` (framing), `Blocked → Scoped` (re-framing), and a split parent's `→ In Progress` (no `seat:` lane, no assignee; [the rule](feedback/workflow/a-slice-landing-does-not-make-the-item-merged.md)) it sets
   the `status:*` label **and** the board `Status` field together (the v1.4 write-both rule applies to every
   seat, including the PM); producers then pull `status:scoped` directly. (Every seat flips its *own*
   transitions — engineer claims `Scoped→In Progress`, QA sets `Tested`/`Scoped`, the PM scopes
-  `Backlog`/`Blocked → Scoped`, the SM merges → `Merged`/`Released`.) The **PM still never merges** — that
+  `Backlog`/`Blocked → Scoped` and a split parent's `→ In Progress` ([the rule](feedback/workflow/a-slice-landing-does-not-make-the-item-merged.md)), the SM merges → `Merged`/`Released`.) The **PM still never merges** — that
   stays with the independent SM (produce ≠ adjudicate). Two supporting protocols: a producer that hits a
   consult-exception posts the **full context to the issue** and sets `Blocked` rather than building; and the
   **SM verifies each `Blocked` consult-exception's claims before surfacing** to the PM with a verdict
