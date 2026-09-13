@@ -79,8 +79,9 @@ movement.
 - **Per-stage medians, throughput and returns** can be measured now, without
   waiting for that job: [`operations/metrics/flow.py`](../operations/metrics/flow.py)
   reads the `status:*` label history over REST and splits returns from
-  `Delivered` into slice returns, verification failures and unclassified. Classify
-  the unclassified rest with [`returns.md`](../operations/metrics/returns.md).
+  `Delivered` into returns after a pass, verification failures and unclassified.
+  A return after a pass may be a slice return or a routing, so classify it, and
+  the unclassified rest, with [`returns.md`](../operations/metrics/returns.md).
   What the seats spent to move that work comes from
   [`operations/metrics/seat-tokens.py`](../operations/metrics/seat-tokens.py),
   which reads local Claude Code transcripts. Both exit with an error, never an

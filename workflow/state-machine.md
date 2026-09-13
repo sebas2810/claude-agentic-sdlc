@@ -140,8 +140,9 @@ Without this path a passed slice had two exits, and both were wrong: back to
 `Scoped`, where it re-ran a full drain and read as rework, or forward to `Merged`,
 where it dropped out of every queue with ACs still open. With it, a
 `Delivered → Scoped` is a verification failure again. The flow report (#78) counts
-slice returns separately from verification failures, so any that still happen show
-as a framing defect, not as rework.
+returns after a pass separately from verification failures, and a person splits them
+into slice returns and routings, so any slice return that still happens shows as a
+framing defect, not as rework.
 
 ## The board as the reducer (drain the queue per `/check`)
 
