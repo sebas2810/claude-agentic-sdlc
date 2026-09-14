@@ -1007,6 +1007,80 @@ markercase "star (*)" '* [ ] grep -q fixed f.txt' star
 markercase "plus (+)" '+ [ ] grep -q fixed f.txt' plus
 markercase "ordered (1.)" '1. [ ] grep -q fixed f.txt' ordered
 
+# #5239 QA re-delivery round 5 (Tess), pinned for round 6: round 4's fix
+# only ever matched ONE whitespace char between the marker and `[`, only a
+# `.` ordered delimiter, and no blockquote/nesting prefix at all — 15 forms
+# GitHub itself renders as a checkbox (verified against `gh api markdown`)
+# still read as prose. These three are Tess's required bundled pins.
+markercase "ordered, paren delimiter (1))" '1) [ ] grep -q fixed f.txt' orderedparen
+markercase "dash, two spaces (-  )" '-  [ ] grep -q fixed f.txt' dashtwospace
+markercase "blockquoted dash (> -)" '> - [ ] grep -q fixed f.txt' bqdash
+
+# #5239 QA re-delivery round 6 (owner ruling, EPIC #5179, relayed by PM):
+# "fix the class of problem, not the listed examples ... refuse any
+# unrecognised format instead of adding formats to a list." A marker no
+# one has enumerated ANYWHERE — not GFM, not CommonMark, not Tess's list,
+# not this file — must still never silently pass as prose: the fail-closed
+# backstop (delivery-check.sh's RAW_BRACKET_TOKEN_COUNT check) is what
+# closes that gap generically, not another named marker case. This proves
+# the backstop, not the enumeration, is what catches it.
+mkrepo marker_novel_unenumerated
+cat > "$T/marker_novel_unenumerated/issue-body.md" <<'EOF'
+## Acceptance criteria
+
+- [ ] The file says "fixed".
+  Proof: `grep -q fixed f.txt`
+• [ ] a criterion behind a bullet character nobody recognizes as a marker
+EOF
+echo "VERDICT: PASS" > "$T/marker_novel_unenumerated/verdict.txt"
+cat > "$T/marker_novel_unenumerated/pr-body.md" <<'EOF'
+No close keyword here — proven separately before merge.
+EOF
+NOVEL_SDIR="$T/marker_novel_unenumerated-stamps"; mkdir -p "$NOVEL_SDIR"
+novel_out="$(cd "$T/marker_novel_unenumerated" && bash "$CHECK" --issue 1 --pr 99 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/marker_novel_unenumerated" rev-parse HEAD)" \
+  --stamp-dir "$NOVEL_SDIR" 2>&1)"; novel_rc=$?
+if [ "$novel_rc" -ne 0 ] && printf '%s' "$novel_out" | grep -qF 'unrecognized marker form is in play'; then
+  ok "an unenumerated bullet character is still refused, via the raw-token backstop, not a named case for it"
+else
+  bad "an unenumerated marker MUST still be refused by the fail-closed backstop — got rc=$novel_rc: $novel_out"
+fi
+if [ -z "$(ls -A "$NOVEL_SDIR" 2>/dev/null)" ]; then
+  ok "no stamp written for the unenumerated-marker body"
+else
+  bad "a stamp was written despite an unrecognized checkbox-shaped marker"
+fi
+# and the backstop must stay quiet on ordinary prose that merely discusses
+# the literal token in a code span (no marker, no list item intended).
+mkrepo marker_prose_codespan
+cat > "$T/marker_prose_codespan/issue-body.md" <<'EOF'
+## Acceptance criteria
+
+- [ ] The file says "fixed".
+  Proof: `grep -q fixed f.txt`
+
+The response must include an empty array literal `[ ]` in the JSON output.
+EOF
+echo "VERDICT: PASS" > "$T/marker_prose_codespan/verdict.txt"
+cat > "$T/marker_prose_codespan/pr-body.md" <<'EOF'
+No close keyword here — proven separately before merge.
+EOF
+CODESPAN_SDIR="$T/marker_prose_codespan-stamps"; mkdir -p "$CODESPAN_SDIR"
+codespan_out="$(cd "$T/marker_prose_codespan" && bash "$CHECK" --issue 1 --pr 99 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/marker_prose_codespan" rev-parse HEAD)" \
+  --stamp-dir "$CODESPAN_SDIR" 2>&1)"; codespan_rc=$?
+if [ "$codespan_rc" -eq 0 ]; then
+  ok "prose discussing a literal '[ ]' inside a code span does not trip the raw-token backstop"
+else
+  bad "a code-span-quoted '[ ]' in ordinary prose MUST NOT be refused — got rc=$codespan_rc: $codespan_out"
+fi
+
 # control: a `- [ ]` checkbox WITH a Proof: line still passes and stamps.
 mkrepo markerctrl
 cat > "$T/markerctrl/issue-body.md" <<'EOF'

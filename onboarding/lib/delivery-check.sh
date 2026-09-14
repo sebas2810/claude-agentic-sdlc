@@ -226,7 +226,38 @@ echo "== delivery-check: issue #$ISSUE${PR:+, pr #$PR}, base $BASE_REF =="
 # silently DROPPED (confirmed empirically: awk -v MARKER='\*' arrives as
 # a bare `*`, an illegal regex primary with nothing to quantify).
 # Bracket expressions need no escaping and survive both paths intact.
-MARKER='([-*+]|[0-9]+[.])'
+#
+# #5239 QA re-delivery round 5 (Tess), round 6: round 5's fix still only
+# matched exactly ONE whitespace character between the marker and `[`, only
+# a `.` ordered delimiter (never `)`), required the marker to sit directly
+# at the start of the (optionally indented) line, and had no notion of a
+# blockquote prefix or a nested list item. 15 forms GitHub itself renders as
+# a checkbox — `1) [ ]`; 2-4 spaces after any marker; `> - [ ]` and deeper
+# blockquote nesting; `- - [ ]` (a nested list item) — read as ordinary
+# prose and skipped the Proof: requirement, the same "no criterion was
+# proven" gap round 5 was meant to close, just reached through a different
+# marker shape (Tess's round-5 FAIL, orbis-platform#5239). Her own re-check
+# used GitHub's renderer (`gh api markdown ... | grep -c
+# task-list-item-checkbox`) as the oracle, per-form, rather than trust this
+# script's own regex approximation.
+#
+# MARKER itself only gains the `)` ordered delimiter here (added to the
+# existing bracket expression, so the awk -v escaping constraint above still
+# holds — no backslash enters this string). The one-whitespace-char
+# assumption, the blockquote prefix, and nested-marker repetition are new
+# wrapping built directly into the awk script body below (and mirrored in
+# the plain bash grep patterns further down) — never through -v, so they
+# are free to use ordinary ERE grouping (`(...)`, `+`) with no backslash-
+# drop risk either.
+#
+# Two forms below still match though GitHub does not render them as a
+# checkbox — a 10-digit ordered marker (CommonMark caps ordered markers at
+# 9 digits) and a marker followed by 5+ spaces (GitHub reads the extra
+# indent as the item's content, not a task-list space) — both err toward
+# blocking (an extra Proof: requirement on a line nobody meant as an AC),
+# which Tess's round-5 ruling leaves explicitly out of scope rather than
+# asking for an exact CommonMark replica.
+MARKER='([-*+]|[0-9]+[.)])'
 #
 # #5239 QA re-delivery round 3, check 1: AC_TMP's fields used to be
 # tab-separated, read back with `IFS=$'\t' read -r cmd desc`. Tab is one of
@@ -246,9 +277,19 @@ US="$(printf '\x1f')"
 AC_TMP="$(mktemp)"
 printf '%s\n' "$ISSUE_BODY" | awk -v US="$US" -v MARKER="$MARKER" '
   BEGIN {
-    ac_start = "^[[:space:]]*" MARKER "[[:space:]]\\[[ xX]\\]"
-    ac_prefix = "^[[:space:]]*" MARKER "[[:space:]]\\[[ xX]\\][[:space:]]*"
-    ac_any = "^[[:space:]]*" MARKER "[[:space:]]\\["
+    # Wrapping lives here, not in MARKER (see the escaping note above): zero
+    # or more blockquote levels (">" + optional run of whitespace, repeated
+    # — covers "> - [ ]" through "> > - [ ]" at any depth), then one or more
+    # marker+whitespace groups (covers a plain marker AND a nested list
+    # item like "- - [ ]", at any depth), with the whitespace between a
+    # marker and what follows UNBOUNDED ("+", not a single [[:space:]]) so
+    # any run length holds, not just the specific counts a QA round found.
+    bq = "(>[[:space:]]*)*"
+    markseq = "((" MARKER ")[[:space:]]+)+"
+    prefix = "^[[:space:]]*" bq markseq
+    ac_start = prefix "\\[[ xX]\\]"
+    ac_prefix = prefix "\\[[ xX]\\][[:space:]]*"
+    ac_any = prefix "\\["
   }
   function flush() {
     if (have_ac) {
@@ -281,8 +322,12 @@ printf '%s\n' "$ISSUE_BODY" | awk -v US="$US" -v MARKER="$MARKER" '
   END { flush() }
 ' > "$AC_TMP"
 
-UNTICKED_COUNT="$(printf '%s\n' "$ISSUE_BODY" | grep -cE "^[[:space:]]*${MARKER}[[:space:]]\\[[[:space:]]\\]" || true)"
-TICKED_COUNT="$(printf '%s\n' "$ISSUE_BODY" | grep -cE "^[[:space:]]*${MARKER}[[:space:]]\\[[xX]\\]" || true)"
+# Mirrors the awk BEGIN block's prefix exactly (blockquote levels, then one
+# or more marker+whitespace groups) — built here directly in bash, not via
+# awk -v, so the grouping/quantifier syntax needs no backslash-drop care.
+CM_PREFIX="^[[:space:]]*(>[[:space:]]*)*((${MARKER})[[:space:]]+)+"
+UNTICKED_COUNT="$(printf '%s\n' "$ISSUE_BODY" | grep -cE "${CM_PREFIX}\\[[[:space:]]\\]" || true)"
+TICKED_COUNT="$(printf '%s\n' "$ISSUE_BODY" | grep -cE "${CM_PREFIX}\\[[xX]\\]" || true)"
 TOTAL_CHECKBOX_COUNT="$((UNTICKED_COUNT + TICKED_COUNT))"
 AC_COUNT="$(wc -l < "$AC_TMP" | tr -d ' ')"
 WITH_PROOF_COUNT="$(awk -F"$US" '$1 != "" { c++ } END { print c+0 }' "$AC_TMP")"
@@ -304,6 +349,38 @@ elif [ "$WITH_PROOF_COUNT" -ne "$TOTAL_CHECKBOX_COUNT" ]; then
     short_desc="$(printf '%s' "$desc" | cut -c1-72)"
     bad "checkbox has no Proof: command: $short_desc"
   done < "$AC_TMP"
+fi
+
+# #5239 QA re-delivery round 6 (owner ruling, EPIC #5179, relayed by PM):
+# "fix the class of problem, not the listed examples ... refuse any
+# unrecognised format instead of adding formats to a list." Round 4 added
+# three marker styles; round 5 broadened the whitespace/blockquote/nesting
+# rules above — both rounds still amount to enumerating known-good shapes,
+# and a marker style neither round anticipated would repeat the identical
+# gap: read as prose, never proven, PASS by never being looked at. Rather
+# than trust that CM_PREFIX above now covers every shape GitHub will ever
+# render as a checkbox, this counts the literal `[ ]`/`[x]`/`[X]` token —
+# the one thing every GFM checkbox renders down to, regardless of what
+# precedes it — wherever it starts a "word" (preceded by whitespace or the
+# start of the line) anywhere in the body (Proof: lines excluded; those
+# are shell commands, not prose, and may legitimately contain a literal
+# bracket pair of their own) and compares it to how many the marker-aware
+# parser above actually accounted for. The whitespace-or-line-start
+# requirement is deliberate, not incidental: prose that discusses the
+# literal syntax in a code span — "...an empty array `[ ]`..." — has a
+# backtick, not whitespace, immediately before the bracket, so it is not
+# counted; write it that way (as most technical prose already does) to
+# talk about the token itself without tripping this check. Any bracket
+# left over after that means some prefix in this body reads enough like a
+# checkbox to matter, and this script could not positively confirm it is
+# one it understands — so it fails closed instead of assuming the gap is
+# prose. A future marker style still needs CM_PREFIX taught to recognize
+# it (so it gets Proof-enforced rather than refused forever), but it can
+# no longer slip through unnoticed meanwhile.
+NON_PROOF_BODY="$(printf '%s\n' "$ISSUE_BODY" | grep -Ev '^[[:space:]]*Proof:' || true)"
+RAW_BRACKET_TOKEN_COUNT="$(printf '%s\n' "$NON_PROOF_BODY" | grep -oE '(^|[[:space:]])\[[ xX]\]' | wc -l | tr -d ' ')"
+if [ "$RAW_BRACKET_TOKEN_COUNT" -gt "$TOTAL_CHECKBOX_COUNT" ]; then
+  bad "found $RAW_BRACKET_TOKEN_COUNT '[ ]'/'[x]'/'[X]' token(s) in the issue body but only recognized $TOTAL_CHECKBOX_COUNT as a task-list checkbox line — an unrecognized marker form is in play; rewrite it as a plain bullet (-, *, +) or ordered (N. or N)) task-list item, optionally blockquoted or nested, so it can be verified"
 fi
 
 # ── run each AC's proof command both ways ────────────────────────────────
