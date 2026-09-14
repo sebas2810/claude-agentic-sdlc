@@ -82,6 +82,41 @@ shares that environment. Two workers driving the same browser, resetting the
 same database or redeploying the same environment produce verdicts about each
 other, not about their items.
 
+## Tiers: model and effort per item
+
+Not every item needs the same model. Moving a button and finding why an agent
+drops a turn cost very different amounts of thinking, and one model at one
+effort for both overpays for the first and can underpay for the second. Each
+worker therefore comes in three tiers, set in its definition's frontmatter:
+
+| Item's label | Worker | Model | Effort | For |
+|---|---|---|---|---|
+| `tier:light` | `<role>-worker-light` | sonnet | low | UI moves, copy, config, docs |
+| none, or `tier:standard` | `<role>-worker` | opus | medium | normal features |
+| `tier:deep` | `<role>-worker-deep` | opus | high | a root cause, agent or eval work, a P0 |
+
+The PM sets the label when it scopes the item. The drain never chooses a
+tier by judgement: it runs
+[`pick-worker.sh`](../onboarding/lib/pick-worker.sh) with the item's labels
+and starts the worker it prints. Two rules move an item off its label:
+
+- **Quality floor.** A quality worker on an `area:agentic` item runs at
+  standard or above. A wrong PASS on agent work is the cheapest to make and
+  the most expensive to find.
+- **Escalation.** An engineer rework runs one tier above the label, capped at
+  deep. A build that failed QA gets more model, not the same model again.
+
+A second tier label, or a `tier:` label the script does not know, exits 2:
+the drain reports it rather than run a tier nobody chose.
+[`check-worker-definitions.sh`](../onboarding/lib/check-worker-definitions.sh)
+fails CI when a worker's `model:` or `effort:` no longer matches its tier.
+Each variant is a thin definition that points to its base worker, so the
+rules a worker carries live in one file per role.
+
+A seat without the plugin starts a general-purpose subagent with the picked
+definition's text. The Agent tool's model override carries the tier's model;
+effort applies only to a registered agent.
+
 ## Start every worker fresh, never as a fork
 
 Start each worker, and the delivery reviewer, as a fresh subagent: the named
