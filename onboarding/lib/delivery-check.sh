@@ -208,6 +208,26 @@ echo "== delivery-check: issue #$ISSUE${PR:+, pr #$PR}, base $BASE_REF =="
 # ── AC1/AC4-shape: parse "- [ ]"/"- [x]" lines, and an immediately-following
 #    indented "Proof: \`cmd\`" line as that AC's proof command. ────────────
 #
+# #5239 QA re-delivery round 4, FAIL 3 (#73 AC1): GitHub renders FOUR
+# task-list marker styles as checkboxes — `-`, `*`, `+`, and an ordered
+# `1.` — but this parser (and the two grep counts below) only ever
+# recognized `-`. An AC written with any other marker silently read as
+# prose, not a checkbox: it counted toward neither AC_COUNT nor
+# TOTAL_CHECKBOX_COUNT, so a body using `*`/`+`/`1.` markers could pass
+# with zero of its criteria ever having been proven — the same "no
+# criterion was proven" gap check 1 (below) exists to catch, just reached
+# through a marker style instead of a missing Proof: line. MARKER covers
+# all four; used everywhere a line used to hardcode `-`. Written with
+# bracket expressions ([-*+], [.]) instead of backslash-escaped
+# metacharacters (\*, \+, \.) on purpose: this string is later passed to
+# awk via `-v` and to grep -E via shell interpolation, and awk's `-v`
+# assignment applies string-literal escape processing to the incoming
+# value — an escape it doesn't recognize (\*, \+, \.) gets its backslash
+# silently DROPPED (confirmed empirically: awk -v MARKER='\*' arrives as
+# a bare `*`, an illegal regex primary with nothing to quantify).
+# Bracket expressions need no escaping and survive both paths intact.
+MARKER='([-*+]|[0-9]+[.])'
+#
 # #5239 QA re-delivery round 3, check 1: AC_TMP's fields used to be
 # tab-separated, read back with `IFS=$'\t' read -r cmd desc`. Tab is one of
 # bash's three "IFS whitespace" characters (space/tab/newline) — even when
@@ -224,7 +244,12 @@ echo "== delivery-check: issue #$ISSUE${PR:+, pr #$PR}, base $BASE_REF =="
 # replaces the tab everywhere this file's fields are produced or consumed.
 US="$(printf '\x1f')"
 AC_TMP="$(mktemp)"
-printf '%s\n' "$ISSUE_BODY" | awk -v US="$US" '
+printf '%s\n' "$ISSUE_BODY" | awk -v US="$US" -v MARKER="$MARKER" '
+  BEGIN {
+    ac_start = "^[[:space:]]*" MARKER "[[:space:]]\\[[ xX]\\]"
+    ac_prefix = "^[[:space:]]*" MARKER "[[:space:]]\\[[ xX]\\][[:space:]]*"
+    ac_any = "^[[:space:]]*" MARKER "[[:space:]]\\["
+  }
   function flush() {
     if (have_ac) {
       # No Proof: line ever paired with this checkbox — emit it with an
@@ -236,10 +261,10 @@ printf '%s\n' "$ISSUE_BODY" | awk -v US="$US" '
       have_ac = 0
     }
   }
-  /^[[:space:]]*-[[:space:]]\[[ xX]\]/ {
+  $0 ~ ac_start {
     flush()
     desc = $0
-    sub(/^[[:space:]]*-[[:space:]]\[[ xX]\][[:space:]]*/, "", desc)
+    sub(ac_prefix, "", desc)
     pending_desc = desc
     have_ac = 1
     next
@@ -252,12 +277,12 @@ printf '%s\n' "$ISSUE_BODY" | awk -v US="$US" '
     have_ac = 0
     next
   }
-  /^[^[:space:]]/ || /^[[:space:]]*-[[:space:]]\[/ { flush() }
+  /^[^[:space:]]/ || $0 ~ ac_any { flush() }
   END { flush() }
 ' > "$AC_TMP"
 
-UNTICKED_COUNT="$(printf '%s\n' "$ISSUE_BODY" | grep -cE '^[[:space:]]*-[[:space:]]\[[[:space:]]\]' || true)"
-TICKED_COUNT="$(printf '%s\n' "$ISSUE_BODY" | grep -cE '^[[:space:]]*-[[:space:]]\[[xX]\]' || true)"
+UNTICKED_COUNT="$(printf '%s\n' "$ISSUE_BODY" | grep -cE "^[[:space:]]*${MARKER}[[:space:]]\\[[[:space:]]\\]" || true)"
+TICKED_COUNT="$(printf '%s\n' "$ISSUE_BODY" | grep -cE "^[[:space:]]*${MARKER}[[:space:]]\\[[xX]\\]" || true)"
 TOTAL_CHECKBOX_COUNT="$((UNTICKED_COUNT + TICKED_COUNT))"
 AC_COUNT="$(wc -l < "$AC_TMP" | tr -d ' ')"
 WITH_PROOF_COUNT="$(awk -F"$US" '$1 != "" { c++ } END { print c+0 }' "$AC_TMP")"

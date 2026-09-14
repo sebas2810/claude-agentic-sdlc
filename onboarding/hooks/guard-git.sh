@@ -336,9 +336,17 @@ if [ "$LABEL_ROUTE" = 1 ]; then
     # the command names an actual issue/PR number, ask GitHub directly for
     # that PR's real head commit and require HEAD to match IT — a stronger
     # check than trusting a local ref that could be stale or misconfigured.
-    # Falls back to the `@{u}` comparison when no PR can be resolved (a
-    # plain issue, no gh, or gh cannot reach the remote) rather than
-    # skipping the pushed-content check altogether.
+    # #5239 QA re-delivery round 4, FAIL 2 (round-3 check 3): this USED to
+    # fall back to the `@{u}` comparison whenever REMOTE_HEAD could not be
+    # resolved (gh missing, gh lookup failed, the stamp's `pr:` line
+    # missing, or its value unresolvable) — but `@{u}` only proves HEAD was
+    # pushed to a branch, not that the PR being delivered actually shows
+    # it; the two silently diverge whenever a second branch/PR exists at
+    # the same local upstream, or the resolved PR number was simply wrong.
+    # A verification that cannot be made is not equivalent to a weaker one
+    # that happens to pass — same posture as PR_MERGEABLE/PR_HEAD_SHA's
+    # "UNKNOWN is a failure to verify, not a pass-by-default" fix in
+    # delivery-check.sh itself. Now fails closed (exit 2) instead.
     # #5239 QA re-delivery round 3, check 4(b): deriving PRNUM from the
     # command text broke the `gh issue edit N --add-label status:delivered`
     # route entirely — the route labels actually use, since a board item
@@ -366,15 +374,7 @@ if [ "$LABEL_ROUTE" = 1 ]; then
         block "HEAD ($SHA) in $REPO does not match PR #$PRNUM's actual head on GitHub ($REMOTE_HEAD) — push first so the stamped commit is what the PR actually shows, then retry."
       fi
     else
-      UPSTREAM="$(g rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
-      if [ -z "$UPSTREAM" ]; then
-        block "HEAD ($SHA) in $REPO has no upstream tracking branch — push first so the stamped commit is verifiably what is on the remote/PR, then retry."
-      else
-        UPSTREAM_SHA="$(g rev-parse "$UPSTREAM" 2>/dev/null || true)"
-        if [ "$UPSTREAM_SHA" != "$SHA" ]; then
-          block "HEAD ($SHA) in $REPO has not been pushed to $UPSTREAM (which is at ${UPSTREAM_SHA:-unknown}) — a stamp for unpushed content proves nothing about the PR. Push, then retry."
-        fi
-      fi
+      block "could not resolve PR #${PRNUM:-<unknown>}'s actual head commit on GitHub (gh missing, gh lookup failed, the stamp's pr: line is missing, or its value could not be resolved) — cannot confirm HEAD ($SHA) in $REPO is what the PR actually shows. Re-run onboarding/lib/delivery-check.sh with a resolvable --pr once gh can reach the PR, then retry."
     fi
   fi
 fi
