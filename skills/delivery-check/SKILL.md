@@ -54,11 +54,17 @@ A failed check is a **blocker, not a note** — fix it and re-run rather than de
 
 ## Bundled eval (ADR-0001)
 
-`onboarding/tests/delivery-check.test.sh` — both-directions, four cases, each shown failing against a tree without this skill's mechanism:
+`onboarding/tests/delivery-check.test.sh` — both-directions, exercising `delivery-check.sh` and `guard-git.sh` together, every case shown failing against a tree missing the fix it pins. Representative cases:
 
 1. **a pass** — a real, discriminating proof: `delivery-check.sh` exits 0 and writes a stamp; `guard-git.sh` then allows the `status:delivered` write.
 2. **a hollow proof** — a proof command that passes with the bug present too: `delivery-check.sh` refuses and names it `hollow`; no stamp; `guard-git.sh` still blocks.
 3. **a stale stamp after a new commit** — a valid pass, then one more commit: the write is allowed immediately after the pass and blocked again once HEAD has moved.
 4. **a close keyword with open ACs** — a PR body closing the issue while an AC checkbox is still unticked: `delivery-check.sh` refuses; `guard-git.sh` blocks (no stamp).
+5. **an unverifiable body** — zero recognized checkboxes, or a checkbox present with no `Proof:` line: refused, not silently passed as a clean run.
+6. **no `--pr` given at all** — refused; Delivered means "PR open, awaiting QA" by definition, so a run that cannot see a PR cannot report PASS.
+7. **a PR opened against the wrong base branch** — refused.
+8. **every known bypass route on the `status:delivered` label write** — `gh pr edit`, a shell-variable value, `gh api` REST/GraphQL in several payload shapes, a `-R`/`--repo` prefix before the subcommand — each blocked; an unrelated literal label write (`--add-label seat:seb`) is still allowed.
+9. **a stamp for an unpushed commit** — refused; pushing that same commit then allows the write.
+10. **the PR's actual remote head, not just the local `@{u}` tracking ref** — a mismatch between HEAD and what the PR really shows on GitHub (via a scripted `gh` stub, no live network dependency) is refused.
 
-Run against `onboarding/hooks/guard-git.sh` as checked out on `main` before sebas2810/claude-agentic-sdlc#73 (no stamp-enforcement section at all), 3 of these cases fail outright — the suite is a genuine regression guard on the guard itself, not merely on the check script.
+Run against `onboarding/hooks/guard-git.sh` as checked out on `main` before sebas2810/claude-agentic-sdlc#73 (no stamp-enforcement section at all), most of these cases fail outright — the suite is a genuine regression guard on the guard itself, not merely on the check script.

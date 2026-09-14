@@ -37,6 +37,13 @@ jobs:
       - name: git guard — protected refs, repo scoping, escape hatch (7 cases)
         run: |
           set -euo pipefail
+          # PM finding (folded into #5239): isolate global git identity —
+          # a self-hosted runner (or `act` locally) reuses its HOME across
+          # jobs, so writing straight to the real ~/.gitconfig here is the
+          # same class of pollution onboarding/tests/delivery-check.test.sh
+          # was fixed for. GIT_CONFIG_GLOBAL (git >=2.32) is exported so it
+          # also covers the scripts this step execs.
+          export GIT_CONFIG_GLOBAL="$(mktemp)"
           git config --global user.email ci@example.com
           git config --global user.name ci
           git config --global init.defaultBranch main
@@ -52,6 +59,13 @@ jobs:
       - name: git guard — parity with the instance-fork rules it replaces
         run: |
           set -euo pipefail
+          # PM finding (folded into #5239): isolate global git identity —
+          # a self-hosted runner (or `act` locally) reuses its HOME across
+          # jobs, so writing straight to the real ~/.gitconfig here is the
+          # same class of pollution onboarding/tests/delivery-check.test.sh
+          # was fixed for. GIT_CONFIG_GLOBAL (git >=2.32) is exported so it
+          # also covers the scripts this step execs.
+          export GIT_CONFIG_GLOBAL="$(mktemp)"
           git config --global user.email ci@example.com
           git config --global user.name ci
           git config --global init.defaultBranch main
@@ -67,6 +81,13 @@ jobs:
       - name: delivery-check — proof before Delivered (pass, hollow proof, stale stamp, close-keyword)
         run: |
           set -euo pipefail
+          # PM finding (folded into #5239): isolate global git identity —
+          # a self-hosted runner (or `act` locally) reuses its HOME across
+          # jobs, so writing straight to the real ~/.gitconfig here is the
+          # same class of pollution onboarding/tests/delivery-check.test.sh
+          # was fixed for. GIT_CONFIG_GLOBAL (git >=2.32) is exported so it
+          # also covers the scripts this step execs.
+          export GIT_CONFIG_GLOBAL="$(mktemp)"
           git config --global user.email ci@example.com
           git config --global user.name ci
           git config --global init.defaultBranch main
