@@ -2,6 +2,26 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+
+## 2026-09-14 - three rules from one day of board writes, and red `main` deploys reach the PM
+
+Three lessons from 2026-09-10 on one instance, each held so far in one seat's memory, plus a
+gap that kept a red `main` deploy out of every queue.
+
+- New: [`../feedback/workflow/a-resolved-blocker-leaves-blocked-in-the-same-pass.md`](../feedback/workflow/a-resolved-blocker-leaves-blocked-in-the-same-pass.md).
+  The owner ruled on four `Blocked` items with the PM and found all four still `Blocked`: the
+  resulting moves were another seat's and were handed off without saying so. Linked from the PM
+  discovery in `commands/check.md` and the `Blocked → Scoped` row of `workflow/state-machine.md`.
+- New: [`../feedback/workflow/write-the-board-field-before-the-label.md`](../feedback/workflow/write-the-board-field-before-the-label.md).
+  The two halves of a dual-write fail independently; label-first plus a GraphQL failure leaves the
+  index and the board disagreeing. Linked from the dual-write paragraph in `commands/check.md`.
+- New: [`../feedback/workflow/rate-limit-endpoint-is-not-a-reset-signal.md`](../feedback/workflow/rate-limit-endpoint-is-not-a-reset-signal.md).
+  `/rate_limit` reported a full GraphQL budget while every GraphQL call failed. Linked from the
+  same paragraph.
+- Changed: `commands/check.md` states one exception to the author filter, for the PM role only:
+  open `ci-red` issues authored by `github-actions[bot]`. A red `main` deploy opens its issue from
+  a workflow, and the author filter dropped it from every seat's queue.
+
 ## 2026-09-14 - worker tiers: each item runs at the model and effort its tier label sets
 
 Every worker ran at the seat's own model (`model: inherit`), so a copy change and a root-cause
