@@ -24,6 +24,14 @@ fails=0
 ok()  { printf '  OK    %s\n' "$1"; }
 bad() { printf '  FAIL  %s\n' "$1"; fails=$((fails + 1)); }
 
+# PM finding: this test previously ran `git config --global ...` straight
+# against the REAL global ~/.gitconfig — on 2026-09-13 at 14:12 it clobbered
+# the machine's actual identity to "t <t@example.com>", misattributing
+# commits made in OTHER worktrees afterward. GIT_CONFIG_GLOBAL (git >=2.32)
+# points every git invocation in this script (and anything it execs, since
+# it's exported) at an isolated file under $T instead.
+export GIT_CONFIG_GLOBAL="$T/gitconfig"
+: > "$GIT_CONFIG_GLOBAL"
 git config --global user.email t@example.com 2>/dev/null || true
 git config --global user.name t 2>/dev/null || true
 git config --global init.defaultBranch main 2>/dev/null || true
@@ -61,9 +69,12 @@ pushwork() { # $1 = name
   git -C "$T/$1" push -q origin work 2>/dev/null
 }
 
-runguard() { # $1 = cwd, $2 = command, $3 = stamp dir -> exit code on stdout as "exit=N"
+runguard() { # $1 = cwd, $2 = command, $3 = stamp dir, $4 = optional dir to
+             # prepend to PATH (a stub gh), $5 = optional FAKE_GH_PR_HEAD
+             # -> exit code on stdout as "exit=N"
   printf '{"tool_input":{"command":%s}}' "$(python3 -c 'import json,sys;print(json.dumps(sys.argv[1]))' "$2")" \
-    | ( cd "$1" && AGENTIC_SDLC_DELIVERY_STAMP_DIR="$3" bash "$GUARD" >/dev/null 2>&1 ); echo $?
+    | ( cd "$1" && [ -n "${4:-}" ] && PATH="$4:$PATH"; \
+        AGENTIC_SDLC_DELIVERY_STAMP_DIR="$3" FAKE_GH_PR_HEAD="${5:-}" bash "$GUARD" >/dev/null 2>&1 ); echo $?
 }
 
 DELIVER_CMD='gh issue edit 1 --add-label "status:delivered"'
@@ -77,9 +88,19 @@ cat > "$T/pass/issue-body.md" <<'EOF'
   Proof: `grep -q fixed f.txt`
 EOF
 echo "VERDICT: PASS" > "$T/pass/verdict.txt"
+# #5239 QA re-delivery review round 2 ("a check must be able to report its
+# own failure"): --pr is now mandatory — Delivered means "PR open, awaiting
+# QA" by definition, so every fixture standing in for a real PASS needs a
+# full, hermetic PR context (no reliance on a real `gh` call failing quietly
+# against these fixtures' non-GitHub remotes).
+cat > "$T/pass/pr-body.md" <<'EOF'
+No close keyword here — proven separately before merge.
+EOF
 SDIR="$T/pass-stamps"; mkdir -p "$SDIR"
-out="$(cd "$T/pass" && bash "$CHECK" --issue 1 --base main \
-  --issue-body-file issue-body.md --reviewer-verdict-file verdict.txt \
+out="$(cd "$T/pass" && bash "$CHECK" --issue 1 --pr 99 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
   --stamp-dir "$SDIR" 2>&1)"; rc=$?
 if [ "$rc" -eq 0 ]; then
   ok "delivery-check exits 0 on a real, proven AC"
@@ -143,9 +164,14 @@ cat > "$T/stale/issue-body.md" <<'EOF'
   Proof: `grep -q fixed f.txt`
 EOF
 echo "VERDICT: PASS" > "$T/stale/verdict.txt"
+cat > "$T/stale/pr-body.md" <<'EOF'
+No close keyword here — proven separately before merge.
+EOF
 SDIR="$T/stale-stamps"; mkdir -p "$SDIR"
-( cd "$T/stale" && bash "$CHECK" --issue 1 --base main \
-  --issue-body-file issue-body.md --reviewer-verdict-file verdict.txt \
+( cd "$T/stale" && bash "$CHECK" --issue 1 --pr 99 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
   --stamp-dir "$SDIR" >/dev/null 2>&1 )
 gexit_fresh="$(runguard "$T/stale" "$DELIVER_CMD" "$SDIR")"
 git -C "$T/stale" commit -q --allow-empty -m "one more commit after the pass"
@@ -174,6 +200,7 @@ echo "VERDICT: PASS" > "$T/close/verdict.txt"
 SDIR="$T/close-stamps"; mkdir -p "$SDIR"
 out="$(cd "$T/close" && bash "$CHECK" --issue 1 --pr 99 --base main \
   --issue-body-file issue-body.md --pr-body-file pr-body.md --pr-mergeable MERGEABLE \
+  --pr-base-ref main \
   --reviewer-verdict-file verdict.txt --stamp-dir "$SDIR" 2>&1)"; rc=$?
 if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi 'unticked'; then
   ok "delivery-check refuses a close keyword while an AC checkbox is still unticked"
@@ -241,9 +268,14 @@ cat > "$T/base/epic/issue-body.md" <<'EOF'
   Proof: `grep -q fixed f.txt`
 EOF
 echo "VERDICT: PASS" > "$T/base/epic/verdict.txt"
+cat > "$T/base/epic/pr-body.md" <<'EOF'
+No close keyword here — proven separately before merge.
+EOF
 SDIR="$T/base-stamps"; mkdir -p "$SDIR"
-out="$(cd "$T/base/epic" && bash "$CHECK" --issue 1 \
-  --issue-body-file issue-body.md --reviewer-verdict-file verdict.txt \
+out="$(cd "$T/base/epic" && bash "$CHECK" --issue 1 --pr 99 \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref "feat/900-epic" --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
   --stamp-dir "$SDIR" 2>&1)"; rc=$?
 if printf '%s' "$out" | grep -q "base origin/feat/900-epic"; then
   ok "--base auto-resolves to the registered integration branch, not origin/main"
@@ -293,6 +325,7 @@ EOF
 SDIR="$T/numbered-stamps2"; mkdir -p "$SDIR"
 out="$(cd "$T/numbered" && bash "$CHECK" --issue 1 --pr 99 --base main \
   --issue-body-file issue-body.md --pr-body-file pr-body.md --pr-mergeable MERGEABLE \
+  --pr-base-ref main \
   --reviewer-verdict-file verdict.txt --stamp-dir "$SDIR" 2>&1)"; rc=$?
 if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi 'no AC checkboxes were found'; then
   ok "close keyword against an unverifiable (numbered) body fails, names the gap"
@@ -306,7 +339,8 @@ fi
 # on an integration branch was not caught.
 SDIR="$T/base-mismatch-stamps"; mkdir -p "$SDIR"
 out="$(cd "$T/pass" && bash "$CHECK" --issue 1 --pr 99 --base main \
-  --issue-body-file issue-body.md --pr-base-ref "some-other-branch" \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md --pr-mergeable MERGEABLE \
+  --pr-base-ref "some-other-branch" \
   --reviewer-verdict-file verdict.txt --stamp-dir "$SDIR" 2>&1)"; rc=$?
 if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi 'wrong target branch'; then
   ok "a PR opened against a base that does not match the resolved base fails"
@@ -315,7 +349,8 @@ else
 fi
 SDIR2="$T/base-match-stamps"; mkdir -p "$SDIR2"
 out2="$(cd "$T/pass" && bash "$CHECK" --issue 1 --pr 99 --base main \
-  --issue-body-file issue-body.md --pr-base-ref "main" \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md --pr-mergeable MERGEABLE \
+  --pr-base-ref "main" \
   --reviewer-verdict-file verdict.txt --stamp-dir "$SDIR2" 2>&1)"; rc2=$?
 if [ "$rc2" -eq 0 ]; then
   ok "a PR opened against the matching base passes this check"
@@ -361,6 +396,14 @@ check_route "case-differing literal (Status:Delivered)" 'gh issue edit 1 --add-l
 check_route "unrelated literal label (seat:seb)" 'gh issue edit 1 --add-label "seat:seb"' allow
 check_route "unrelated literal label (status:in-progress)" 'gh issue edit 1 --add-label "status:in-progress"' allow
 check_route "repeated --add-label, both safe" 'gh issue edit 1 --add-label seat:someone --add-label P1' allow
+# #5239 QA re-delivery review round 2 — five MORE live routes, each
+# verified against the merged PR #86 fix before this round started:
+check_route "-R repo flag BEFORE the subcommand" 'gh -R o/r issue edit 1 --add-label status:delivered' block
+check_route "--repo flag BEFORE the subcommand" 'gh --repo o/r pr edit 1 --add-label status:delivered' block
+check_route "gh api PATCH straight to issues/{n} with labels[]=" "gh api -X PATCH repos/o/r/issues/1 -f 'labels[]=status:delivered'" block
+check_route "gh api POST to a QUOTED /labels path" 'gh api -X POST "repos/o/r/issues/1/labels" -f name=status:delivered' block
+check_route "gh api graphql -F query=@file (external, unreadable payload)" 'gh api graphql -F query=@mutation.graphql' block
+check_route "gh api graphql updateIssue(labelIds:) — second mutation shape" "gh api graphql -f query='mutation{updateIssue(input:{id:\"x\",labelIds:[\"y\"]}){clientMutationId}}'" block
 [ "$routes_ok" = 1 ] && ok "all bypass routes blocked; routine (incl. repeated-flag) label writes still allowed"
 
 # ═══ 11. a stamp for an unpushed commit does not let the write through ══
@@ -377,14 +420,21 @@ cat > "$T/unpushed/issue-body.md" <<'EOF'
   Proof: `grep -q fixed f.txt`
 EOF
 echo "VERDICT: PASS" > "$T/unpushed/verdict.txt"
+cat > "$T/unpushed/pr-body.md" <<'EOF'
+No close keyword here — proven separately before merge.
+EOF
 SDIR="$T/unpushed-stamps"; mkdir -p "$SDIR"
-( cd "$T/unpushed" && bash "$CHECK" --issue 1 --base main \
-  --issue-body-file issue-body.md --reviewer-verdict-file verdict.txt \
+( cd "$T/unpushed" && bash "$CHECK" --issue 1 --pr 99 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
   --stamp-dir "$SDIR" >/dev/null 2>&1 )
 git -C "$T/unpushed" commit -q --allow-empty -m "a real commit, never pushed"
 SDIR2="$T/unpushed-stamps2"; mkdir -p "$SDIR2"
-( cd "$T/unpushed" && bash "$CHECK" --issue 1 --base main \
-  --issue-body-file issue-body.md --reviewer-verdict-file verdict.txt \
+( cd "$T/unpushed" && bash "$CHECK" --issue 1 --pr 99 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
   --stamp-dir "$SDIR2" >/dev/null 2>&1 )
 gexit_unpushed="$(runguard "$T/unpushed" "$DELIVER_CMD" "$SDIR2")"
 pushwork unpushed
@@ -393,6 +443,110 @@ if [ "$gexit_unpushed" != "0" ] && [ "$gexit_pushed" = "0" ]; then
   ok "a valid stamp for an unpushed HEAD is refused; pushing the same commit then allows it"
 else
   bad "expected unpushed=block(nonzero), pushed=allow(0) — got unpushed=$gexit_unpushed pushed=$gexit_pushed"
+fi
+
+# ═══ 12. a checkbox with no Proof: command must fail, write no stamp ════
+# AC1 gap: a checkbox present but never paired with a Proof: line is a
+# manual assertion, not proof — the same "no criterion was proven" failure
+# as an all-numbered body (case 7), just partial instead of total.
+mkrepo noproof
+cat > "$T/noproof/issue-body.md" <<'EOF'
+## Acceptance criteria
+
+- [ ] A criterion with no Proof: command at all.
+EOF
+echo "VERDICT: PASS" > "$T/noproof/verdict.txt"
+SDIR="$T/noproof-stamps"; mkdir -p "$SDIR"
+out="$(cd "$T/noproof" && bash "$CHECK" --issue 1 --base main \
+  --issue-body-file issue-body.md --reviewer-verdict-file verdict.txt \
+  --stamp-dir "$SDIR" 2>&1)"; rc=$?
+if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi 'no Proof: command'; then
+  ok "a checkbox with no Proof: command is refused, not silently passed"
+else
+  bad "a checkbox missing its Proof: line MUST fail, named — got rc=$rc: $out"
+fi
+if [ -z "$(ls -A "$SDIR" 2>/dev/null)" ]; then
+  ok "no stamp written for a checkbox missing its Proof: command"
+else
+  bad "a stamp was written despite an unproofed checkbox"
+fi
+
+# ═══ 13. no --pr at all must fail, not silently skip the PR checks ══════
+# #5239 QA re-delivery review round 2: "a check must be able to report its
+# own failure" — a run given no --pr used to let every PR subcheck's
+# `if -n "$PR"` guard find nothing and skip, silently, scoring the same as
+# a clean PASS. Delivered means "PR open, awaiting QA" by definition, so a
+# run that cannot see a PR must say so, not stay silent.
+mkrepo nopr
+cat > "$T/nopr/issue-body.md" <<'EOF'
+## Acceptance criteria
+
+- [ ] The file says "fixed".
+  Proof: `grep -q fixed f.txt`
+EOF
+echo "VERDICT: PASS" > "$T/nopr/verdict.txt"
+SDIR="$T/nopr-stamps"; mkdir -p "$SDIR"
+out="$(cd "$T/nopr" && bash "$CHECK" --issue 1 --base main \
+  --issue-body-file issue-body.md --reviewer-verdict-file verdict.txt \
+  --stamp-dir "$SDIR" 2>&1)"; rc=$?
+if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi 'no --pr given'; then
+  ok "no --pr at all is refused, not silently skipped"
+else
+  bad "a run with no --pr MUST fail, named — got rc=$rc: $out"
+fi
+if [ -z "$(ls -A "$SDIR" 2>/dev/null)" ]; then
+  ok "no stamp written when no --pr was given"
+else
+  bad "a stamp was written despite no --pr being given"
+fi
+
+# ═══ 14. guard-git checks the PR's REAL remote head, not just @{u} ══════
+# #5239 QA re-delivery review round 2, check 5's other half: the local
+# `@{u}` tracking ref is only what THIS checkout last saw as its upstream —
+# stale or misconfigured, it says nothing about what the PR actually shows
+# on GitHub right now. A minimal stub `gh` on $PATH answers the REAL
+# `gh pr view <n> --json headRefOid -q .headRefOid` call guard-git.sh
+# makes, so this exercises genuine production code (command construction,
+# parsing, comparison) against a scripted remote answer — no live network
+# dependency, and "never calls gh" holds for every OTHER case (this is the
+# only one that ever puts a `gh` on PATH, and only for these two calls).
+mkdir -p "$T/fakegh"
+cat > "$T/fakegh/gh" <<'SCRIPT'
+#!/usr/bin/env bash
+# Stub: answers `gh pr view <n> [-R <repo>] --json headRefOid -q .headRefOid`
+# with $FAKE_GH_PR_HEAD. Any other invocation is a test-design error.
+if [ "${1:-}" = "pr" ] && [ "${2:-}" = "view" ]; then
+  printf '%s\n' "${FAKE_GH_PR_HEAD:-}"
+  exit 0
+fi
+exit 1
+SCRIPT
+chmod +x "$T/fakegh/gh"
+
+mkrepo prhead
+cat > "$T/prhead/issue-body.md" <<'EOF'
+## Acceptance criteria
+
+- [ ] The file says "fixed".
+  Proof: `grep -q fixed f.txt`
+EOF
+echo "VERDICT: PASS" > "$T/prhead/verdict.txt"
+cat > "$T/prhead/pr-body.md" <<'EOF'
+No close keyword here — proven separately before merge.
+EOF
+SDIR="$T/prhead-stamps"; mkdir -p "$SDIR"
+( cd "$T/prhead" && bash "$CHECK" --issue 1 --pr 1 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
+  --stamp-dir "$SDIR" >/dev/null 2>&1 )
+REAL_HEAD="$(git -C "$T/prhead" rev-parse HEAD)"
+gexit_match="$(runguard "$T/prhead" "$DELIVER_CMD" "$SDIR" "$T/fakegh" "$REAL_HEAD")"
+gexit_mismatch="$(runguard "$T/prhead" "$DELIVER_CMD" "$SDIR" "$T/fakegh" "0000000000000000000000000000000000000000")"
+if [ "$gexit_match" = "0" ] && [ "$gexit_mismatch" != "0" ]; then
+  ok "guard-git compares against the PR's actual remote head (gh pr view), not just the local @{u} ref"
+else
+  bad "expected remote-head match=allow(0), mismatch=block(nonzero) — got match=$gexit_match mismatch=$gexit_mismatch"
 fi
 
 echo ""

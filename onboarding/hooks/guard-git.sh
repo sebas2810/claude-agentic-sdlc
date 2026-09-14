@@ -55,7 +55,13 @@ command -v jq >/dev/null 2>&1 || exit 0
 IN="$(cat 2>/dev/null || true)"
 CMD="$(printf '%s' "$IN" | jq -r '.tool_input.command // empty' 2>/dev/null)"
 [ -n "$CMD" ] || exit 0
-case "$CMD" in *git*|*gh\ pr*|*gh\ issue*|*gh\ api*) : ;; *) exit 0 ;; esac   # cheap prefilter
+# cheap prefilter — must catch every route the LABEL_ROUTE detection below
+# does, including `-R`/`--repo` BEFORE the subcommand (`gh -R o/r issue
+# edit`), or this exits 0 before that logic ever runs.
+case "$CMD" in
+  *git*|*gh\ pr*|*gh\ issue*|*gh\ api*|*gh\ -R*|*gh\ --repo*) : ;;
+  *) exit 0 ;;
+esac
 
 block() { printf 'BLOCKED (agentic-sdlc guard): %s\n' "$1" >&2; exit 2; }
 
@@ -236,12 +242,37 @@ fi
 # literal value (`--add-label seat:seb`, `--add-label "status:in-progress"`)
 # still needs no stamp; only status:delivered, and anything opaque, does.
 LABEL_ROUTE=0
-if printf '%s' "$MASKED" | grep -Eq '(^|[;&|[:space:]])gh[[:space:]]+(issue|pr)[[:space:]]+edit[[:space:]]+.*--add-label'; then
+# #5239 QA re-delivery review round 2 — five more live routes found:
+#   gh -R o/r issue edit 1 --add-label status:delivered   (repo flag BEFORE
+#                                                           the subcommand)
+#   gh api -X PATCH repos/o/r/issues/1 -f 'labels[]=status:delivered'
+#                                                          (no /labels path
+#                                                           suffix at all)
+#   gh api -X POST "repos/o/r/issues/1/labels"            (quoted path —
+#                                                           blank on MASKED)
+#   gh api graphql -F query=@mutation.graphql             (mutation text is
+#                                                           in a file this
+#                                                           guard can't read)
+#   gh api graphql -f query='mutation{updateIssue(input:{labelIds:[...]})}'
+#                                                          (a second mutation
+#                                                           shape — not just
+#                                                           addLabelsToLabelable)
+GH_REPO_OPT='([[:space:]]+(-R|--repo)([[:space:]]+[^[:space:]]+|=[^[:space:]]+))?'
+if printf '%s' "$MASKED" | grep -Eq "(^|[;&|[:space:]])gh${GH_REPO_OPT}[[:space:]]+(issue|pr)[[:space:]]+edit[[:space:]]+.*--add-label"; then
   LABEL_ROUTE=1
 fi
 if printf '%s' "$MASKED" | grep -Eq '(^|[;&|[:space:]])gh[[:space:]]+api'; then
-  printf '%s' "$MASKED" | grep -Eq '/labels([[:space:]]|$)' && LABEL_ROUTE=1
-  printf '%s' "$CMD" | grep -q 'addLabelsToLabelable' && LABEL_ROUTE=1
+  # The URL path is a real argument to `gh api`, not prose merely quoting
+  # one — a quoted path is still the literal command actually being run,
+  # so check the raw $CMD too: MASKED alone blanks a quoted path to spaces.
+  printf '%s\n%s' "$MASKED" "$CMD" | grep -Eq '/labels([[:space:]"'"'"']|$)' && LABEL_ROUTE=1
+  # `-f`/`-F labels[]=...` writes labels via a PATCH straight to
+  # .../issues/{n} — no "/labels" path suffix, and the whole
+  # "labels[]=value" token is normally one quoted argument (same
+  # invisible-on-MASKED reason) — check raw $CMD.
+  printf '%s' "$CMD" | grep -Eiq -- 'labels\[\][[:space:]]*=' && LABEL_ROUTE=1
+  printf '%s' "$CMD" | grep -Eq 'addLabelsToLabelable|labelIds' && LABEL_ROUTE=1
+  printf '%s' "$MASKED" | grep -Eq -- '-[fF][[:space:]]+query=@' && LABEL_ROUTE=1
 fi
 
 if [ "$LABEL_ROUTE" = 1 ]; then
@@ -258,24 +289,28 @@ if [ "$LABEL_ROUTE" = 1 ]; then
   # and the `+`/`*` there are non-greedy-by-exclusion, not size, so a
   # zero-width match (e.g. `labels[]=$L`, nothing before the `$`) is also
   # excluded by requiring at least one real character. `--input` (stdin
-  # JSON) and any addLabelsToLabelable GraphQL mutation are ALWAYS unsafe —
-  # their payload is never in $CMD to inspect.
-  # `gh issue/pr edit` legitimately accepts a REPEATED --add-label flag
-  # (also true of `-f labels[]=` on `gh api`) — `... --add-label seat:x
-  # --add-label status:delivered` bypassed a `head -1`-on-first-match
-  # design (found in the SAME independent review that reported this fix as
-  # ready), because only the FIRST occurrence's literal was ever inspected.
-  # The fix counts: every `--add-label`/`labels[]=` MARKER present (on
-  # MASKED — structural) must pair 1:1 with a successfully-extracted safe
-  # LITERAL (on $CMD); any unpaired marker (an occurrence whose value could
-  # not be read as a clean literal) makes the whole command unsafe, same as
-  # zero extractable literals does. Case-INsensitive substring match on
-  # "status:delivered", since GitHub's own label matching is.
+  # JSON), any addLabelsToLabelable/updateIssue/updatePullRequest GraphQL
+  # mutation, an out-of-line `-f/-F query=@file`, and any `labels[]=` form
+  # are ALWAYS unsafe — their payload is never fully in $CMD to inspect (a
+  # GraphQL variable is an opaque ID, not a label name, even when present).
+  # `gh issue/pr edit` legitimately accepts a REPEATED --add-label flag —
+  # `... --add-label seat:x --add-label status:delivered` bypassed a
+  # `head -1`-on-first-match design (found in the SAME independent review
+  # that reported this fix as ready), because only the FIRST occurrence's
+  # literal was ever inspected. The fix counts: every `--add-label` MARKER
+  # present (on MASKED — structural) must pair 1:1 with a
+  # successfully-extracted safe LITERAL (on $CMD); any unpaired marker (an
+  # occurrence whose value could not be read as a clean literal) makes the
+  # whole command unsafe, same as zero extractable literals does.
+  # Case-INsensitive substring match on "status:delivered", since GitHub's
+  # own label matching is.
   SAFE=0
-  if ! printf '%s' "$CMD" | grep -q 'addLabelsToLabelable' \
-     && ! printf '%s' "$MASKED" | grep -Eq -- '(^|[[:space:]])--input([[:space:]]|=)'; then
-    MARKER_COUNT="$(printf '%s' "$MASKED" | grep -Eo -- '--add-label|labels\[\][[:space:]]*=' | wc -l | tr -d ' ')"
-    LITERALS="$(printf '%s' "$CMD" | grep -Eo -- '--add-label[[:space:]=]+"[^"$]*"|--add-label[[:space:]=]+'"'"'[^'"'"'$]*'"'"'|--add-label[[:space:]=]+[^[:space:]$"'"'"']+|labels\[\][[:space:]]*=[[:space:]]*"[^"$]*"|labels\[\][[:space:]]*=[^[:space:]$"'"'"']+')"
+  if ! printf '%s' "$CMD" | grep -Eq 'addLabelsToLabelable|labelIds' \
+     && ! printf '%s' "$CMD" | grep -Eiq -- 'labels\[\][[:space:]]*=' \
+     && ! printf '%s' "$MASKED" | grep -Eq -- '(^|[[:space:]])--input([[:space:]]|=)' \
+     && ! printf '%s' "$MASKED" | grep -Eq -- '-[fF][[:space:]]+query=@'; then
+    MARKER_COUNT="$(printf '%s' "$MASKED" | grep -Eo -- '--add-label' | wc -l | tr -d ' ')"
+    LITERALS="$(printf '%s' "$CMD" | grep -Eo -- '--add-label[[:space:]=]+"[^"$]*"|--add-label[[:space:]=]+'"'"'[^'"'"'$]*'"'"'|--add-label[[:space:]=]+[^[:space:]$"'"'"']+')"
     LITERAL_COUNT="$(printf '%s\n' "$LITERALS" | grep -c . || true)"
     if [ "$MARKER_COUNT" -gt 0 ] && [ "$MARKER_COUNT" = "$LITERAL_COUNT" ] \
        && ! printf '%s\n' "$LITERALS" | grep -qi 'status:delivered'; then
@@ -293,15 +328,41 @@ if [ "$LABEL_ROUTE" = 1 ]; then
     fi
     # The stamp proves local HEAD passed; it says nothing about whether HEAD
     # was ever PUSHED — a stamp for content nobody can review on the actual
-    # PR is not proof of anything reviewable. Require HEAD to be exactly
-    # what its upstream already has.
-    UPSTREAM="$(g rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
-    if [ -z "$UPSTREAM" ]; then
-      block "HEAD ($SHA) in $REPO has no upstream tracking branch — push first so the stamped commit is verifiably what is on the remote/PR, then retry."
+    # PR is not proof of anything reviewable.
+    #
+    # #5239 QA re-delivery review round 2: the local `@{u}` tracking ref is
+    # a locally-cached pointer — it says what THIS checkout last saw as its
+    # upstream, not what the PR actually shows on GitHub right now. Where
+    # the command names an actual issue/PR number, ask GitHub directly for
+    # that PR's real head commit and require HEAD to match IT — a stronger
+    # check than trusting a local ref that could be stale or misconfigured.
+    # Falls back to the `@{u}` comparison when no PR can be resolved (a
+    # plain issue, no gh, or gh cannot reach the remote) rather than
+    # skipping the pushed-content check altogether.
+    PRNUM="$(printf '%s' "$MASKED" | sed -nE 's/.*[[:space:]]pr[[:space:]]+edit[[:space:]]+([0-9]+).*/\1/p' | head -1)"
+    [ -n "$PRNUM" ] || PRNUM="$(printf '%s' "$MASKED" | sed -nE 's/.*[[:space:]]issue[[:space:]]+edit[[:space:]]+([0-9]+).*/\1/p' | head -1)"
+    REPO_ARG="$(printf '%s' "$MASKED" | sed -nE 's/.*(-R|--repo)[[:space:]=]+([^[:space:]]+).*/\2/p' | head -1)"
+    REMOTE_HEAD=""
+    if [ -n "$PRNUM" ] && command -v gh >/dev/null 2>&1; then
+      if [ -n "$REPO_ARG" ]; then
+        REMOTE_HEAD="$(gh pr view "$PRNUM" -R "$REPO_ARG" --json headRefOid -q .headRefOid 2>/dev/null || true)"
+      else
+        REMOTE_HEAD="$(cd "$TARGET_DIR" && gh pr view "$PRNUM" --json headRefOid -q .headRefOid 2>/dev/null || true)"
+      fi
+    fi
+    if [ -n "$REMOTE_HEAD" ]; then
+      if [ "$REMOTE_HEAD" != "$SHA" ]; then
+        block "HEAD ($SHA) in $REPO does not match PR #$PRNUM's actual head on GitHub ($REMOTE_HEAD) — push first so the stamped commit is what the PR actually shows, then retry."
+      fi
     else
-      UPSTREAM_SHA="$(g rev-parse "$UPSTREAM" 2>/dev/null || true)"
-      if [ "$UPSTREAM_SHA" != "$SHA" ]; then
-        block "HEAD ($SHA) in $REPO has not been pushed to $UPSTREAM (which is at ${UPSTREAM_SHA:-unknown}) — a stamp for unpushed content proves nothing about the PR. Push, then retry."
+      UPSTREAM="$(g rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
+      if [ -z "$UPSTREAM" ]; then
+        block "HEAD ($SHA) in $REPO has no upstream tracking branch — push first so the stamped commit is verifiably what is on the remote/PR, then retry."
+      else
+        UPSTREAM_SHA="$(g rev-parse "$UPSTREAM" 2>/dev/null || true)"
+        if [ "$UPSTREAM_SHA" != "$SHA" ]; then
+          block "HEAD ($SHA) in $REPO has not been pushed to $UPSTREAM (which is at ${UPSTREAM_SHA:-unknown}) — a stamp for unpushed content proves nothing about the PR. Push, then retry."
+        fi
       fi
     fi
   fi

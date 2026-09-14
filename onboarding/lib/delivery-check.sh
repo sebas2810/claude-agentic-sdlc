@@ -193,7 +193,19 @@ echo "== delivery-check: issue #$ISSUE${PR:+, pr #$PR}, base $BASE_REF =="
 #    indented "Proof: \`cmd\`" line as that AC's proof command. ────────────
 AC_TMP="$(mktemp)"
 printf '%s\n' "$ISSUE_BODY" | awk '
+  function flush() {
+    if (have_ac) {
+      # No Proof: line ever paired with this checkbox — emit it with an
+      # EMPTY cmd field instead of dropping it. A dropped-silently checkbox
+      # is exactly the #5239 QA re-delivery gap: a checkbox with no proof
+      # counted toward neither AC_COUNT nor any failure, so it just PASSED
+      # by never being looked at again.
+      print "\t" pending_desc
+      have_ac = 0
+    }
+  }
   /^[[:space:]]*-[[:space:]]\[[ xX]\]/ {
+    flush()
     desc = $0
     sub(/^[[:space:]]*-[[:space:]]\[[ xX]\][[:space:]]*/, "", desc)
     pending_desc = desc
@@ -208,14 +220,16 @@ printf '%s\n' "$ISSUE_BODY" | awk '
     have_ac = 0
     next
   }
-  /^[^[:space:]]/ || /^[[:space:]]*-[[:space:]]\[/ { have_ac = 0 }
+  /^[^[:space:]]/ || /^[[:space:]]*-[[:space:]]\[/ { flush() }
+  END { flush() }
 ' > "$AC_TMP"
 
 UNTICKED_COUNT="$(printf '%s\n' "$ISSUE_BODY" | grep -cE '^[[:space:]]*-[[:space:]]\[[[:space:]]\]' || true)"
 TICKED_COUNT="$(printf '%s\n' "$ISSUE_BODY" | grep -cE '^[[:space:]]*-[[:space:]]\[[xX]\]' || true)"
 TOTAL_CHECKBOX_COUNT="$((UNTICKED_COUNT + TICKED_COUNT))"
 AC_COUNT="$(wc -l < "$AC_TMP" | tr -d ' ')"
-note "found $AC_COUNT AC line(s) with a Proof: command, $UNTICKED_COUNT unticked / $TICKED_COUNT ticked checkbox line(s) total"
+WITH_PROOF_COUNT="$(awk -F'\t' '$1 != "" { c++ } END { print c+0 }' "$AC_TMP")"
+note "found $AC_COUNT AC checkbox line(s), $WITH_PROOF_COUNT with a Proof: command, $UNTICKED_COUNT unticked / $TICKED_COUNT ticked checkbox line(s) total"
 
 # #5239 QA re-delivery check 1: an issue body with ZERO recognized GFM
 # task-list checkboxes (framework #73's own body is a numbered list, not
@@ -225,6 +239,14 @@ note "found $AC_COUNT AC line(s) with a Proof: command, $UNTICKED_COUNT unticked
 # rather than reporting a clean PASS with zero content behind it.
 if [ "$TOTAL_CHECKBOX_COUNT" -eq 0 ]; then
   bad "no acceptance-criteria checkboxes ('- [ ] ...') found in the issue body — cannot verify anything; rewrite the issue's Acceptance Criteria as GFM task-list items (see skills/delivery-check/SKILL.md)"
+elif [ "$WITH_PROOF_COUNT" -ne "$TOTAL_CHECKBOX_COUNT" ]; then
+  # A checkbox with no Proof: line is a manual assertion, not proof — the
+  # same "no criterion was proven" gap as zero checkboxes, just partial.
+  while IFS=$'\t' read -r cmd desc; do
+    [ -n "$cmd" ] && continue
+    short_desc="$(printf '%s' "$desc" | cut -c1-72)"
+    bad "checkbox has no Proof: command: $short_desc"
+  done < "$AC_TMP"
 fi
 
 # ── run each AC's proof command both ways ────────────────────────────────
@@ -241,8 +263,14 @@ if [ "$AC_COUNT" -gt 0 ]; then
         # not from whoever is running the check (see the SECURITY note at
         # the top of this file) — visible before it runs, not only after.
         note "running proof: \`$cmd\`"
-        before_rc=0; ( cd "$REVERT_WT" && eval "$cmd" ) >/dev/null 2>&1 || before_rc=$?
-        after_rc=0; ( eval "$cmd" ) >/dev/null 2>&1 || after_rc=$?
+        # Closed stdin: this loop's own `read` is fed by AC_TMP via
+        # redirection below — a proof command that reads stdin (or is
+        # missing one entirely) would otherwise consume the REST of
+        # AC_TMP's lines, silently skipping every later AC as if there
+        # were nothing left to check (PM finding, same shape as the
+        # DELIVERY_TEST_CMDS bug below).
+        before_rc=0; ( cd "$REVERT_WT" && eval "$cmd" ) </dev/null >/dev/null 2>&1 || before_rc=$?
+        after_rc=0; ( eval "$cmd" ) </dev/null >/dev/null 2>&1 || after_rc=$?
         short_desc="$(printf '%s' "$desc" | cut -c1-72)"
         if [ "$before_rc" -eq 0 ] && [ "$after_rc" -eq 0 ]; then
           bad "hollow proof (passes reverted AND fixed): $short_desc -- \`$cmd\`"
@@ -280,7 +308,16 @@ if [ -n "$TEST_CMDS_FILE" ] && [ -f "$TEST_CMDS_FILE" ]; then
 $CHANGED
 EOF
     if [ "$matched" -eq 1 ]; then
-      if eval "$cmd" >/dev/null 2>&1; then
+      # PM finding: this loop's own `read` is fed by TEST_CMDS_FILE via
+      # redirection below. Run bare, `eval "$cmd"` shares this shell AND
+      # its stdin — a `cd`-prefixed command (every ORBIS #5248 command
+      # starts with one) leaks its directory change into every later
+      # command in this loop AND the rest of the script, and a command
+      # that reads stdin consumes the REST of TEST_CMDS_FILE's lines,
+      # silently skipping later checks as a false PASS (nothing left to
+      # fail). A subshell isolates the cd; a closed stdin stops it eating
+      # sibling commands.
+      if ( eval "$cmd" ) </dev/null >/dev/null 2>&1; then
         ok "DELIVERY_TEST_CMDS[$glob]: $cmd"
       else
         bad "DELIVERY_TEST_CMDS[$glob] failed: $cmd"
@@ -290,7 +327,15 @@ EOF
 fi
 
 # ── AC3: PR checks ────────────────────────────────────────────────────────
-if [ -n "$PR_BODY" ]; then
+# #5239 QA re-delivery review round 2 ("a check must be able to report its
+# own failure"): with no --pr at all, every PR subcheck below used to run
+# its `if -n ...` guard, find nothing, and skip — silently, no bad(), same
+# outcome as a clean PASS. Delivered means "PR open, awaiting QA" by
+# definition (the label lifecycle this check gates), so a run that cannot
+# see a PR cannot report PASS; it must say so.
+if [ -z "$PR" ]; then
+  bad "no --pr given — cannot verify the close-keyword, base branch, or mergeable state; Delivered requires an open PR"
+else
   if printf '%s' "$PR_BODY" | grep -Eiq "(close|closes|closed|fix|fixes|fixed|resolve|resolves|resolved)[[:space:]]+#${ISSUE}([^0-9]|$)"; then
     if [ "$TOTAL_CHECKBOX_COUNT" -eq 0 ]; then
       bad "PR body closes #$ISSUE but no AC checkboxes were found to verify against — cannot confirm none are open"
@@ -300,20 +345,27 @@ if [ -n "$PR_BODY" ]; then
       ok "close keyword present, no unticked ACs remain"
     fi
   fi
-fi
 
-# #5239 QA re-delivery check 3: the check resolved a base to prove ACs
-# against, but never confirmed the PR was actually OPENED against that same
-# base — a PR opened against the wrong branch (e.g. main, for an item that
-# belongs on an integration branch) passed silently. Compare the PR's real
-# baseRefName (GitHub, unprefixed) against the resolved --base
-# (origin/<branch> form) with the origin/ prefix stripped for the compare.
-if [ -n "$PR" ] && [ -n "$PR_BASE_REF" ] && [ -n "$BASE_REF" ]; then
-  RESOLVED_BASE_UNPREFIXED="${BASE_REF#origin/}"
-  if [ "$PR_BASE_REF" = "$RESOLVED_BASE_UNPREFIXED" ]; then
-    ok "PR is opened against the resolved base ($PR_BASE_REF)"
-  else
-    bad "PR is opened against '$PR_BASE_REF' but the resolved base is '$RESOLVED_BASE_UNPREFIXED' — wrong target branch"
+  # #5239 QA re-delivery check 3: the check resolved a base to prove ACs
+  # against, but never confirmed the PR was actually OPENED against that
+  # same base — a PR opened against the wrong branch (e.g. main, for an
+  # item that belongs on an integration branch) passed silently. Compare
+  # the PR's real baseRefName (GitHub, unprefixed) against the resolved
+  # --base (origin/<branch> form) with the origin/ prefix stripped.
+  # An unresolved PR_BASE_REF (no gh, gh lookup failed, no override) used
+  # to skip this comparison entirely rather than report it could not be
+  # made — now it fails instead.
+  if [ -n "$BASE_REF" ]; then
+    if [ -z "$PR_BASE_REF" ]; then
+      bad "could not resolve the PR's base branch (no gh, gh lookup failed, and no --pr-base-ref override) — cannot confirm it targets $BASE_REF"
+    else
+      RESOLVED_BASE_UNPREFIXED="${BASE_REF#origin/}"
+      if [ "$PR_BASE_REF" = "$RESOLVED_BASE_UNPREFIXED" ]; then
+        ok "PR is opened against the resolved base ($PR_BASE_REF)"
+      else
+        bad "PR is opened against '$PR_BASE_REF' but the resolved base is '$RESOLVED_BASE_UNPREFIXED' — wrong target branch"
+      fi
+    fi
   fi
 fi
 
@@ -331,11 +383,18 @@ if [ -n "$BASE_REF" ] && git rev-parse --verify -q "$BASE_REF" >/dev/null 2>&1; 
   fi
 fi
 
-case "$PR_MERGEABLE" in
-  MERGEABLE) ok "PR is mergeable against the current base tip" ;;
-  UNKNOWN) note "PR mergeable state unknown (no --pr / no gh / not yet computed) — not scored" ;;
-  *) bad "PR is not mergeable against the current base tip (state: $PR_MERGEABLE)" ;;
-esac
+# #5239 QA re-delivery review round 2: UNKNOWN used to be a benign `note`
+# — not scored either way. With --pr now mandatory (see AC3 above), an
+# UNKNOWN mergeable state means the check could not confirm mergeability
+# at all (no gh, gh lookup failed, GitHub has not computed it yet), which
+# is a failure to verify, not a pass-by-default.
+if [ -n "$PR" ]; then
+  case "$PR_MERGEABLE" in
+    MERGEABLE) ok "PR is mergeable against the current base tip" ;;
+    UNKNOWN) bad "PR mergeable state is unknown (no gh, gh lookup failed, or GitHub has not computed it yet) — cannot confirm it is mergeable" ;;
+    *) bad "PR is not mergeable against the current base tip (state: $PR_MERGEABLE)" ;;
+  esac
+fi
 
 # ── AC4: the read-only reviewer verdict ──────────────────────────────────
 if [ -n "$REVIEWER_VERDICT_FILE" ] && [ -f "$REVIEWER_VERDICT_FILE" ]; then
