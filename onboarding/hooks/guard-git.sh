@@ -339,8 +339,19 @@ if [ "$LABEL_ROUTE" = 1 ]; then
     # Falls back to the `@{u}` comparison when no PR can be resolved (a
     # plain issue, no gh, or gh cannot reach the remote) rather than
     # skipping the pushed-content check altogether.
-    PRNUM="$(printf '%s' "$MASKED" | sed -nE 's/.*[[:space:]]pr[[:space:]]+edit[[:space:]]+([0-9]+).*/\1/p' | head -1)"
-    [ -n "$PRNUM" ] || PRNUM="$(printf '%s' "$MASKED" | sed -nE 's/.*[[:space:]]issue[[:space:]]+edit[[:space:]]+([0-9]+).*/\1/p' | head -1)"
+    # #5239 QA re-delivery round 3, check 4(b): deriving PRNUM from the
+    # command text broke the `gh issue edit N --add-label status:delivered`
+    # route entirely — the route labels actually use, since a board item
+    # is an issue. It put issue N's number where a PR number belongs; `gh
+    # pr view N` can never resolve it (issues and PRs share one number
+    # space per repo), so REMOTE_HEAD stayed empty and this silently fell
+    # back to the weaker local @{u} comparison every time — on exactly the
+    # route this check exists to cover. The stamp is authoritative instead:
+    # delivery-check.sh refuses to write one without --pr (its own "no
+    # --pr given" AC3 check), so every valid stamp for this HEAD already
+    # names the real PR it was verified against — read it from there,
+    # independent of which gh subcommand is writing the label.
+    PRNUM="$(sed -nE 's/^pr:[[:space:]]*([0-9]+)[[:space:]]*$/\1/p' "$STAMP" 2>/dev/null | head -1)"
     REPO_ARG="$(printf '%s' "$MASKED" | sed -nE 's/.*(-R|--repo)[[:space:]=]+([^[:space:]]+).*/\2/p' | head -1)"
     REMOTE_HEAD=""
     if [ -n "$PRNUM" ] && command -v gh >/dev/null 2>&1; then

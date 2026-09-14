@@ -101,6 +101,7 @@ out="$(cd "$T/pass" && bash "$CHECK" --issue 1 --pr 99 --base main \
   --issue-body-file issue-body.md --pr-body-file pr-body.md \
   --pr-base-ref main --pr-mergeable MERGEABLE \
   --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/pass" rev-parse HEAD)" \
   --stamp-dir "$SDIR" 2>&1)"; rc=$?
 if [ "$rc" -eq 0 ]; then
   ok "delivery-check exits 0 on a real, proven AC"
@@ -172,6 +173,7 @@ SDIR="$T/stale-stamps"; mkdir -p "$SDIR"
   --issue-body-file issue-body.md --pr-body-file pr-body.md \
   --pr-base-ref main --pr-mergeable MERGEABLE \
   --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/stale" rev-parse HEAD)" \
   --stamp-dir "$SDIR" >/dev/null 2>&1 )
 gexit_fresh="$(runguard "$T/stale" "$DELIVER_CMD" "$SDIR")"
 git -C "$T/stale" commit -q --allow-empty -m "one more commit after the pass"
@@ -201,7 +203,9 @@ SDIR="$T/close-stamps"; mkdir -p "$SDIR"
 out="$(cd "$T/close" && bash "$CHECK" --issue 1 --pr 99 --base main \
   --issue-body-file issue-body.md --pr-body-file pr-body.md --pr-mergeable MERGEABLE \
   --pr-base-ref main \
-  --reviewer-verdict-file verdict.txt --stamp-dir "$SDIR" 2>&1)"; rc=$?
+  --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/close" rev-parse HEAD)" \
+  --stamp-dir "$SDIR" 2>&1)"; rc=$?
 if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi 'unticked'; then
   ok "delivery-check refuses a close keyword while an AC checkbox is still unticked"
 else
@@ -276,6 +280,7 @@ out="$(cd "$T/base/epic" && bash "$CHECK" --issue 1 --pr 99 \
   --issue-body-file issue-body.md --pr-body-file pr-body.md \
   --pr-base-ref "feat/900-epic" --pr-mergeable MERGEABLE \
   --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/base/epic" rev-parse HEAD)" \
   --stamp-dir "$SDIR" 2>&1)"; rc=$?
 if printf '%s' "$out" | grep -q "base origin/feat/900-epic"; then
   ok "--base auto-resolves to the registered integration branch, not origin/main"
@@ -326,7 +331,9 @@ SDIR="$T/numbered-stamps2"; mkdir -p "$SDIR"
 out="$(cd "$T/numbered" && bash "$CHECK" --issue 1 --pr 99 --base main \
   --issue-body-file issue-body.md --pr-body-file pr-body.md --pr-mergeable MERGEABLE \
   --pr-base-ref main \
-  --reviewer-verdict-file verdict.txt --stamp-dir "$SDIR" 2>&1)"; rc=$?
+  --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/numbered" rev-parse HEAD)" \
+  --stamp-dir "$SDIR" 2>&1)"; rc=$?
 if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi 'no AC checkboxes were found'; then
   ok "close keyword against an unverifiable (numbered) body fails, names the gap"
 else
@@ -341,7 +348,9 @@ SDIR="$T/base-mismatch-stamps"; mkdir -p "$SDIR"
 out="$(cd "$T/pass" && bash "$CHECK" --issue 1 --pr 99 --base main \
   --issue-body-file issue-body.md --pr-body-file pr-body.md --pr-mergeable MERGEABLE \
   --pr-base-ref "some-other-branch" \
-  --reviewer-verdict-file verdict.txt --stamp-dir "$SDIR" 2>&1)"; rc=$?
+  --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/pass" rev-parse HEAD)" \
+  --stamp-dir "$SDIR" 2>&1)"; rc=$?
 if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi 'wrong target branch'; then
   ok "a PR opened against a base that does not match the resolved base fails"
 else
@@ -351,7 +360,9 @@ SDIR2="$T/base-match-stamps"; mkdir -p "$SDIR2"
 out2="$(cd "$T/pass" && bash "$CHECK" --issue 1 --pr 99 --base main \
   --issue-body-file issue-body.md --pr-body-file pr-body.md --pr-mergeable MERGEABLE \
   --pr-base-ref "main" \
-  --reviewer-verdict-file verdict.txt --stamp-dir "$SDIR2" 2>&1)"; rc2=$?
+  --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/pass" rev-parse HEAD)" \
+  --stamp-dir "$SDIR2" 2>&1)"; rc2=$?
 if [ "$rc2" -eq 0 ]; then
   ok "a PR opened against the matching base passes this check"
 else
@@ -428,6 +439,7 @@ SDIR="$T/unpushed-stamps"; mkdir -p "$SDIR"
   --issue-body-file issue-body.md --pr-body-file pr-body.md \
   --pr-base-ref main --pr-mergeable MERGEABLE \
   --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/unpushed" rev-parse HEAD)" \
   --stamp-dir "$SDIR" >/dev/null 2>&1 )
 git -C "$T/unpushed" commit -q --allow-empty -m "a real commit, never pushed"
 SDIR2="$T/unpushed-stamps2"; mkdir -p "$SDIR2"
@@ -435,6 +447,7 @@ SDIR2="$T/unpushed-stamps2"; mkdir -p "$SDIR2"
   --issue-body-file issue-body.md --pr-body-file pr-body.md \
   --pr-base-ref main --pr-mergeable MERGEABLE \
   --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/unpushed" rev-parse HEAD)" \
   --stamp-dir "$SDIR2" >/dev/null 2>&1 )
 gexit_unpushed="$(runguard "$T/unpushed" "$DELIVER_CMD" "$SDIR2")"
 pushwork unpushed
@@ -510,14 +523,34 @@ fi
 # parsing, comparison) against a scripted remote answer — no live network
 # dependency, and "never calls gh" holds for every OTHER case (this is the
 # only one that ever puts a `gh` on PATH, and only for these two calls).
+#
+# Stub discriminates by PR NUMBER, not just presence of a `pr view` call:
+# an earlier cut of this stub answered ANY number, which coincidentally
+# masked #5239 QA re-delivery round 3 check 4(b) — the write route used in
+# production (`gh issue edit <n> --add-label status:delivered`, since a
+# board item is an issue) derived its PRNUM from the ISSUE number, and a
+# permissive stub let that wrong number "resolve" anyway. Only a stub that
+# rejects an unexpected number reproduces `gh pr view`'s real failure mode
+# on an issue number (issues and PRs share one number space; `gh pr view`
+# on an issue # cannot resolve it) and so actually exercises the fix.
 mkdir -p "$T/fakegh"
 cat > "$T/fakegh/gh" <<'SCRIPT'
 #!/usr/bin/env bash
 # Stub: answers `gh pr view <n> [-R <repo>] --json headRefOid -q .headRefOid`
-# with $FAKE_GH_PR_HEAD. Any other invocation is a test-design error.
+# with $FAKE_GH_PR_HEAD ONLY for PR number $FAKE_GH_PR_NUM — any other
+# number fails, matching real `gh pr view`'s behaviour on a number that
+# isn't actually a PR in this repo. Any other invocation is a test-design
+# error.
 if [ "${1:-}" = "pr" ] && [ "${2:-}" = "view" ]; then
-  printf '%s\n' "${FAKE_GH_PR_HEAD:-}"
-  exit 0
+  n=""
+  for a in "$@"; do
+    case "$a" in [0-9]*) n="$a"; break ;; esac
+  done
+  if [ "$n" = "${FAKE_GH_PR_NUM:-}" ]; then
+    printf '%s\n' "${FAKE_GH_PR_HEAD:-}"
+    exit 0
+  fi
+  exit 1
 fi
 exit 1
 SCRIPT
@@ -535,18 +568,219 @@ cat > "$T/prhead/pr-body.md" <<'EOF'
 No close keyword here — proven separately before merge.
 EOF
 SDIR="$T/prhead-stamps"; mkdir -p "$SDIR"
-( cd "$T/prhead" && bash "$CHECK" --issue 1 --pr 1 --base main \
+# issue #1, PR #7 — deliberately DIFFERENT numbers. #5239 QA re-delivery
+# round 3's own repro used this split to defeat a fixture that had
+# accidentally used the same number for both, which let the pre-fix
+# issue-number-as-PRNUM bug produce the right answer by coincidence and
+# masked the defect entirely.
+( cd "$T/prhead" && bash "$CHECK" --issue 1 --pr 7 --base main \
   --issue-body-file issue-body.md --pr-body-file pr-body.md \
   --pr-base-ref main --pr-mergeable MERGEABLE \
   --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/prhead" rev-parse HEAD)" \
   --stamp-dir "$SDIR" >/dev/null 2>&1 )
 REAL_HEAD="$(git -C "$T/prhead" rev-parse HEAD)"
-gexit_match="$(runguard "$T/prhead" "$DELIVER_CMD" "$SDIR" "$T/fakegh" "$REAL_HEAD")"
-gexit_mismatch="$(runguard "$T/prhead" "$DELIVER_CMD" "$SDIR" "$T/fakegh" "0000000000000000000000000000000000000000")"
+runguard_pr7() { # $1 = command, $2 = FAKE_GH_PR_HEAD
+  printf '{"tool_input":{"command":%s}}' "$(python3 -c 'import json,sys;print(json.dumps(sys.argv[1]))' "$1")" \
+    | ( cd "$T/prhead" && PATH="$T/fakegh:$PATH" \
+        AGENTIC_SDLC_DELIVERY_STAMP_DIR="$SDIR" FAKE_GH_PR_NUM=7 FAKE_GH_PR_HEAD="$2" bash "$GUARD" >/dev/null 2>&1 ); echo $?
+}
+gexit_match="$(runguard_pr7 "$DELIVER_CMD" "$REAL_HEAD")"
+gexit_mismatch="$(runguard_pr7 "$DELIVER_CMD" "0000000000000000000000000000000000000000")"
 if [ "$gexit_match" = "0" ] && [ "$gexit_mismatch" != "0" ]; then
   ok "guard-git compares against the PR's actual remote head (gh pr view), not just the local @{u} ref"
 else
   bad "expected remote-head match=allow(0), mismatch=block(nonzero) — got match=$gexit_match mismatch=$gexit_mismatch"
+fi
+# #5239 QA re-delivery round 3, check 4(b): the route labels are actually
+# applied through — `gh issue edit <n> --add-label status:delivered` — used
+# to derive PRNUM from the ISSUE number (1), so `gh pr view 1` could never
+# resolve (it isn't a PR), REMOTE_HEAD stayed empty, and the check silently
+# fell back to the (matching, in this fixture) local @{u} ref — wrongly
+# ALLOWING a write against a PR whose real remote head had moved. Fixed:
+# PRNUM is read from the stamp's own `pr:` line (7), independent of which
+# gh subcommand is writing the label.
+gexit_issueroute_mismatch="$(runguard_pr7 "$DELIVER_CMD" "0000000000000000000000000000000000000000")"
+gexit_issueroute_match="$(runguard_pr7 "$DELIVER_CMD" "$REAL_HEAD")"
+if [ "$gexit_issueroute_mismatch" != "0" ] && [ "$gexit_issueroute_match" = "0" ]; then
+  ok "the issue-edit route (production's actual delivery-label write) also compares against the PR's real head, not just @{u}"
+else
+  bad "issue-edit route: expected mismatch=block(nonzero) match=allow(0) — got mismatch=$gexit_issueroute_mismatch match=$gexit_issueroute_match"
+fi
+# Same route with an explicit -R/--repo flag before the subcommand.
+gexit_repoflag_mismatch="$(printf '{"tool_input":{"command":%s}}' "$(python3 -c 'import json,sys;print(json.dumps(sys.argv[1]))' 'gh -R o/r issue edit 1 --add-label "status:delivered"')" \
+  | ( cd "$T/prhead" && PATH="$T/fakegh:$PATH" AGENTIC_SDLC_DELIVERY_STAMP_DIR="$SDIR" FAKE_GH_PR_NUM=7 FAKE_GH_PR_HEAD="0000000000000000000000000000000000000000" bash "$GUARD" >/dev/null 2>&1 ); echo $?)"
+if [ "$gexit_repoflag_mismatch" != "0" ]; then
+  ok "the issue-edit route still blocks on a mismatched PR head with an explicit -R repo flag"
+else
+  bad "issue-edit route with -R MUST block on a mismatched PR head — got exit=$gexit_repoflag_mismatch"
+fi
+
+# ═══ 15. delivery-check.sh itself refuses when HEAD != the PR's real head ═
+# #5239 QA re-delivery round 3, check 4(a): delivery-check.sh wrote a
+# passing stamp for local HEAD without ever asking whether that HEAD is
+# what the PR actually shows on GitHub — only guard-git.sh's later,
+# separate check caught a mismatch, and only on some write routes. Fixed
+# by giving delivery-check.sh its own comparison: a --pr-head-sha override
+# (a caller that already has the real head, e.g. from CI) or a `gh pr view`
+# fallback when the override isn't given.
+mkrepo prheadself
+cat > "$T/prheadself/issue-body.md" <<'EOF'
+## Acceptance criteria
+
+- [ ] The file says "fixed".
+  Proof: `grep -q fixed f.txt`
+EOF
+echo "VERDICT: PASS" > "$T/prheadself/verdict.txt"
+cat > "$T/prheadself/pr-body.md" <<'EOF'
+No close keyword here — proven separately before merge.
+EOF
+REAL_HEAD_SELF="$(git -C "$T/prheadself" rev-parse HEAD)"
+
+# 15a. --pr-head-sha override: mismatch must fail, name the gap, write no stamp.
+SDIR="$T/prheadself-mismatch-stamps"; mkdir -p "$SDIR"
+out="$(cd "$T/prheadself" && bash "$CHECK" --issue 1 --pr 7 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "0000000000000000000000000000000000000000" \
+  --stamp-dir "$SDIR" 2>&1)"; rc=$?
+if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qi "does not match PR"; then
+  ok "delivery-check itself refuses when --pr-head-sha does not match local HEAD"
+else
+  bad "a --pr-head-sha mismatch MUST fail the check, named — got rc=$rc: $out"
+fi
+if [ -z "$(ls -A "$SDIR" 2>/dev/null)" ]; then
+  ok "no stamp written when --pr-head-sha does not match local HEAD"
+else
+  bad "a stamp was written despite --pr-head-sha not matching local HEAD"
+fi
+
+# 15b. --pr-head-sha override matching local HEAD: passes.
+SDIR2="$T/prheadself-match-stamps"; mkdir -p "$SDIR2"
+out2="$(cd "$T/prheadself" && bash "$CHECK" --issue 1 --pr 7 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$REAL_HEAD_SELF" \
+  --stamp-dir "$SDIR2" 2>&1)"; rc2=$?
+if [ "$rc2" -eq 0 ]; then
+  ok "delivery-check itself passes when --pr-head-sha matches local HEAD"
+else
+  bad "a matching --pr-head-sha MUST NOT be flagged — got rc=$rc2: $out2"
+fi
+
+# 15c. no override given: falls back to a real `gh pr view` call — proven
+# with the same discriminating stub as case 14, reused here for delivery-
+# check.sh's OWN gh call rather than guard-git.sh's.
+mkdir -p "$T/prheadself-fallback-match-stamps" "$T/prheadself-fallback-mismatch-stamps"
+out3="$(cd "$T/prheadself" && PATH="$T/fakegh:$PATH" FAKE_GH_PR_NUM=7 FAKE_GH_PR_HEAD="$REAL_HEAD_SELF" \
+  bash "$CHECK" --issue 1 --pr 7 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
+  --stamp-dir "$T/prheadself-fallback-match-stamps" 2>&1)"; rc3=$?
+if [ "$rc3" -eq 0 ]; then
+  ok "with no --pr-head-sha override, delivery-check.sh falls back to a real gh pr view lookup that matches"
+else
+  bad "the gh-fallback PR-head lookup MUST pass on a real match — got rc=$rc3: $out3"
+fi
+out4="$(cd "$T/prheadself" && PATH="$T/fakegh:$PATH" FAKE_GH_PR_NUM=7 FAKE_GH_PR_HEAD="0000000000000000000000000000000000000000" \
+  bash "$CHECK" --issue 1 --pr 7 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
+  --stamp-dir "$T/prheadself-fallback-mismatch-stamps" 2>&1)"; rc4=$?
+if [ "$rc4" -ne 0 ] && printf '%s' "$out4" | grep -qi "does not match PR"; then
+  ok "with no --pr-head-sha override, the gh-fallback lookup also catches a mismatch"
+else
+  bad "the gh-fallback PR-head lookup MUST catch a real mismatch — got rc=$rc4: $out4"
+fi
+
+# ═══ 16/17. DELIVERY_TEST_CMDS: each glob's command runs isolated ═══════
+# PM finding: a bare `eval "$cmd"` (no subshell, no closed stdin) shares
+# this loop's OWN shell and stdin with every command it runs — a `cd`
+# leaks into every later command (and the rest of the script), and a
+# command that reads stdin consumes the rest of TEST_CMDS_FILE's lines,
+# silently skipping later globs as an undetected false PASS. #73's fix
+# wraps each command in `( eval "$cmd" ) </dev/null`; these two cases pin
+# that both failure shapes stay fixed.
+mkrepo cdiso
+mkdir -p "$T/cdiso/a" "$T/cdiso/b"
+touch "$T/cdiso/a/x.txt" "$T/cdiso/b/y.txt"
+git -C "$T/cdiso" add a b
+git -C "$T/cdiso" commit -qm "add a/ and b/ subdirs"
+cat > "$T/cdiso/issue-body.md" <<'EOF'
+## Acceptance criteria
+
+- [ ] The file says "fixed".
+  Proof: `grep -q fixed f.txt`
+EOF
+echo "VERDICT: PASS" > "$T/cdiso/verdict.txt"
+cat > "$T/cdiso/pr-body.md" <<'EOF'
+No close keyword here — proven separately before merge.
+EOF
+# `cd b` only succeeds from cdiso's own root. Sharing one un-subshelled
+# shell across both commands would leave the first `cd a` in effect when
+# the second command runs, so `cd b` would look for cdiso/a/b (absent) and
+# fail — a false FAIL for a glob whose real target directory exists.
+cat > "$T/cdiso/test-cmds.txt" <<'EOF'
+a/**:cd a && true
+b/**:cd b && true
+EOF
+SDIR="$T/cdiso-stamps"; mkdir -p "$SDIR"
+out="$(cd "$T/cdiso" && bash "$CHECK" --issue 1 --pr 99 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/cdiso" rev-parse HEAD)" \
+  --test-cmds-file test-cmds.txt \
+  --stamp-dir "$SDIR" 2>&1)"; rc=$?
+if [ "$rc" -eq 0 ]; then
+  ok "a cd in one DELIVERY_TEST_CMDS command does not leak into the next command's glob"
+else
+  bad "each DELIVERY_TEST_CMDS command MUST run cd-isolated from its siblings — got rc=$rc: $out"
+fi
+
+mkrepo stdiniso
+mkdir -p "$T/stdiniso/a" "$T/stdiniso/b"
+touch "$T/stdiniso/a/x.txt" "$T/stdiniso/b/y.txt"
+git -C "$T/stdiniso" add a b
+git -C "$T/stdiniso" commit -qm "add a/ and b/ subdirs"
+cat > "$T/stdiniso/issue-body.md" <<'EOF'
+## Acceptance criteria
+
+- [ ] The file says "fixed".
+  Proof: `grep -q fixed f.txt`
+EOF
+echo "VERDICT: PASS" > "$T/stdiniso/verdict.txt"
+cat > "$T/stdiniso/pr-body.md" <<'EOF'
+No close keyword here — proven separately before merge.
+EOF
+# If `a/**`'s command shares the outer loop's stdin (TEST_CMDS_FILE itself)
+# instead of a closed one, `cat` reads to EOF and swallows the b/** line —
+# the loop ends having never run it, an undetected false PASS.
+cat > "$T/stdiniso/test-cmds.txt" <<'EOF'
+a/**:cat >/dev/null
+b/**:false
+EOF
+SDIR="$T/stdiniso-stamps"; mkdir -p "$SDIR"
+out="$(cd "$T/stdiniso" && bash "$CHECK" --issue 1 --pr 99 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/stdiniso" rev-parse HEAD)" \
+  --test-cmds-file test-cmds.txt \
+  --stamp-dir "$SDIR" 2>&1)"; rc=$?
+if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qF 'DELIVERY_TEST_CMDS[b/**] failed'; then
+  ok "a stdin-reading DELIVERY_TEST_CMDS command does not swallow sibling commands' input"
+else
+  bad "b/** MUST still run and fail after a stdin-reading a/** command — got rc=$rc: $out"
+fi
+if [ -z "$(ls -A "$SDIR" 2>/dev/null)" ]; then
+  ok "no stamp written when a later DELIVERY_TEST_CMDS command fails"
+else
+  bad "a stamp was written despite a failing DELIVERY_TEST_CMDS command"
 fi
 
 echo ""
