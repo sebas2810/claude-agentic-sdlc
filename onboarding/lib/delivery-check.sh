@@ -64,6 +64,7 @@ set -uo pipefail
 
 ISSUE=""; PR=""; BASE_REF=""
 ISSUE_BODY_FILE=""; PR_BODY_FILE=""; PR_MERGEABLE_OVERRIDE=""; PR_BASE_REF_OVERRIDE=""
+PR_HEAD_SHA_OVERRIDE=""
 REVIEWER_VERDICT_FILE=""
 TEST_CMDS_FILE=""
 SDLC_CONFIG=""
@@ -73,13 +74,17 @@ usage() {
   cat >&2 <<'EOF'
 usage: delivery-check.sh --issue <n> [--pr <n>] [--base <ref>]
          [--issue-body-file <f>] [--pr-body-file <f>] [--pr-mergeable <v>]
-         [--pr-base-ref <ref>] [--reviewer-verdict-file <f>]
+         [--pr-base-ref <ref>] [--pr-head-sha <sha>]
+         [--reviewer-verdict-file <f>]
          [--test-cmds-file <f>] [--sdlc-config <f>] [--stamp-dir <d>]
 
 --base defaults to onboarding/lib/resolve-integration-base.sh's resolution
 for HEAD (the registered integration branch, else origin/main).
 --pr-base-ref defaults to the PR's actual baseRefName (via gh); compared
 against --base — a PR opened against the wrong branch fails this check.
+--pr-head-sha defaults to the PR's actual headRefOid (via gh); compared
+against local HEAD — a stamp for content that is not what the PR shows on
+GitHub fails this check (sebas2810/claude-agentic-sdlc#73, #5239 round 3).
 --test-cmds-file defaults to DELIVERY_TEST_CMDS sourced from --sdlc-config
 (which itself defaults to <repo-root>/sdlc.config, if present).
 EOF
@@ -95,6 +100,7 @@ while [ $# -gt 0 ]; do
     --pr-body-file) PR_BODY_FILE="${2:-}"; shift 2 ;;
     --pr-mergeable) PR_MERGEABLE_OVERRIDE="${2:-}"; shift 2 ;;
     --pr-base-ref) PR_BASE_REF_OVERRIDE="${2:-}"; shift 2 ;;
+    --pr-head-sha) PR_HEAD_SHA_OVERRIDE="${2:-}"; shift 2 ;;
     --reviewer-verdict-file) REVIEWER_VERDICT_FILE="${2:-}"; shift 2 ;;
     --test-cmds-file) TEST_CMDS_FILE="${2:-}"; shift 2 ;;
     --sdlc-config) SDLC_CONFIG="${2:-}"; shift 2 ;;
@@ -165,7 +171,7 @@ else
     || { echo "could not fetch issue #$ISSUE body" >&2; exit 2; }
 fi
 
-PR_BODY=""; PR_MERGEABLE="UNKNOWN"; PR_BASE_REF=""
+PR_BODY=""; PR_MERGEABLE="UNKNOWN"; PR_BASE_REF=""; PR_HEAD_SHA=""
 if [ -n "$PR" ]; then
   if [ -n "$PR_BODY_FILE" ]; then
     [ -f "$PR_BODY_FILE" ] || { echo "no such file: $PR_BODY_FILE" >&2; exit 2; }
@@ -185,14 +191,40 @@ if [ -n "$PR" ]; then
   else
     PR_BASE_REF=""
   fi
+  # #5239 QA re-delivery round 3, check 4(a): this script checked the PR
+  # was MERGEABLE against the current base tip, but never confirmed the PR
+  # actually shows the commit being proven — a stamp got written for local
+  # HEAD while the PR's real head (on GitHub) pointed at something else
+  # entirely. `grep -c headRefOid` on this file returned 0 before this fix.
+  if [ -n "$PR_HEAD_SHA_OVERRIDE" ]; then
+    PR_HEAD_SHA="$PR_HEAD_SHA_OVERRIDE"
+  elif command -v gh >/dev/null 2>&1; then
+    PR_HEAD_SHA="$(gh pr view "$PR" --json headRefOid -q .headRefOid 2>/dev/null || true)"
+  fi
 fi
 
 echo "== delivery-check: issue #$ISSUE${PR:+, pr #$PR}, base $BASE_REF =="
 
 # ── AC1/AC4-shape: parse "- [ ]"/"- [x]" lines, and an immediately-following
 #    indented "Proof: \`cmd\`" line as that AC's proof command. ────────────
+#
+# #5239 QA re-delivery round 3, check 1: AC_TMP's fields used to be
+# tab-separated, read back with `IFS=$'\t' read -r cmd desc`. Tab is one of
+# bash's three "IFS whitespace" characters (space/tab/newline) — even when
+# IFS is set to JUST a tab, `read` still applies the whitespace-splitting
+# rule for it: a LEADING delimiter is stripped, not treated as an empty
+# first field. A no-Proof line ("\t$desc") therefore parsed as cmd="$desc",
+# desc="" instead of cmd="", desc="$desc" — the checkbox's own prose landed
+# in $cmd and was silently `eval`'d as its own proof command in the loop
+# below, and the "checkbox has no Proof: command" bad() a few lines down
+# never fired because $cmd read as non-empty. Any OTHER delimiter char does
+# not get this treatment (confirmed empirically — comma and the ASCII Unit
+# Separator both preserve a leading empty field), so US (0x1F, a control
+# character that cannot appear in Markdown prose or a shell one-liner)
+# replaces the tab everywhere this file's fields are produced or consumed.
+US="$(printf '\x1f')"
 AC_TMP="$(mktemp)"
-printf '%s\n' "$ISSUE_BODY" | awk '
+printf '%s\n' "$ISSUE_BODY" | awk -v US="$US" '
   function flush() {
     if (have_ac) {
       # No Proof: line ever paired with this checkbox — emit it with an
@@ -200,7 +232,7 @@ printf '%s\n' "$ISSUE_BODY" | awk '
       # is exactly the #5239 QA re-delivery gap: a checkbox with no proof
       # counted toward neither AC_COUNT nor any failure, so it just PASSED
       # by never being looked at again.
-      print "\t" pending_desc
+      print US pending_desc
       have_ac = 0
     }
   }
@@ -216,7 +248,7 @@ printf '%s\n' "$ISSUE_BODY" | awk '
     cmd = $0
     sub(/^[[:space:]]+Proof:[[:space:]]*`/, "", cmd)
     sub(/`[[:space:]]*$/, "", cmd)
-    print cmd "\t" pending_desc
+    print cmd US pending_desc
     have_ac = 0
     next
   }
@@ -228,7 +260,7 @@ UNTICKED_COUNT="$(printf '%s\n' "$ISSUE_BODY" | grep -cE '^[[:space:]]*-[[:space
 TICKED_COUNT="$(printf '%s\n' "$ISSUE_BODY" | grep -cE '^[[:space:]]*-[[:space:]]\[[xX]\]' || true)"
 TOTAL_CHECKBOX_COUNT="$((UNTICKED_COUNT + TICKED_COUNT))"
 AC_COUNT="$(wc -l < "$AC_TMP" | tr -d ' ')"
-WITH_PROOF_COUNT="$(awk -F'\t' '$1 != "" { c++ } END { print c+0 }' "$AC_TMP")"
+WITH_PROOF_COUNT="$(awk -F"$US" '$1 != "" { c++ } END { print c+0 }' "$AC_TMP")"
 note "found $AC_COUNT AC checkbox line(s), $WITH_PROOF_COUNT with a Proof: command, $UNTICKED_COUNT unticked / $TICKED_COUNT ticked checkbox line(s) total"
 
 # #5239 QA re-delivery check 1: an issue body with ZERO recognized GFM
@@ -242,7 +274,7 @@ if [ "$TOTAL_CHECKBOX_COUNT" -eq 0 ]; then
 elif [ "$WITH_PROOF_COUNT" -ne "$TOTAL_CHECKBOX_COUNT" ]; then
   # A checkbox with no Proof: line is a manual assertion, not proof — the
   # same "no criterion was proven" gap as zero checkboxes, just partial.
-  while IFS=$'\t' read -r cmd desc; do
+  while IFS="$US" read -r cmd desc; do
     [ -n "$cmd" ] && continue
     short_desc="$(printf '%s' "$desc" | cut -c1-72)"
     bad "checkbox has no Proof: command: $short_desc"
@@ -257,7 +289,7 @@ if [ "$AC_COUNT" -gt 0 ]; then
   else
     REVERT_WT="$(mktemp -d)"
     if git worktree add --detach --quiet "$REVERT_WT" "$BASE_SHA" >/dev/null 2>&1; then
-      while IFS=$'\t' read -r cmd desc; do
+      while IFS="$US" read -r cmd desc; do
         [ -n "$cmd" ] || continue
         # Printed before execution: this command came from the issue body,
         # not from whoever is running the check (see the SECURITY note at
@@ -394,6 +426,25 @@ if [ -n "$PR" ]; then
     UNKNOWN) bad "PR mergeable state is unknown (no gh, gh lookup failed, or GitHub has not computed it yet) — cannot confirm it is mergeable" ;;
     *) bad "PR is not mergeable against the current base tip (state: $PR_MERGEABLE)" ;;
   esac
+fi
+
+# #5239 QA re-delivery round 3, check 4(a): "mergeable" is a statement about
+# the base tip, not about WHICH commit the PR shows — a stub answering PR
+# #7's head as one sha while local HEAD sits at another still passed every
+# check above and wrote a stamp for the wrong commit. Compare the PR's real
+# head (headRefOid, from GitHub) against local HEAD directly; unresolved is
+# a failure to verify, not a pass-by-default, same posture as PR_MERGEABLE.
+if [ -n "$PR" ]; then
+  LOCAL_HEAD_SHA="$(git rev-parse HEAD 2>/dev/null || true)"
+  if [ -z "$PR_HEAD_SHA" ]; then
+    bad "could not resolve PR #$PR's actual head commit (no gh, gh lookup failed, and no --pr-head-sha override) — cannot confirm HEAD is what the PR shows on GitHub"
+  elif [ -z "$LOCAL_HEAD_SHA" ]; then
+    bad "cannot resolve local HEAD to compare against PR #$PR's head"
+  elif [ "$PR_HEAD_SHA" != "$LOCAL_HEAD_SHA" ]; then
+    bad "local HEAD ($LOCAL_HEAD_SHA) does not match PR #$PR's actual head on GitHub ($PR_HEAD_SHA) — push first so the commit being proven is what the PR actually shows"
+  else
+    ok "local HEAD matches PR #$PR's actual head on GitHub ($LOCAL_HEAD_SHA)"
+  fi
 fi
 
 # ── AC4: the read-only reviewer verdict ──────────────────────────────────
