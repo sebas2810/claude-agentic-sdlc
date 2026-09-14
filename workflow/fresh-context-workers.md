@@ -29,7 +29,7 @@ as [`commands/check.md`](../commands/check.md) says. For the item it picks:
 1. Start [`engineer-worker`](../agents/engineer-worker.md) with the `item` and
    `phase: build`, in the seat's own worktree.
 2. On `result=REVIEW-NEEDED`, start [`delivery-reviewer`](../agents/delivery-reviewer.md)
-   yourself, in a fresh context, with the issue's acceptance criteria and the
+   yourself, as a fresh subagent, with the issue's acceptance criteria and the
    PR's base and head. It is read-only and returns a short per-AC verdict
    (under 40 lines) ending in its `VERDICT:` line. Do not re-read the diff or
    add to the verdict: every line the seat handles lands in the seat's
@@ -64,8 +64,8 @@ Producer items run one after another, because they share the seat's worktree.
 2. Discover `status:delivered` and drop rows authored outside
    `$SQUAD_AUTHORS`, as `commands/check.md` says.
 3. Start one [`quality-worker`](../agents/quality-worker.md) per row in
-   `mode: parallel`, at most `$CAP` at a time, each in its own clean worktree
-   at the PR head. Note each item number as its worker starts. When one
+   `mode: parallel`, at most `$CAP` at a time, each as a fresh subagent in its
+   own clean worktree at the PR head. Note each item number as its worker starts. When one
    reports, start the next row, until every row has had a worker.
 4. Run the rows reported `NEEDS-SERIAL` one at a time, in `mode: serial`.
    That serial run is the only second worker an item gets in one drain.
@@ -81,6 +81,22 @@ config or flag change) run one at a time for the same reason: every worker
 shares that environment. Two workers driving the same browser, resetting the
 same database or redeploying the same environment produce verdicts about each
 other, not about their items.
+
+## Start every worker fresh, never as a fork
+
+Start each worker, and the delivery reviewer, as a fresh subagent: the named
+agent, or a general-purpose subagent given the definition file's text. Never
+start one as a fork. A fork (`subagent_type: "fork"` in Claude Code's Agent
+tool) copies the seat's whole conversation into the subagent, which re-reads
+it on every call. The seat's own context stays small, so a fork looks like a
+saving, but the item pays for the seat's history again inside the fork.
+
+One instance's seat transcripts over about 20 hours: 17 forks started with
+108k to 285k tokens of context and spent 12.4M input-equivalent tokens; 12
+fresh subagents started with 15k to 55k (one at 234k) and spent 8.3M. A fork's
+calls sit under `subagents/`, outside the seat's own context, so the
+measurement below would pass a seat that forks; its pass line checks for forks
+by name.
 
 ## What a worker carries
 
@@ -143,9 +159,11 @@ after adoption, not before merge:
 2. `before` is the `ctx` of the first call whose `started` names the item's
    `engineer-worker`. `after` is the `ctx` of the first call after the item's
    last worker report came back (the `deliver` run that reported `DELIVERED`).
-3. **Pass line:** `after - before` is under 10000. Post `before`, `after`,
-   the difference, the session id and PASS or FAIL on the issue that carries
-   the criterion.
+3. **Pass line:** `after - before` is under 10000, and no `started` entry
+   from the `before` call up to the `after` call begins with `fork:`, which is
+   how the list shows a subagent started with `subagent_type: "fork"`. Post
+   `before`, `after`, the difference, any `fork:` entries, the session id and
+   PASS or FAIL on the issue that carries the criterion.
 
 For drains as a whole, `operations/metrics/seat-tokens.py` reports each seat's
 average context and spend per active day across a window, so a window before
