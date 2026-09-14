@@ -148,6 +148,35 @@ printf '\nSee `../outside.md` before you start.\n' >> "$T/fw/agents/quality-work
 expect 1 'agents/quality-worker.md: mentions `../outside.md`, which climbs out of the framework root' \
   "a body path with '..' fails even when it resolves"
 
+# 17. A worker whose model no longer matches its tier.
+fresh_copy
+sed 's/^model: sonnet$/model: opus/' "$T/fw/agents/engineer-worker-light.md" > "$T/edit" && mv "$T/edit" "$T/fw/agents/engineer-worker-light.md"
+expect 1 "agents/engineer-worker-light.md: frontmatter model is 'opus', expected 'sonnet' for its tier" \
+  "a light worker at another model fails and is named"
+
+# 18. A base worker back on the seat's model.
+fresh_copy
+sed 's/^model: opus$/model: inherit/' "$T/fw/agents/quality-worker.md" > "$T/edit" && mv "$T/edit" "$T/fw/agents/quality-worker.md"
+expect 1 "agents/quality-worker.md: frontmatter model is 'inherit', expected 'opus' for its tier" \
+  "a standard worker that inherits the seat's model fails and is named"
+
+# 19. A worker whose effort is gone.
+fresh_copy
+grep -v '^effort: high$' "$T/fw/agents/quality-worker-deep.md" > "$T/edit" && mv "$T/edit" "$T/fw/agents/quality-worker-deep.md"
+expect 1 "agents/quality-worker-deep.md: frontmatter effort is '', expected 'high' for its tier" \
+  "a deep worker with no effort fails and is named"
+
+# 20. A tier variant that no longer points at its base worker.
+fresh_copy
+grep -v '^- `agents/engineer-worker.md`' "$T/fw/agents/engineer-worker-deep.md" > "$T/edit" && mv "$T/edit" "$T/fw/agents/engineer-worker-deep.md"
+expect 1 'agents/engineer-worker-deep.md: no longer lists required rule `agents/engineer-worker.md`' \
+  "a variant that drops its base worker fails and is named"
+
+# 21. A tier variant deleted.
+fresh_copy
+rm "$T/fw/agents/quality-worker-light.md"
+expect 1 "agents/quality-worker-light.md: missing" "a deleted tier variant fails and is named"
+
 echo ""
 if [ "$fails" -eq 0 ]; then
   echo "worker-definitions: all checks passed"

@@ -96,6 +96,8 @@ jobs:
         run: bash onboarding/tests/worker-definitions.test.sh onboarding/lib/check-worker-definitions.sh
       - name: workers - the quality seat's parallel cap is resolved or refused, never guessed
         run: bash onboarding/tests/resolve-qa-max-parallel.test.sh onboarding/lib/resolve-qa-max-parallel.sh
+      - name: workers - each item's worker is picked from its tier label, or refused
+        run: bash onboarding/tests/pick-worker.test.sh onboarding/lib/pick-worker.sh
       - name: seat commands - each instance's seats run their own /check, ~/.claude/commands untouched (#77)
         run: bash onboarding/tests/seat-commands-per-instance.test.sh
       - name: plugin version - a shipped command, skill, agent or hook change must raise it (#77)

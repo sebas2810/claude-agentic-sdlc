@@ -13,8 +13,14 @@
 # For each worker below, agents/<worker>.md must:
 #   - exist and be readable
 #   - open with frontmatter whose name: is <worker> and whose description: is set
+#   - set model: and effort: to its tier (workflow/fresh-context-workers.md,
+#     "Tiers"): <role>-worker-light sonnet/low, <role>-worker opus/medium,
+#     <role>-worker-deep opus/high. onboarding/lib/pick-worker.sh starts a worker
+#     for its tier, so a definition at another model runs every item of that
+#     tier at a cost or a depth nobody chose.
 #   - have a "## Rules you carry" section
-#   - list every required path for that worker as a "- `path`" item there
+#   - list every required path for that worker as a "- `path`" item there (a
+#     tier variant's one required path is its base worker's definition)
 #   - have every "- `path`" item in that section resolve to a file
 #   - have every repo path its text names in backticks resolve to a file: a
 #     token inside `...` shaped like dir/file.ext (a step that runs
@@ -36,10 +42,20 @@ set -uo pipefail
 ROOT="${1:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 [ -d "$ROOT" ] || { echo "check-worker-definitions: framework root is not a directory: $ROOT" >&2; exit 2; }
 
-WORKERS="engineer-worker quality-worker"
+WORKERS="engineer-worker quality-worker engineer-worker-light engineer-worker-deep quality-worker-light quality-worker-deep"
+
+# tier_frontmatter <worker>: the "model effort" its tier sets.
+tier_frontmatter() {
+  case "$1" in
+    *-worker-light) echo "sonnet low" ;;
+    *-worker-deep)  echo "opus high" ;;
+    *)              echo "opus medium" ;;
+  esac
+}
 
 required_rules() {
   case "$1" in
+    *-worker-light|*-worker-deep) echo "agents/${1%-*}.md" ;;
     engineer-worker) cat <<'EOF'
 seats/engineer/KICKOFF.md
 commands/check.md
@@ -128,6 +144,11 @@ for worker in $WORKERS; do
   description="$(printf '%s\n' "$front" | sed -n 's/^description:[[:space:]]*//p' | head -1)"
   [ "$name" = "$worker" ] || finding "$rel: frontmatter name is '$name', expected '$worker'"
   [ -n "$description" ] || finding "$rel: frontmatter has no description"
+  model="$(printf '%s\n' "$front" | sed -n 's/^model:[[:space:]]*//p' | head -1)"
+  effort="$(printf '%s\n' "$front" | sed -n 's/^effort:[[:space:]]*//p' | head -1)"
+  read -r want_model want_effort <<< "$(tier_frontmatter "$worker")"
+  [ "$model" = "$want_model" ] || finding "$rel: frontmatter model is '$model', expected '$want_model' for its tier"
+  [ "$effort" = "$want_effort" ] || finding "$rel: frontmatter effort is '$effort', expected '$want_effort' for its tier"
 
   if ! grep -q '^## Rules you carry[[:space:]]*$' "$file"; then
     finding "$rel: no '## Rules you carry' section, so the worker carries no rules"

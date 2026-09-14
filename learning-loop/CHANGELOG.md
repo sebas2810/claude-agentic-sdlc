@@ -2,6 +2,23 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-09-14 - worker tiers: each item runs at the model and effort its tier label sets
+
+Every worker ran at the seat's own model (`model: inherit`), so a copy change and a root-cause
+hunt paid for the same model at the same effort.
+
+- New: `tier:light`, `tier:standard` and `tier:deep` labels. The PM sets one when it scopes an
+  item; none means standard.
+- New: `agents/engineer-worker-light.md`, `engineer-worker-deep.md`, `quality-worker-light.md`
+  and `quality-worker-deep.md`, thin definitions over their base worker. The base workers are
+  now the standard tier (opus, medium effort) and no longer inherit the seat's model.
+- New: `onboarding/lib/pick-worker.sh` picks the worker from the item's labels. A quality
+  worker on `area:agentic` work never runs at light, and an engineer rework runs one tier up.
+  An unreadable tier exits 2 instead of defaulting. `commands/check.md` calls it in both drains.
+- `check-worker-definitions.sh` checks each worker's `model:` and `effort:` against its tier,
+  and `doctor.sh` fails when a `tier:` label is missing.
+- Why: [`../workflow/fresh-context-workers.md`](../workflow/fresh-context-workers.md), "Tiers".
+
 ## 2026-09-13 - the framing rules: an AC names its verifier, and a narrowed PR is a consult-exception
 
 In the same 14 days of returns, 11 came from framing rather than building: 7 acceptance criteria
