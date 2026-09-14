@@ -34,6 +34,12 @@ refused() {
   out="$(bash "$S" "$@" 2>&1)"; rc=$?
   if [ "$rc" -eq 2 ] && printf '%s' "$out" | grep -qF -- "$needle"; then ok "$desc"; else bad "$desc (exit $rc, output '$out')"; fi
 }
+# picks_env <NAME=VALUE> <description> <expected worker> <args...>: like picks, with one env var set
+picks_env() {
+  local envset="$1" desc="$2" want="$3" out rc; shift 3
+  out="$(env "$envset" bash "$S" "$@" 2>&1)"; rc=$?
+  if [ "$rc" -eq 0 ] && [ "$out" = "$want" ]; then ok "$desc"; else bad "$desc (exit $rc, got '$out', want '$want')"; fi
+}
 
 # Every tier, both roles.
 picks "engineer, no tier label: standard" engineer-worker --role engineer --labels "status:scoped"
@@ -51,6 +57,18 @@ picks "quality, tier:light on area:agentic runs at standard" quality-worker --ro
 picks "quality, tier:deep on area:agentic stays deep" quality-worker-deep --role quality --labels "area:agentic,tier:deep"
 picks "the floor is the quality role's only: engineer tier:light on area:agentic stays light" \
   engineer-worker-light --role engineer --labels "tier:light,area:agentic"
+
+# The floor list beyond the one exact area:agentic label, and case-insensitively (#5305).
+picks "quality, tier:light on bare agentic runs at standard" quality-worker --role quality --labels "tier:light,agentic"
+picks "quality, tier:light on agent-ops runs at standard" quality-worker --role quality --labels "tier:light,agent-ops"
+picks "quality, tier:light on area:eval runs at standard" quality-worker --role quality --labels "tier:light,area:eval"
+picks "quality, tier:light on area:Agentic (mixed case) runs at standard" quality-worker --role quality --labels "tier:light,area:Agentic"
+
+# QUALITY_FLOOR_LABELS replaces the default list, it does not add to it.
+picks_env "QUALITY_FLOOR_LABELS=area:custom" "QUALITY_FLOOR_LABELS override matches its own label" quality-worker \
+  --role quality --labels "tier:light,area:custom"
+picks_env "QUALITY_FLOOR_LABELS=area:custom" "QUALITY_FLOOR_LABELS override drops the default floor" quality-worker-light \
+  --role quality --labels "tier:light,area:agentic"
 
 # Escalation: a rework runs one tier up, capped at deep.
 picks "engineer rework of tier:light runs at standard" engineer-worker --role engineer --labels "tier:light" --fails 1
@@ -71,6 +89,8 @@ refused "the same tier label twice is refused" "more than one tier label" \
   --role engineer --labels "tier:deep,tier:deep"
 refused "an unknown tier is refused, not read as standard" "'tier:heavy' is not a tier" \
   --role engineer --labels "tier:heavy"
+refused "a tier label in the wrong case is refused, not read case-insensitively" "'TIER:LIGHT' is not a tier" \
+  --role engineer --labels "TIER:LIGHT"
 refused "a missing role is refused" "--role is required" --labels "tier:light"
 refused "an unknown role is refused" "--role 'designer' is not engineer or quality" --role designer --labels ""
 refused "missing labels are refused, not read as none" "--labels is required" --role engineer
