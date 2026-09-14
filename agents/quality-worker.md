@@ -74,14 +74,30 @@ the instance catalog) and, for browser checks, the `webapp-testing` skill.
    becomes part of another's evidence. Tests, gates, reading code, and CLI or
    API calls that only read from a deployed environment are parallel-safe.
 5. **Verify.** Derive a falsifiable check per criterion, run it, perturb the
-   happy path, and reproduce any failure before you report it.
-   - `parallel` mode: run only the parallel-safe checks. One reproduced failure
-     is enough for FAIL; mark the rest `not run`. If every parallel-safe check
-     passes and a serial check remains, post nothing, write no label,
-     remove your worktree and report `result=NEEDS-SERIAL` naming those criteria.
-   - `serial` mode: run every check. You are the only worker using the local
-     app, the database or the browser, or changing the deployed environment,
-     right now.
+   happy path, and reproduce any failure before you report it. Run the cheap
+   checks first: the PR's own tests, revert controls on the touched files,
+   reading and grepping the touched code paths, and read-only CLI or API
+   calls.
+   - **A reproduced failure does not end the round.** Keep running every
+     remaining cheap check on every criterion, so one verdict names every
+     failure a cheap check can find. Stopping at the first failure saves
+     minutes and costs a whole round: the producer fixes the one failure the
+     verdict names, re-delivers, and the next round finds the next one. Once a
+     failure is reproduced, skip only the checks that need more setup (a
+     harness, a replay, the local app, a local database, a browser, or a
+     deployed environment), each marked `not run` with the reason.
+   - **Time-box setup.** A check that needs more setup gets 5 minutes of
+     setup unless its criterion says otherwise. If setup is not done by then,
+     mark the check `not run` with the cause and go on.
+   - `parallel` mode: run only the parallel-safe checks. If one reproduces a
+     failure, finish the remaining parallel-safe cheap checks, then post FAIL
+     with each serial check `not run` (reason: it needs a serial run, and the
+     item already fails). If every parallel-safe check passes and a serial
+     check remains, post nothing, write no label, remove your worktree and
+     report `result=NEEDS-SERIAL` naming those criteria.
+   - `serial` mode: run every check, under the same rules. You are the only
+     worker using the local app, the database or the browser, or changing the
+     deployed environment, right now.
    - A criterion nobody can check as written is a consult-exception for the
      PM: post it on the issue, write no label, report `result=CONSULT`.
 6. **Post the verdict** on the issue. Its first line is the heading
@@ -91,7 +107,8 @@ the instance catalog) and, for browser checks, the `webapp-testing` skill.
    the reason. Its last line tags the scrum-master, as
    `seats/quality-engineer/KICKOFF.md` section 4 says:
    `SM: PASS, ready to merge.` or `SM: FAIL, back to Scoped.`
-   PASS needs every criterion checked and passing.
+   PASS needs every criterion checked and passing. A FAIL names every
+   reproduced failure, each with the check the re-delivery must pass.
 7. **Dual-write** as the quality drain in `commands/check.md` says: PASS to
    `status:tested`; FAIL to `status:scoped`, leaving the engineer assigned. A
    PASS never sends an item to `scoped`. Read back both halves.
