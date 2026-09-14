@@ -69,11 +69,41 @@ pushwork() { # $1 = name
   git -C "$T/$1" push -q origin work 2>/dev/null
 }
 
+# #5239 QA re-delivery round 4, FAIL 2: guard-git no longer falls back to
+# the local @{u} ref when it cannot resolve a PR's real head via gh — an
+# unresolvable gh now BLOCKS (see onboarding/hooks/guard-git.test.sh /
+# guard-git.parity.test.sh section 19 for that behaviour itself). Every
+# fixture repo here has a non-github.com `origin`, so a REAL `gh pr view`
+# always fails against it — before this round, that failure silently fell
+# through to @{u} and most "allow" assertions passed for the wrong reason.
+# This stub answers truthfully instead: whatever is actually on the
+# invoking repo's pushed `work` branch (falling back to `main`) IS the
+# real head a genuine GitHub PR would report, for any PR number asked —
+# so "allow" now happens for the same reason production allows it (gh
+# resolves, and the answer matches local HEAD), and "the commit was never
+# pushed" still blocks, via the mismatch path instead of the retired
+# @{u} fallback.
+mkdir -p "$T/ghauto"
+cat > "$T/ghauto/gh" <<'SCRIPT'
+#!/usr/bin/env bash
+if [ "${1:-}" = "pr" ] && [ "${2:-}" = "view" ]; then
+  git rev-parse origin/work 2>/dev/null || git rev-parse origin/main 2>/dev/null || exit 1
+  exit 0
+fi
+exit 1
+SCRIPT
+chmod +x "$T/ghauto/gh"
+
 runguard() { # $1 = cwd, $2 = command, $3 = stamp dir, $4 = optional dir to
-             # prepend to PATH (a stub gh), $5 = optional FAKE_GH_PR_HEAD
+             # prepend to PATH (a stub gh; defaults to $T/ghauto, which
+             # truthfully resolves any PR number to the repo's real pushed
+             # head — see the FAIL 2 note above), $5 = optional
+             # FAKE_GH_PR_HEAD (only honoured by the $T/fakegh stub used
+             # from section 14 onward)
              # -> exit code on stdout as "exit=N"
+  local stubdir="${4:-$T/ghauto}"
   printf '{"tool_input":{"command":%s}}' "$(python3 -c 'import json,sys;print(json.dumps(sys.argv[1]))' "$2")" \
-    | ( cd "$1" && [ -n "${4:-}" ] && PATH="$4:$PATH"; \
+    | ( cd "$1" && PATH="$stubdir:$PATH"; \
         AGENTIC_SDLC_DELIVERY_STAMP_DIR="$3" FAKE_GH_PR_HEAD="${5:-}" bash "$GUARD" >/dev/null 2>&1 ); echo $?
 }
 
@@ -781,6 +811,230 @@ if [ -z "$(ls -A "$SDIR" 2>/dev/null)" ]; then
   ok "no stamp written when a later DELIVERY_TEST_CMDS command fails"
 else
   bad "a stamp was written despite a failing DELIVERY_TEST_CMDS command"
+fi
+
+# ═══ 18. IFS/tab regression pin: a no-Proof checkbox is caught as such ══
+# #5239 QA re-delivery round 4, check 1. The historic bug: AC_TMP's
+# fields used to be tab-separated, read back with
+# `IFS=$'\t' read -r cmd desc`. Bash treats tab as IFS whitespace, so a
+# LEADING delimiter is stripped rather than producing an empty first
+# field — a no-Proof line's checkbox prose landed in $cmd instead of
+# $desc, and the "checkbox has no Proof: command" bad() never fired
+# because $cmd read as non-empty (it silently got `eval`'d as its own
+# proof command instead). Reverting US (0x1f) back to a literal tab
+# reproduces exactly that: `running proof:` fires on the checkbox's own
+# text instead of the "no Proof: command" message.
+mkrepo notab
+cat > "$T/notab/issue-body.md" <<'EOF'
+## Acceptance criteria
+
+- [ ] grep -q fixed f.txt
+EOF
+echo "VERDICT: PASS" > "$T/notab/verdict.txt"
+cat > "$T/notab/pr-body.md" <<'EOF'
+No close keyword here — proven separately before merge.
+EOF
+SDIR="$T/notab-stamps"; mkdir -p "$SDIR"
+out="$(cd "$T/notab" && bash "$CHECK" --issue 1 --pr 99 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/notab" rev-parse HEAD)" \
+  --stamp-dir "$SDIR" 2>&1)"; rc=$?
+if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qF 'checkbox has no Proof: command'; then
+  ok "a checkbox with no Proof: line is caught as such (IFS/tab field-split regression pin)"
+else
+  bad "a no-Proof checkbox MUST be reported as 'checkbox has no Proof: command' — got rc=$rc: $out"
+fi
+if ! printf '%s' "$out" | grep -qF 'running proof:'; then
+  ok "the checkbox's own prose is never eval'd as a proof command"
+else
+  bad "the no-Proof checkbox's prose MUST NOT be run as a proof command — got: $out"
+fi
+if [ -z "$(ls -A "$SDIR" 2>/dev/null)" ]; then
+  ok "no stamp written for a checkbox with no Proof: command"
+else
+  bad "a stamp was written despite a checkbox having no Proof: command"
+fi
+
+# ═══ 19. guard-git fails closed when the PR head cannot be resolved ═════
+# #5239 QA re-delivery round 4, FAIL 2 (round-3 check 3): an empty
+# REMOTE_HEAD (gh missing, gh lookup failed, the stamp's pr: line
+# missing, or its value unresolvable) used to fall back to the local
+# @{u} ref instead of failing closed — the same "a verification that
+# cannot be made must not read as a pass" gap PR_MERGEABLE/PR_HEAD_SHA
+# were already fixed for in delivery-check.sh itself. Four scenarios
+# must now BLOCK; two controls must still ALLOW.
+mkrepo failclosed
+cat > "$T/failclosed/issue-body.md" <<'EOF'
+## Acceptance criteria
+
+- [ ] The file says "fixed".
+  Proof: `grep -q fixed f.txt`
+EOF
+echo "VERDICT: PASS" > "$T/failclosed/verdict.txt"
+cat > "$T/failclosed/pr-body.md" <<'EOF'
+No close keyword here — proven separately before merge.
+EOF
+SDIR="$T/failclosed-stamps"; mkdir -p "$SDIR"
+( cd "$T/failclosed" && bash "$CHECK" --issue 1 --pr 42 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/failclosed" rev-parse HEAD)" \
+  --stamp-dir "$SDIR" >/dev/null 2>&1 )
+FC_HEAD="$(git -C "$T/failclosed" rev-parse HEAD)"
+FC_STAMP="$SDIR/agentic-sdlc-delivery.$FC_HEAD"
+
+# A gh stub that ALWAYS fails, whatever it is asked — "gh fails all
+# calls" in its strongest form.
+mkdir -p "$T/ghfail"
+cat > "$T/ghfail/gh" <<'SCRIPT'
+#!/usr/bin/env bash
+exit 1
+SCRIPT
+chmod +x "$T/ghfail/gh"
+
+# A gh stub that resolves ONLY PR #42, to the fixture's real head — used
+# for the two controls, and to prove #8 (below) genuinely cannot resolve.
+mkdir -p "$T/ghok"
+cat > "$T/ghok/gh" <<SCRIPT
+#!/usr/bin/env bash
+if [ "\${1:-}" = "pr" ] && [ "\${2:-}" = "view" ]; then
+  n=""
+  for a in "\$@"; do case "\$a" in [0-9]*) n="\$a"; break ;; esac; done
+  if [ "\$n" = "42" ]; then printf '%s\n' "$FC_HEAD"; exit 0; fi
+fi
+exit 1
+SCRIPT
+chmod +x "$T/ghok/gh"
+
+runguard_fc() { # $1 = command, $2 = PATH-stub dir, $3 = stamp dir override
+  printf '{"tool_input":{"command":%s}}' "$(python3 -c 'import json,sys;print(json.dumps(sys.argv[1]))' "$1")" \
+    | ( cd "$T/failclosed" && PATH="$2:$PATH" AGENTIC_SDLC_DELIVERY_STAMP_DIR="${3:-$SDIR}" bash "$GUARD" >/dev/null 2>&1 ); echo $?
+}
+
+# 19a. gh fails all calls -> block (plain form, then an explicit -R form).
+rc_ghfail="$(runguard_fc "$DELIVER_CMD" "$T/ghfail")"
+if [ "$rc_ghfail" != "0" ]; then
+  ok "gh failing on every call blocks the delivered write (fail closed)"
+else
+  bad "gh failing on every call MUST block — got exit=$rc_ghfail"
+fi
+rc_ghfail_r="$(runguard_fc 'gh -R o/r issue edit 1 --add-label "status:delivered"' "$T/ghfail")"
+if [ "$rc_ghfail_r" != "0" ]; then
+  ok "gh failing on every call blocks with an explicit -R repo flag too"
+else
+  bad "gh failing on every call with -R MUST also block — got exit=$rc_ghfail_r"
+fi
+
+# 19b. the stamp's pr: line deleted (gh COULD answer, for #42, but there
+# is no PR number left to ask about) -> block.
+NOPRSTAMP_DIR="$T/failclosed-noprstamp"; mkdir -p "$NOPRSTAMP_DIR"
+grep -v '^pr:' "$FC_STAMP" > "$NOPRSTAMP_DIR/agentic-sdlc-delivery.$FC_HEAD"
+rc_nopr="$(runguard_fc "$DELIVER_CMD" "$T/ghok" "$NOPRSTAMP_DIR")"
+if [ "$rc_nopr" != "0" ]; then
+  ok "a stamp with no pr: line blocks even though gh could answer for a different PR"
+else
+  bad "a stamp missing its pr: line MUST block — got exit=$rc_nopr"
+fi
+
+# 19c. the stamp says pr: 8, gh cannot resolve #8 -> block.
+WRONGPR_DIR="$T/failclosed-wrongpr"; mkdir -p "$WRONGPR_DIR"
+sed 's/^pr: 42/pr: 8/' "$FC_STAMP" > "$WRONGPR_DIR/agentic-sdlc-delivery.$FC_HEAD"
+rc_wrongpr="$(runguard_fc "$DELIVER_CMD" "$T/ghok" "$WRONGPR_DIR")"
+if [ "$rc_wrongpr" != "0" ]; then
+  ok "a stamp naming a PR gh cannot resolve blocks, not falls back to @{u}"
+else
+  bad "an unresolvable stamp pr: value MUST block — got exit=$rc_wrongpr"
+fi
+
+# 19 controls: gh correctly resolving the head still allows; a label
+# write naming nothing status:delivered-shaped still allows with no
+# stamp present at all (it never reaches the stamp check — SAFE=1).
+rc_ghok="$(runguard_fc "$DELIVER_CMD" "$T/ghok")"
+if [ "$rc_ghok" = "0" ]; then
+  ok "gh correctly resolving the PR's real head still allows the write"
+else
+  bad "gh correctly resolving the PR head MUST still allow — got exit=$rc_ghok"
+fi
+rc_nostamp="$(runguard_fc 'gh issue edit 1 --add-label seat:x --add-label P1' "$T/ghfail" "$T/does-not-exist")"
+if [ "$rc_nostamp" = "0" ]; then
+  ok "a label write naming no status:delivered still allows with no stamp present at all"
+else
+  bad "a non-delivered label write MUST still allow regardless of stamp/gh state — got exit=$rc_nostamp"
+fi
+
+# ═══ 20. every GFM task-list marker style is held to the Proof rule ═════
+# #5239 QA re-delivery round 4, FAIL 3 (#73 AC1): GitHub renders four
+# marker styles as checkboxes (-, *, +, an ordered `1.`) but this parser
+# only ever recognized `-` — a checkbox using any other marker read as
+# ordinary prose: it counted toward neither AC_COUNT nor
+# TOTAL_CHECKBOX_COUNT, so a no-Proof checkbox written with `*`/`+`/`1.`
+# could reach a PASS having never been looked at, let alone proven.
+markercase() { # $1 = label, $2 = marker checkbox line (no Proof: follows), $3 = slug
+  local dir="$T/marker_$3"
+  mkrepo "marker_$3"
+  {
+    echo "## Acceptance criteria"
+    echo ""
+    echo "$2"
+  } > "$dir/issue-body.md"
+  echo "VERDICT: PASS" > "$dir/verdict.txt"
+  cat > "$dir/pr-body.md" <<'EOF'
+No close keyword here — proven separately before merge.
+EOF
+  local sdir="$dir-stamps"; mkdir -p "$sdir"
+  local out rc
+  out="$(cd "$dir" && bash "$CHECK" --issue 1 --pr 99 --base main \
+    --issue-body-file issue-body.md --pr-body-file pr-body.md \
+    --pr-base-ref main --pr-mergeable MERGEABLE \
+    --reviewer-verdict-file verdict.txt \
+    --pr-head-sha "$(git -C "$dir" rev-parse HEAD)" \
+    --stamp-dir "$sdir" 2>&1)"; rc=$?
+  if [ "$rc" -ne 0 ] && printf '%s' "$out" | grep -qF 'checkbox has no Proof: command'; then
+    ok "$1 marker with no Proof: line is caught, not read as prose"
+  else
+    bad "$1 marker with no Proof: line MUST be caught — got rc=$rc: $out"
+  fi
+  if [ -z "$(ls -A "$sdir" 2>/dev/null)" ]; then
+    ok "no stamp written for the $1-marker no-Proof body"
+  else
+    bad "a stamp was written despite the $1-marker checkbox having no Proof: command"
+  fi
+}
+markercase "star (*)" '* [ ] grep -q fixed f.txt' star
+markercase "plus (+)" '+ [ ] grep -q fixed f.txt' plus
+markercase "ordered (1.)" '1. [ ] grep -q fixed f.txt' ordered
+
+# control: a `- [ ]` checkbox WITH a Proof: line still passes and stamps.
+mkrepo markerctrl
+cat > "$T/markerctrl/issue-body.md" <<'EOF'
+## Acceptance criteria
+
+- [ ] The file says "fixed".
+  Proof: `grep -q fixed f.txt`
+EOF
+echo "VERDICT: PASS" > "$T/markerctrl/verdict.txt"
+cat > "$T/markerctrl/pr-body.md" <<'EOF'
+No close keyword here — proven separately before merge.
+EOF
+SDIR="$T/markerctrl-stamps"; mkdir -p "$SDIR"
+out="$(cd "$T/markerctrl" && bash "$CHECK" --issue 1 --pr 99 --base main \
+  --issue-body-file issue-body.md --pr-body-file pr-body.md \
+  --pr-base-ref main --pr-mergeable MERGEABLE \
+  --reviewer-verdict-file verdict.txt \
+  --pr-head-sha "$(git -C "$T/markerctrl" rev-parse HEAD)" \
+  --stamp-dir "$SDIR" 2>&1)"; rc=$?
+if [ "$rc" -eq 0 ]; then
+  ok "a dash (-) marker with a Proof: line still passes (control)"
+else
+  bad "a dash marker with a valid Proof: line MUST still pass — got rc=$rc: $out"
+fi
+if [ -n "$(ls -A "$SDIR" 2>/dev/null)" ]; then
+  ok "a stamp is still written for the dash-marker control"
+else
+  bad "a stamp MUST still be written for the dash-marker control"
 fi
 
 echo ""
