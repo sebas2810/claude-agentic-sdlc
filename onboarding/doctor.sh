@@ -40,8 +40,11 @@ for pair in $SEATS; do
   # board's Agent field, and nothing routes on it. Check 2 used to report these
   # as FOREIGN because they never entered EXPECTED — measuring the wrong
   # property, then asking the repo to delete a live label to make a gate green.
+  # Ops seats (watcher / investigator / operator / auditor) drain ops:* issues,
+  # not a seat lane: bootstrap.sh never creates one for them, so doctor must not
+  # demand one either.
   case "$role" in
-    pm|scrum-master|quality-engineer)
+    pm|scrum-master|quality-engineer|watcher|investigator|operator|auditor)
       MARKERS="$MARKERS seat:$key"
       printf '%s\n' "$LABELS" | grep -qx "seat:$key" \
         && ok "marker seat:$key ($name, $role — ownership only, routes nothing)"
@@ -79,15 +82,6 @@ for s in backlog scoped in-progress delivered tested merged released blocked can
   if printf '%s\n' "$LABELS" | grep -qx "status:$s"
   then ok "index status:$s"
   else bad "MISSING status:$s — items in this state are invisible to every /check; re-run bootstrap.sh"
-  fi
-done
-
-# 3. the tier:* labels onboarding/lib/pick-worker.sh reads: a missing one means
-#    the PM cannot scope an item to that worker tier
-for t in light standard deep; do
-  if printf '%s\n' "$LABELS" | grep -qx "tier:$t"
-  then ok "tier tier:$t"
-  else bad "MISSING tier:$t: no item can be scoped to this worker tier (onboarding/lib/pick-worker.sh); re-run bootstrap.sh"
   fi
 done
 

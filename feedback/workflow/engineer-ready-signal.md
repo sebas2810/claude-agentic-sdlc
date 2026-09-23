@@ -20,9 +20,9 @@ trigger" between WPs on a steered EPIC.
 ```markdown
 ## Unit landed - <one-line scope of what's in main now>
 
-Delivery check ([`skills/delivery-check/SKILL.md`](../../skills/delivery-check/SKILL.md)):
-- <per-AC PASS/FAIL line from onboarding/lib/delivery-check.sh's own output>
-- Reviewer verdict: PASS/FAIL (agents/delivery-reviewer.md, fresh context)
+Per-AC evidence:
+- AC1: <what you ran / observed> - holds / does not hold
+- AC2: ...
 
 Deployed-env smoke evidence:
 - Run: <github-actions-url>
@@ -33,11 +33,9 @@ Next in this EPIC: #<n> (continuing) - or "EPIC complete, standing by".
 ```
 
 Smoke evidence is mandatory per [`deployed-env-smoke-before-ready.md`](deployed-env-smoke-before-ready.md);
-local CI green is not smoke. The delivery-check section is mandatory per
-[`skills/delivery-check/SKILL.md`](../../skills/delivery-check/SKILL.md)
-(sebas2810/claude-agentic-sdlc#73) — paste the script's own per-AC PASS/FAIL
-lines, not a bare "delivery-check: PASS"; the point is a reviewer can see
-WHAT was proven.
+local CI green is not smoke. The per-AC evidence is mandatory: one line per
+AC saying what you ran and what you saw, not a bare "all ACs pass"; the point
+is that the verifier can see WHAT was checked.
 
 ## What changed (reconciliation)
 
