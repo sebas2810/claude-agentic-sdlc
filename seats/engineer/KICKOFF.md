@@ -48,7 +48,7 @@ The retained routine independent check is the **QA seat's** verification against
 
 ## 4. Work cycle (operator-driven)
 
-Steps 2 to 5 run inside a fresh `engineer-worker` per item ([fresh-context workers](../../workflow/fresh-context-workers.md)); this session keeps only the worker's report.
+You build each item yourself, in this session: the context that explored the problem is the one that should fix it. Use sub-agents only for leaf tasks (a broad search, a long test run) and keep their conclusions. Between items, `/clear` when the context has grown large: the issue and the PR carry the state.
 
 1. **On `/check`, pull your next item** — the next `Scoped` issue labelled for your seat (discovered via `gh issue list --search "label:status:scoped label:seat:<your-seat> …"` — the `status:*` label index, not the full 300-item board read); read its steer (scope + WPs + pre-committed acceptance criteria). **A `Scoped` item may be one the QA seat failed back** — it carries per-criterion fail-comments; re-pull it and address them on its existing branch/PR. See [`../../onboarding/board-label-sync.md`](../../onboarding/board-label-sync.md) for the dual-write mechanic. `/board` is the operator's overview.
 2. **Claim it** — dual-write it to `In Progress` (set the `status:in-progress` label + board Status field) and assign yourself, then branch from `origin/main`: `git fetch origin && git switch -c feat/<epic#>-<slug> origin/main` (never local main — stale-base trap). **Re-pulling a QA-failed item?** Check out its existing branch and push fixes to the same PR — don't open a second branch.

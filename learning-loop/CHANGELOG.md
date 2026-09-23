@@ -3,6 +3,28 @@
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
 
+## 2026-09-23 - 2.0: the seats do their own work again
+
+Owner decision. Throughput on the reference instance fell from about 110 merged PRs a week
+(late August) to about 60 after the fresh-context worker chain and the delivery-check stamp
+landed (2026-09-13/14). The seat model, the board and `/check` stay as they were; the machinery
+bolted onto them in September goes.
+
+- Removed: the worker agents (`engineer-worker*`, `quality-worker*`, `delivery-reviewer`),
+  `workflow/fresh-context-workers.md`, worker tiers (`tier:*` labels, `pick-worker.sh`),
+  `QA_MAX_PARALLEL`, the delivery-check skill, script and stamp, and the guard rule that refused
+  a `status:delivered` write without a stamp. Each seat builds or verifies in its own session,
+  with `/clear` between items; sub-agents are for leaf tasks (a broad search, a long test run).
+- Changed: acceptance criteria describe an observable outcome, not a mechanism, and carry no
+  `Proof:` line. The producer's ready-signal carries per-AC evidence written by hand. QA checks
+  every AC in one round, against the deployed environment.
+- Changed: the guard checks AI attribution in every commit being pushed and in PR bodies, not
+  only in the commit command (orbis-platform#5459: messages written with `-F`, a heredoc or a
+  variable passed).
+- Changed: `/update` (`sync-sdlc.sh`) removes files the framework retired, when the instance
+  still holds them unchanged since its recorded version. Files the instance authored or edited
+  are only reported.
+
 ## 2026-09-14 - three rules from one day of board writes, and red `main` deploys reach the PM
 
 Three lessons from 2026-09-10 on one instance, each held so far in one seat's memory, plus a

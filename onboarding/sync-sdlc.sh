@@ -31,7 +31,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT="$(cd "$HERE/.." && pwd)"        # agentic-sdlc/
+ROOT="${SDLC_ROOT:-$(cd "$HERE/.." && pwd)}"        # agentic-sdlc/ (SDLC_ROOT: tests only)
 CANONICAL_REPO="sebas2810/claude-agentic-sdlc"
 REF="main"
 APPLY=0
@@ -50,7 +50,7 @@ trap 'rm -rf "$TMPDIR"' EXIT
 echo "→ fetching canonical ${CANONICAL_REPO}@${REF} ..."
 # Full clone, then checkout the ref — works uniformly for a branch name OR an
 # exact SHA (a shallow --branch clone only accepts branch/tag names).
-git clone --quiet "https://github.com/${CANONICAL_REPO}.git" "$TMPDIR/canonical"
+git clone --quiet "${CANONICAL_URL:-https://github.com/${CANONICAL_REPO}.git}" "$TMPDIR/canonical"  # CANONICAL_URL: tests only
 (cd "$TMPDIR/canonical" && git checkout --quiet "$REF")
 CANONICAL_SHA="$(cd "$TMPDIR/canonical" && git rev-parse HEAD)"
 echo "  canonical @ ${CANONICAL_SHA}"
@@ -129,6 +129,31 @@ ADDED_COUNT=$(wc -l < "$TMPDIR/added.txt" | tr -d ' ')
 CHANGED_COUNT=$(wc -l < "$CHANGED_FILE" | tr -d ' ')
 LOCAL_ONLY_COUNT=$(wc -l < "$TMPDIR/local_only.txt" | tr -d ' ')
 
+# ── Retired upstream ─────────────────────────────────────────────────────────
+# A local-only file is RETIRED when canonical shipped it at the version this
+# repo last synced to (.sdlc-version) and no longer ships it. It is removed on
+# apply only if it is byte-identical to what canonical shipped then: a file the
+# instance authored, or edited since, is never removed, only reported.
+: > "$TMPDIR/retired.txt"; : > "$TMPDIR/retired_modified.txt"
+PINNED="$(cat "$ROOT/.sdlc-version" 2>/dev/null || true)"
+if [ -n "$PINNED" ] && git -C "$TMPDIR/canonical" cat-file -e "${PINNED}^{commit}" 2>/dev/null; then
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    if git -C "$TMPDIR/canonical" cat-file -e "${PINNED}:$f" 2>/dev/null; then
+      if git -C "$TMPDIR/canonical" show "${PINNED}:$f" | cmp -s - "$ROOT/$f"; then
+        echo "$f" >> "$TMPDIR/retired.txt"
+      else
+        echo "$f" >> "$TMPDIR/retired_modified.txt"
+      fi
+    fi
+  done < "$TMPDIR/local_only.txt"
+  grep -vxF -f "$TMPDIR/retired.txt" -f "$TMPDIR/retired_modified.txt" "$TMPDIR/local_only.txt" > "$TMPDIR/local_only.rest" || true
+  mv "$TMPDIR/local_only.rest" "$TMPDIR/local_only.txt"
+  LOCAL_ONLY_COUNT=$(wc -l < "$TMPDIR/local_only.txt" | tr -d ' ')
+fi
+RETIRED_COUNT=$(wc -l < "$TMPDIR/retired.txt" | tr -d ' ')
+RETIRED_MOD_COUNT=$(wc -l < "$TMPDIR/retired_modified.txt" | tr -d ' ')
+
 echo ""
 echo "==== SDLC drift report — canonical@${CANONICAL_SHA} vs this repo's agentic-sdlc/ ===="
 echo ""
@@ -145,26 +170,35 @@ while IFS= read -r f; do
   fi
 done < "$CHANGED_FILE"
 echo ""
+echo "RETIRED upstream, unchanged locally (${RETIRED_COUNT}) — removed on apply:"
+sed 's/^/  - /' "$TMPDIR/retired.txt"
+echo ""
+if [ "$RETIRED_MOD_COUNT" -gt 0 ]; then
+  echo "RETIRED upstream but EDITED locally (${RETIRED_MOD_COUNT}) — kept; decide by hand:"
+  sed 's/^/  ! /' "$TMPDIR/retired_modified.txt"
+  echo ""
+fi
+[ -n "$PINNED" ] || { echo "(no .sdlc-version recorded — retired files cannot be told apart from instance files, so none are removed)"; echo ""; }
 echo "LOCAL-ONLY, not in canonical (${LOCAL_ONLY_COUNT}) — instance-specific or diverged, NEVER auto-touched:"
 sed 's/^/  ? /' "$TMPDIR/local_only.txt"
 echo ""
 
 if [ "$APPLY" -eq 0 ]; then
   echo "Report-only (default) — nothing written."
-  echo "Re-run with --apply to write the ADDED + CHANGED files above (local-only"
+  echo "Re-run with --apply to write the ADDED + CHANGED files and remove the RETIRED ones (local-only"
   echo "files are never touched, and files marked [append-only] are merged rather"
   echo "than replaced); apply mode asks for a typed confirmation first."
   exit 0
 fi
 
-TOTAL_WRITES=$((ADDED_COUNT + CHANGED_COUNT))
+TOTAL_WRITES=$((ADDED_COUNT + CHANGED_COUNT + RETIRED_COUNT))
 if [ "$TOTAL_WRITES" -eq 0 ]; then
   echo "Nothing to apply — local copy already matches canonical@${CANONICAL_SHA}."
   exit 0
 fi
 
 echo ""
-echo "!! --apply will OVERWRITE ${TOTAL_WRITES} file(s) under agentic-sdlc/ with"
+echo "!! --apply will OVERWRITE or REMOVE ${TOTAL_WRITES} file(s) under agentic-sdlc/ to match"
 echo "   canonical@${CANONICAL_SHA}'s version — including operating-model / seat /"
 echo "   feedback files every active seat currently follows. This is NOT reversible"
 echo "   by this script (your own git history is the undo)."
@@ -211,6 +245,13 @@ while IFS= read -r f; do
     echo "  wrote $f"
   fi
 done < "$CHANGED_FILE"
+
+while IFS= read -r f; do
+  [ -z "$f" ] && continue
+  rm -f "$ROOT/$f"
+  echo "  removed $f  (retired upstream)"
+done < "$TMPDIR/retired.txt"
+find "$ROOT" -type d -empty -not -path "$ROOT/.git*" -delete 2>/dev/null || true
 
 echo "$CANONICAL_SHA" > "$ROOT/.sdlc-version"
 echo ""

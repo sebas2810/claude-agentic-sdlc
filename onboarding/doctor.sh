@@ -82,15 +82,6 @@ for s in backlog scoped in-progress delivered tested merged released blocked can
   fi
 done
 
-# 3. the tier:* labels onboarding/lib/pick-worker.sh reads: a missing one means
-#    the PM cannot scope an item to that worker tier
-for t in light standard deep; do
-  if printf '%s\n' "$LABELS" | grep -qx "tier:$t"
-  then ok "tier tier:$t"
-  else bad "MISSING tier:$t: no item can be scoped to this worker tier (onboarding/lib/pick-worker.sh); re-run bootstrap.sh"
-  fi
-done
-
 # 3. exactly ONE push-intercepting PreToolUse hook.
 #    A forked second guard drifts silently — it keeps blocking the obvious cases
 #    while quietly losing a rule the other copy learned, and every signal stays

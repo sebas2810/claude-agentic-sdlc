@@ -5,13 +5,12 @@
 # (product-root .claude/settings.json). Blocks, before they happen:
 #
 #   1. any push to main / master / release/*        (always a PR — never direct)
-#   2. AI attribution in commit messages            (no Co-Authored-By: Claude)
+#   2. AI attribution in a commit command, in any commit being pushed that no
+#      remote has yet, or in a PR body passed to gh pr create/edit
 #   3. pushing a branch that is behind its base     (rebase first; best-effort —
 #      checked against the locally-cached ref, never fetches)
 #   4. `gh pr merge --admin`                        (branch-protection bypass)
 #   5. a configured pre-push gate that has not passed for the current diff
-#   6. writing the `status:delivered` label without a passing delivery-check
-#      stamp for the current HEAD (sebas2810/claude-agentic-sdlc#73)
 #
 # THIS IS THE ONLY PUSH-INTERCEPTING HOOK AN INSTANCE SHOULD RUN. A second,
 # forked implementation drifts silently: it keeps blocking the obvious cases
@@ -27,10 +26,6 @@
 #   AGENTIC_SDLC_OWNER_ADMIN_MERGE=<n> authorises `--admin` for PR <n> only
 #   AGENTIC_SDLC_GATE_CMD=<command>    pre-push gate; must exit 0 for the
 #                                      current patch-id before a push is allowed
-#   AGENTIC_SDLC_SKIP_DELIVERY_CHECK=1 one-off exception to rule 6
-#   AGENTIC_SDLC_DELIVERY_STAMP_DIR=<dir> where delivery-check.sh's stamps
-#                                      live (default ${TMPDIR:-/tmp}, matching
-#                                      the script's own default)
 #   AGENTIC_SDLC_INTEGRATION_BRANCHES=<path to json>
 #                                      {"branches":["feat/123-x"]} — a branch
 #                                      descending from a registered integration
@@ -55,9 +50,8 @@ command -v jq >/dev/null 2>&1 || exit 0
 IN="$(cat 2>/dev/null || true)"
 CMD="$(printf '%s' "$IN" | jq -r '.tool_input.command // empty' 2>/dev/null)"
 [ -n "$CMD" ] || exit 0
-# cheap prefilter — must catch every route the LABEL_ROUTE detection below
-# does, including `-R`/`--repo` BEFORE the subcommand (`gh -R o/r issue
-# edit`), or this exits 0 before that logic ever runs.
+# cheap prefilter — must catch every git and gh route the checks below read,
+# or this exits 0 before that logic ever runs.
 case "$CMD" in
   *git*|*gh\ pr*|*gh\ issue*|*gh\ api*|*gh\ -R*|*gh\ --repo*) : ;;
   *) exit 0 ;;
@@ -165,8 +159,7 @@ if printf '%s' "$MASKED" | grep -Eq "(^|[;&|[:space:]])${GIT_VERB}push"; then
   # JSON array (see agentic-sdlc/integration-branches/README.md for why).
   #
   # Resolved by onboarding/lib/resolve-integration-base.sh, the ONE place
-  # this logic lives — delivery-check.sh (sebas2810/claude-agentic-sdlc#73)
-  # shares it rather than re-deriving its own copy. Fails open to
+  # this logic lives. Fails open to
   # origin/main if the shared script is missing (an old checkout) — a
   # guard must never brick a seat.
   if [ -x "$RESOLVE_BASE" ]; then
@@ -217,165 +210,33 @@ if printf '%s' "$MASKED" | grep -Eq "(^|[;&|[:space:]])${GIT_VERB}push"; then
   fi
 fi
 
-# ── 2: AI attribution in a commit ─────────────────────────────────────────────
+# ── 2: AI attribution ────────────────────────────────────────────────────────
+# Checking only the commit COMMAND missed every message written with -F, a
+# heredoc, a variable, --template or an editor (orbis-platform#5459). The push
+# check below inspects the commits themselves, so those are caught too.
+ATTRIBUTION='co-authored-by:[^<]*(claude|anthropic)|generated with .{0,3}claude code|noreply@anthropic\.com'
 if printf '%s' "$MASKED" | grep -Eq "(^|[;&|[:space:]])${GIT_VERB}commit"; then
-  if printf '%s' "$CMD" | grep -Eqi 'co-authored-by:[[:space:]]*claude|generated with .{0,3}claude code'; then
+  if printf '%s' "$CMD" | grep -Eqi "$ATTRIBUTION"; then
     block "no AI attribution in commits — drop the Co-Authored-By / Generated-with footer and commit again (feedback/workflow/no-claude-attribution.md)."
   fi
 fi
-
-# ── 6: status:delivered label write without a passing delivery-check stamp ───
-# FAIL-CLOSED (found in independent QA re-delivery review of #73): the first
-# cut only matched an --add-label whose value CONTAINED the literal text
-# "status:delivered" — every one of these bypassed it, each verified live:
-#   gh pr edit 1 --add-label status:delivered            (wrong subcommand)
-#   L=status:delivered; gh issue edit 1 --add-label "$L"  (opaque variable)
-#   gh api -X POST .../labels --input -                   (opaque stdin JSON)
-#   gh api graphql -f query='mutation{addLabelsToLabelable(...)}'
-# The fix inverts the default: first detect the ROUTE (issue edit, PR edit,
-# REST labels, GraphQL mutation) on MASKED (structural, verb-only) — any
-# match means "this command can write a label" and is gated UNLESS a
-# concrete, inspectable literal value is found that provably does NOT say
-# status:delivered. No extractable literal (a variable, stdin, a GraphQL
-# payload) is treated as UNSAFE, not safe — "refusing a label it cannot
-# read counts as blocking" (QA's own framing). A routine label write with a
-# literal value (`--add-label seat:seb`, `--add-label "status:in-progress"`)
-# still needs no stamp; only status:delivered, and anything opaque, does.
-LABEL_ROUTE=0
-# #5239 QA re-delivery review round 2 — five more live routes found:
-#   gh -R o/r issue edit 1 --add-label status:delivered   (repo flag BEFORE
-#                                                           the subcommand)
-#   gh api -X PATCH repos/o/r/issues/1 -f 'labels[]=status:delivered'
-#                                                          (no /labels path
-#                                                           suffix at all)
-#   gh api -X POST "repos/o/r/issues/1/labels"            (quoted path —
-#                                                           blank on MASKED)
-#   gh api graphql -F query=@mutation.graphql             (mutation text is
-#                                                           in a file this
-#                                                           guard can't read)
-#   gh api graphql -f query='mutation{updateIssue(input:{labelIds:[...]})}'
-#                                                          (a second mutation
-#                                                           shape — not just
-#                                                           addLabelsToLabelable)
-GH_REPO_OPT='([[:space:]]+(-R|--repo)([[:space:]]+[^[:space:]]+|=[^[:space:]]+))?'
-if printf '%s' "$MASKED" | grep -Eq "(^|[;&|[:space:]])gh${GH_REPO_OPT}[[:space:]]+(issue|pr)[[:space:]]+edit[[:space:]]+.*--add-label"; then
-  LABEL_ROUTE=1
-fi
-if printf '%s' "$MASKED" | grep -Eq '(^|[;&|[:space:]])gh[[:space:]]+api'; then
-  # The URL path is a real argument to `gh api`, not prose merely quoting
-  # one — a quoted path is still the literal command actually being run,
-  # so check the raw $CMD too: MASKED alone blanks a quoted path to spaces.
-  printf '%s\n%s' "$MASKED" "$CMD" | grep -Eq '/labels([[:space:]"'"'"']|$)' && LABEL_ROUTE=1
-  # `-f`/`-F labels[]=...` writes labels via a PATCH straight to
-  # .../issues/{n} — no "/labels" path suffix, and the whole
-  # "labels[]=value" token is normally one quoted argument (same
-  # invisible-on-MASKED reason) — check raw $CMD.
-  printf '%s' "$CMD" | grep -Eiq -- 'labels\[\][[:space:]]*=' && LABEL_ROUTE=1
-  printf '%s' "$CMD" | grep -Eq 'addLabelsToLabelable|labelIds' && LABEL_ROUTE=1
-  printf '%s' "$MASKED" | grep -Eq -- '-[fF][[:space:]]+query=@' && LABEL_ROUTE=1
-fi
-
-if [ "$LABEL_ROUTE" = 1 ]; then
-  # A "safe" literal: --add-label (space or =) followed by a FULLY quoted
-  # (single or double) token with NO `$` inside, or a genuinely bare token
-  # containing none of space/$/quote (a `$` means a variable/substitution —
-  # opaque, not a literal we can trust). The bare-token class EXCLUDES both
-  # quote characters — without that exclusion, `--add-label "$L"` matches
-  # the bare-token alternative against the lone opening `"` (stopping at the
-  # `$` that immediately follows), capturing a one-character "literal" that
-  # trivially doesn't contain status:delivered and is wrongly marked SAFE.
-  # A quote character appearing outside a closed quote pair means the value
-  # could not be read as a real literal — no alternative should match it,
-  # and the `+`/`*` there are non-greedy-by-exclusion, not size, so a
-  # zero-width match (e.g. `labels[]=$L`, nothing before the `$`) is also
-  # excluded by requiring at least one real character. `--input` (stdin
-  # JSON), any addLabelsToLabelable/updateIssue/updatePullRequest GraphQL
-  # mutation, an out-of-line `-f/-F query=@file`, and any `labels[]=` form
-  # are ALWAYS unsafe — their payload is never fully in $CMD to inspect (a
-  # GraphQL variable is an opaque ID, not a label name, even when present).
-  # `gh issue/pr edit` legitimately accepts a REPEATED --add-label flag —
-  # `... --add-label seat:x --add-label status:delivered` bypassed a
-  # `head -1`-on-first-match design (found in the SAME independent review
-  # that reported this fix as ready), because only the FIRST occurrence's
-  # literal was ever inspected. The fix counts: every `--add-label` MARKER
-  # present (on MASKED — structural) must pair 1:1 with a
-  # successfully-extracted safe LITERAL (on $CMD); any unpaired marker (an
-  # occurrence whose value could not be read as a clean literal) makes the
-  # whole command unsafe, same as zero extractable literals does.
-  # Case-INsensitive substring match on "status:delivered", since GitHub's
-  # own label matching is.
-  SAFE=0
-  if ! printf '%s' "$CMD" | grep -Eq 'addLabelsToLabelable|labelIds' \
-     && ! printf '%s' "$CMD" | grep -Eiq -- 'labels\[\][[:space:]]*=' \
-     && ! printf '%s' "$MASKED" | grep -Eq -- '(^|[[:space:]])--input([[:space:]]|=)' \
-     && ! printf '%s' "$MASKED" | grep -Eq -- '-[fF][[:space:]]+query=@'; then
-    MARKER_COUNT="$(printf '%s' "$MASKED" | grep -Eo -- '--add-label' | wc -l | tr -d ' ')"
-    LITERALS="$(printf '%s' "$CMD" | grep -Eo -- '--add-label[[:space:]=]+"[^"$]*"|--add-label[[:space:]=]+'"'"'[^'"'"'$]*'"'"'|--add-label[[:space:]=]+[^[:space:]$"'"'"']+')"
-    LITERAL_COUNT="$(printf '%s\n' "$LITERALS" | grep -c . || true)"
-    if [ "$MARKER_COUNT" -gt 0 ] && [ "$MARKER_COUNT" = "$LITERAL_COUNT" ] \
-       && ! printf '%s\n' "$LITERALS" | grep -qi 'status:delivered'; then
-      SAFE=1
-    fi
+if printf '%s' "$MASKED" | grep -Eq '(^|[;&|[:space:]])gh[[:space:]]+pr[[:space:]]+(create|edit)'; then
+  printf '%s' "$CMD" | grep -Eqi "$ATTRIBUTION" \
+    && block "no AI attribution in PR bodies — drop the Generated with Claude Code / Co-Authored-By lines (feedback/workflow/no-claude-attribution.md)."
+  BODY_FILE="$(printf '%s' "$CMD" | sed -nE 's/.*--body-file[[:space:]=]+"?([^"[:space:]]+)"?.*/\1/p' | head -1)"
+  if [ -n "$BODY_FILE" ] && [ -f "$BODY_FILE" ] && grep -Eqi "$ATTRIBUTION" "$BODY_FILE"; then
+    block "no AI attribution in PR bodies — $BODY_FILE contains an attribution line."
   fi
-
-  if [ "$SAFE" != 1 ] && [ "${AGENTIC_SDLC_SKIP_DELIVERY_CHECK:-}" != "1" ]; then
-    SHA="$(g rev-parse HEAD 2>/dev/null || echo none)"
-    SDIR="${AGENTIC_SDLC_DELIVERY_STAMP_DIR:-${TMPDIR:-/tmp}}"
-    STAMP="$SDIR/agentic-sdlc-delivery.$SHA"
-    REPO="$(g rev-parse --show-toplevel 2>/dev/null || echo "$TARGET_DIR")"
-    if [ ! -f "$STAMP" ]; then
-      block "no passing delivery-check stamp for HEAD ($SHA) in $REPO, or this label write could not be verified safe (opaque value / route) — run onboarding/lib/delivery-check.sh first, it writes the stamp on PASS. A new commit invalidates the old stamp (re-run after any change). If that is not the repository you meant, check the -C / cd target. Owner exception: AGENTIC_SDLC_SKIP_DELIVERY_CHECK=1 (one-off, sebas2810/claude-agentic-sdlc#73)."
-    fi
-    # The stamp proves local HEAD passed; it says nothing about whether HEAD
-    # was ever PUSHED — a stamp for content nobody can review on the actual
-    # PR is not proof of anything reviewable.
-    #
-    # #5239 QA re-delivery review round 2: the local `@{u}` tracking ref is
-    # a locally-cached pointer — it says what THIS checkout last saw as its
-    # upstream, not what the PR actually shows on GitHub right now. Where
-    # the command names an actual issue/PR number, ask GitHub directly for
-    # that PR's real head commit and require HEAD to match IT — a stronger
-    # check than trusting a local ref that could be stale or misconfigured.
-    # #5239 QA re-delivery round 4, FAIL 2 (round-3 check 3): this USED to
-    # fall back to the `@{u}` comparison whenever REMOTE_HEAD could not be
-    # resolved (gh missing, gh lookup failed, the stamp's `pr:` line
-    # missing, or its value unresolvable) — but `@{u}` only proves HEAD was
-    # pushed to a branch, not that the PR being delivered actually shows
-    # it; the two silently diverge whenever a second branch/PR exists at
-    # the same local upstream, or the resolved PR number was simply wrong.
-    # A verification that cannot be made is not equivalent to a weaker one
-    # that happens to pass — same posture as PR_MERGEABLE/PR_HEAD_SHA's
-    # "UNKNOWN is a failure to verify, not a pass-by-default" fix in
-    # delivery-check.sh itself. Now fails closed (exit 2) instead.
-    # #5239 QA re-delivery round 3, check 4(b): deriving PRNUM from the
-    # command text broke the `gh issue edit N --add-label status:delivered`
-    # route entirely — the route labels actually use, since a board item
-    # is an issue. It put issue N's number where a PR number belongs; `gh
-    # pr view N` can never resolve it (issues and PRs share one number
-    # space per repo), so REMOTE_HEAD stayed empty and this silently fell
-    # back to the weaker local @{u} comparison every time — on exactly the
-    # route this check exists to cover. The stamp is authoritative instead:
-    # delivery-check.sh refuses to write one without --pr (its own "no
-    # --pr given" AC3 check), so every valid stamp for this HEAD already
-    # names the real PR it was verified against — read it from there,
-    # independent of which gh subcommand is writing the label.
-    PRNUM="$(sed -nE 's/^pr:[[:space:]]*([0-9]+)[[:space:]]*$/\1/p' "$STAMP" 2>/dev/null | head -1)"
-    REPO_ARG="$(printf '%s' "$MASKED" | sed -nE 's/.*(-R|--repo)[[:space:]=]+([^[:space:]]+).*/\2/p' | head -1)"
-    REMOTE_HEAD=""
-    if [ -n "$PRNUM" ] && command -v gh >/dev/null 2>&1; then
-      if [ -n "$REPO_ARG" ]; then
-        REMOTE_HEAD="$(gh pr view "$PRNUM" -R "$REPO_ARG" --json headRefOid -q .headRefOid 2>/dev/null || true)"
-      else
-        REMOTE_HEAD="$(cd "$TARGET_DIR" && gh pr view "$PRNUM" --json headRefOid -q .headRefOid 2>/dev/null || true)"
-      fi
-    fi
-    if [ -n "$REMOTE_HEAD" ]; then
-      if [ "$REMOTE_HEAD" != "$SHA" ]; then
-        block "HEAD ($SHA) in $REPO does not match PR #$PRNUM's actual head on GitHub ($REMOTE_HEAD) — push first so the stamped commit is what the PR actually shows, then retry."
-      fi
-    else
-      block "could not resolve PR #${PRNUM:-<unknown>}'s actual head commit on GitHub (gh missing, gh lookup failed, the stamp's pr: line is missing, or its value could not be resolved) — cannot confirm HEAD ($SHA) in $REPO is what the PR actually shows. Re-run onboarding/lib/delivery-check.sh with a resolvable --pr once gh can reach the PR, then retry."
-    fi
+fi
+if printf '%s' "$MASKED" | grep -Eq "(^|[;&|[:space:]])${GIT_VERB}push"; then
+  PSRC="$(printf '%s' "$MASKED" \
+    | sed -nE "s/.*${GIT_VERB}push[[:space:]]+(-[^[:space:]]+[[:space:]]+)*[^[:space:]-]+[[:space:]]+\+?([^[:space:]:]+)(:[^[:space:]]+)?.*/\2/p" | head -1)"
+  case "$PSRC" in ''|-*) PSRC=HEAD ;; esac
+  g rev-parse --verify -q "$PSRC^{commit}" >/dev/null 2>&1 || PSRC=HEAD
+  if g log --format=%B "$PSRC" --not --remotes 2>/dev/null | grep -Eqi "$ATTRIBUTION"; then
+    BAD="$(g log --format=%h "$PSRC" --not --remotes 2>/dev/null \
+      | while read -r h; do g log -1 --format=%B "$h" | grep -Eqi "$ATTRIBUTION" && printf '%s ' "$h"; done)"
+    block "AI attribution in commit(s) being pushed: ${BAD}— reword them (git commit --amend for the last one) and push again (feedback/workflow/no-claude-attribution.md)."
   fi
 fi
 

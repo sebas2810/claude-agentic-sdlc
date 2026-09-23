@@ -41,17 +41,12 @@ verifier reads the criterion lines, and a trailing caveat does not change what t
   environment, real data, people's time, an owner-gated setting. **Gates `Released`, never merge**,
   and names the issue that unblocks it.
 - **Name the verifier and its tool** on the same line: which seat checks the criterion, and the
-  command, test or artifact it uses. Write each AC as a checkbox; a criterion a command proves
-  carries that command on an indented `Proof:` line, the form `onboarding/lib/delivery-check.sh`
-  parses ([`skills/delivery-check/SKILL.md`](../../skills/delivery-check/SKILL.md)):
+  command, test or artifact it uses, and what it observes: the outcome, not the mechanism.
 
   ```markdown
-  - [ ] **[PRE-MERGE]** <criterion>. Verifier: quality-engineer, runs <command>.
-    Proof: `<command>`
+  - [ ] **[PRE-MERGE]** <what someone observes when this is done>. Verifier: quality-engineer, on <DEV / the app / CI>.
   ```
 
-  A `[POST-<X> GATE]` line, or one a reviewer judges, names its tool in the `Verifier:` text and
-  carries no `Proof:` line: the delivery check runs every `Proof:` line before `Delivered`.
 - **An AC line missing any of the three** (who verifies, with what tool, gates merge or release)
   is not scoped. `commands/check.md` applies this before `Backlog → Scoped` and
   `Blocked → Scoped`.

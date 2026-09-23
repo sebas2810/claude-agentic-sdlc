@@ -40,7 +40,7 @@ jobs:
           # PM finding (folded into #5239): isolate global git identity —
           # a self-hosted runner (or `act` locally) reuses its HOME across
           # jobs, so writing straight to the real ~/.gitconfig here is the
-          # same class of pollution onboarding/tests/delivery-check.test.sh
+          # same class of pollution an earlier test suite
           # was fixed for. GIT_CONFIG_GLOBAL (git >=2.32) is exported so it
           # also covers the scripts this step execs.
           export GIT_CONFIG_GLOBAL="$(mktemp)"
@@ -62,7 +62,7 @@ jobs:
           # PM finding (folded into #5239): isolate global git identity —
           # a self-hosted runner (or `act` locally) reuses its HOME across
           # jobs, so writing straight to the real ~/.gitconfig here is the
-          # same class of pollution onboarding/tests/delivery-check.test.sh
+          # same class of pollution an earlier test suite
           # was fixed for. GIT_CONFIG_GLOBAL (git >=2.32) is exported so it
           # also covers the scripts this step execs.
           export GIT_CONFIG_GLOBAL="$(mktemp)"
@@ -78,26 +78,10 @@ jobs:
         run: python3 operations/metrics/tests/test_seat_tokens.py
       - name: metrics - flow.py known answer, and an error when gh fails
         run: python3 operations/metrics/tests/test_flow.py
-      - name: delivery-check — proof before Delivered (pass, hollow proof, stale stamp, close-keyword)
-        run: |
-          set -euo pipefail
-          # PM finding (folded into #5239): isolate global git identity —
-          # a self-hosted runner (or `act` locally) reuses its HOME across
-          # jobs, so writing straight to the real ~/.gitconfig here is the
-          # same class of pollution onboarding/tests/delivery-check.test.sh
-          # was fixed for. GIT_CONFIG_GLOBAL (git >=2.32) is exported so it
-          # also covers the scripts this step execs.
-          export GIT_CONFIG_GLOBAL="$(mktemp)"
-          git config --global user.email ci@example.com
-          git config --global user.name ci
-          git config --global init.defaultBranch main
-          bash onboarding/tests/delivery-check.test.sh onboarding/lib/delivery-check.sh onboarding/hooks/guard-git.sh
-      - name: workers - each worker definition still carries its seat rules
-        run: bash onboarding/tests/worker-definitions.test.sh onboarding/lib/check-worker-definitions.sh
-      - name: workers - the quality seat's parallel cap is resolved or refused, never guessed
-        run: bash onboarding/tests/resolve-qa-max-parallel.test.sh onboarding/lib/resolve-qa-max-parallel.sh
-      - name: workers - each item's worker is picked from its tier label, or refused
-        run: bash onboarding/tests/pick-worker.test.sh onboarding/lib/pick-worker.sh
+      - name: git guard — every rule, both directions (attribution checked on pushed commits and PR bodies)
+        run: bash onboarding/tests/guard-rules.test.sh onboarding/hooks/guard-git.sh
+      - name: sync — a retired file is removed, an instance-authored or locally edited one never is
+        run: bash onboarding/tests/sync-retired.test.sh
       - name: seat commands - each instance's seats run their own /check, ~/.claude/commands untouched (#77)
         run: bash onboarding/tests/seat-commands-per-instance.test.sh
       - name: plugin version - a shipped command, skill, agent or hook change must raise it (#77)

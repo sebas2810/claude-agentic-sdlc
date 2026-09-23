@@ -5,7 +5,7 @@
 # from, else origin/main. Sub-PRs targeting an epic branch are legitimately
 # "behind" main and must not be measured against it.
 #
-# Extracted from guard-git.sh (#4543's REGISTRY SHAPE) so delivery-check.sh
+# Extracted from guard-git.sh (#4543's REGISTRY SHAPE) so other scripts
 # (sebas2810/claude-agentic-sdlc#73 AC3, "the base is the registered
 # integration branch") can resolve the SAME base guard-git.sh already
 # enforces, rather than trusting a caller-supplied literal or re-deriving
