@@ -42,6 +42,7 @@ These are the rules the spine **keeps**. Confirmed and retained in the
 | [`workflow/verify-wrap-up-scope.md`](workflow/verify-wrap-up-scope.md) | Verify wrap-up scope concretely; don't estimate "small" without checking each step |
 | [`workflow/stacked-merge-cascade.md`](workflow/stacked-merge-cascade.md) | Squash-merging a stack parent rewrites its commits — cascade the boundary-exact `--onto` rebase immediately, or don't merge; stacks must be declared |
 | [`workflow/live-eval-owns-its-teardown.md`](workflow/live-eval-owns-its-teardown.md) | An eval writing to a deployed env owns marker + pre-run sweep + `finally` teardown; orphaned rows are a no-false-green failure, and never delete cost-ledger rows |
+| [`workflow/a-worktree-has-an-owner-and-a-lifetime.md`](workflow/a-worktree-has-an-owner-and-a-lifetime.md) | Whoever cuts a worktree removes it in the same unit of work, and every seat sweeps orphans at kickoff because the creator dies first; never leave one `locked`; preserve before you sweep (remote-reachable → salvage ref → clean tree → remove), and echo per item so a slow sweep is not read as a no-op |
 | [`workflow/unmeasured-numbers-must-not-size-work.md`](workflow/unmeasured-numbers-must-not-size-work.md) | A figure not measured on the current build must not size a WP or set an AC threshold — measure first, then scope; a mis-sized WP that still merges records its contribution as zero |
 | [`workflow/a-null-result-is-not-evidence.md`](workflow/a-null-result-is-not-evidence.md) | "Searched and found nothing" is a fact about the query until a positive control or an enumerated scope proves the search would have found it |
 | [`workflow/a-check-must-be-able-to-report-its-own-failure.md`](workflow/a-check-must-be-able-to-report-its-own-failure.md) | `2>/dev/null` + `cmd && A || B` folds an ERROR into a negative answer — verify the input resolves, branch on the real exit code, reserve a third `could-not-determine` outcome |
@@ -77,6 +78,7 @@ Violating these creates real bugs / outages. Each stands under the spine
 | Rule | One-liner |
 |---|---|
 | [`architecture/no-silent-degradation-on-load-bearing-paths.md`](architecture/no-silent-degradation-on-load-bearing-paths.md) | Load-bearing swallow = defect: surface + health signal; schema-validate structured output pre-persist (FLOOR-2/3) |
+| [`architecture/a-guard-inspects-the-artifact-not-the-invocation.md`](architecture/a-guard-inspects-the-artifact-not-the-invocation.md) | A guard reads the artifact, never a proxy for it; a check that cannot inspect the artifact fails rather than passes — green must never mean "unobservable" |
 | [`architecture/one-control-one-implementation.md`](architecture/one-control-one-implementation.md) | One control, one implementation — a forked guard keeps passing while silently no longer enforcing; a second copy is a defect with a deletion date |
 | [`architecture/weakening-a-default-must-signal.md`](architecture/weakening-a-default-must-signal.md) | Gate→allow needs its own PR, the premise verified, and a test asserting the posture — every routine signal stays green when a default is removed |
 

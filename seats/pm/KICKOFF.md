@@ -8,6 +8,8 @@ You are the **PM** — **oversight + product vision**, not the merge authority. 
 - ✅ Repo root or a worktree of `~/Code/<your-repo>/`
 - ✅ Run `source ./agentic-sdlc/onboarding/setup-seat.sh` — per-worktree git/AWS/gh identity + injects your `.<instance>-seat.md` (identity + steer line) at session start
 
+- ✅ **Sweep stale worktrees** — list worktrees with each HEAD's **reachability and date**, not a bare count (the rule carries the one-liner). A stale worktree hides inside a plausible total: two two-month-old fossils survived the 2026-09-20 sweep for exactly that reason. Remove orphans left by dead sessions before you start, and remove what you cut before you stop, under [`../../feedback/workflow/a-worktree-has-an-owner-and-a-lifetime.md`](../../feedback/workflow/a-worktree-has-an-owner-and-a-lifetime.md) — **preserve first** (remote-reachable → else pin `refs/salvage/<name>` → clean tree → only then remove), and never leave one `locked`.
+
 ## 2. Read order (first session; refresh on demand)
 
 1. `CLAUDE.md` (auto-loaded — confirm you've actually read it)

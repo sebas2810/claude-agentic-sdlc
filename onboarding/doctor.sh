@@ -40,8 +40,11 @@ for pair in $SEATS; do
   # board's Agent field, and nothing routes on it. Check 2 used to report these
   # as FOREIGN because they never entered EXPECTED — measuring the wrong
   # property, then asking the repo to delete a live label to make a gate green.
+  # Ops seats (watcher / investigator / operator / auditor) drain ops:* issues,
+  # not a seat lane: bootstrap.sh never creates one for them, so doctor must not
+  # demand one either.
   case "$role" in
-    pm|scrum-master|quality-engineer)
+    pm|scrum-master|quality-engineer|watcher|investigator|operator|auditor)
       MARKERS="$MARKERS seat:$key"
       printf '%s\n' "$LABELS" | grep -qx "seat:$key" \
         && ok "marker seat:$key ($name, $role — ownership only, routes nothing)"
