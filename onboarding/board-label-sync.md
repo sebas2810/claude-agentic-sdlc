@@ -25,6 +25,7 @@ One label per `Status` option (board order), prefix `status:`:
 | `status:released` | Released (staging/canary) |
 | `status:blocked` | Blocked (consult-exception) |
 | `status:cancelled` | Cancelled (terminal — closed without shipping; the board mirror of a `NOT_PLANNED` close, never parked in `Released`) |
+| `rework` | not a state: rides alongside `status:scoped` after a QA FAIL; the producer's rework query pulls it first and the re-deliver removes it |
 
 ## One-time setup (per repo on the board)
 
@@ -46,6 +47,7 @@ create "status:merged"      "6F42C1" "Routing index: merged to main"
 create "status:released"    "0052CC" "Routing index: released"
 create "status:blocked"     "B60205" "Routing index: blocked consult-exception"
 create "status:cancelled"   "6A737D" "Routing index: cancelled — closed without shipping (NOT_PLANNED)"
+create "rework"             "D93F0B" "Routing index: QA FAIL bounce-back; the producer fixes it first"
 ```
 
 **Backfill existing items** (one-time, costs the *one* expensive board read — run it
@@ -82,7 +84,7 @@ there is no projection Action, and no seat polices another's parity.
 
 ```bash
 # label side of a flip (REST): e.g. claim Scoped -> In Progress
-gh issue edit <n> --remove-label status:scoped --add-label status:in-progress --add-assignee @me
+gh issue edit <n> --remove-label status:scoped --add-label status:in-progress   # never touches the assignee (the human owner)
 # field side: the cheap targeted board mutation (item-id lookup + updateProjectV2ItemFieldValue)
 ```
 

@@ -19,7 +19,7 @@ other's authority: **the PM owns intent + AC; the SM owns readiness + flow.**
 | 1 | **Frame the Epic** — outcome · why · scope · success, and a **WP table** (one row per Work Package: title · intent · **AC** · priority). | **PM** | Epic in the EPICS view |
 | 2 | **Explode → nest** — read the WP table; for each WP create a **sub-issue** nested under the Epic, capture the Definition of Ready (routing/`seat:` label · dependencies · context + links · the AC copied faithfully from the WP) — then **write the Issue # back into the Epic's WP table**. | **SM** | sub-issues created in `Backlog` |
 | 3 | **Review → approve → Ready** — check each issue against the Epic's intent + AC; approve, or bounce a gap back to step 2. | **PM** | `Backlog → Scoped` |
-| 4 | **Pull** — no dispatch: each producer pulls its own `Scoped` work via `/check` (its discovery query filters on the `seat:<name>` lane label the SM set at explode time) and **claims** it itself — self-assign + dual-write. The SM routes only via the lane label, never via assignment. | **Producer** | `Scoped → In Progress` |
+| 4 | **Pull** — no dispatch: each producer pulls its own `Scoped` work via `/check` (its discovery query filters on the `seat:<name>` lane label the SM set at explode time) and **claims** it itself — dual-write only; the assignee stays the human owner. The SM routes only via the lane label, never via assignment. | **Producer** | `Scoped → In Progress` |
 
 The **Epic's WP table is the contract and the index**: the PM authors its rows; the SM fills
 the `Issue #` column as it creates each sub-issue. One glance at the Epic shows every WP and

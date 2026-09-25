@@ -3,6 +3,36 @@
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
 
+## 2026-09-25 - The assignee is the human owner; rework is a label
+
+Owner decision. On a team, the assignee must say which human owns an issue (the owner, or the
+engineer who leads the agents on it). The Seat field and the `seat:*` label already say which
+agent works it. Until now the assignee on a story doubled as the QA-rework signal
+("`status:scoped` + assigned = rework", 2026-08-03), which forced the PM's scoping write to strip
+every assignee and made seats self-assign at claim and block. Owners saw their names vanish on
+every scoping pass.
+
+- Changed: the assignee names the accountable human at every altitude (Initiative, Epic, Story,
+  Task). It is set at creation and changed only by a human. No seat writes it, and no discovery
+  query reads it.
+- Changed: PM scoping is a quadruple write (status label, board Status, board Seat, `seat:*`
+  label). The unconditional assignee strip is gone.
+- Changed: claim and block no longer self-assign. A split parent keeps its human assignee (it
+  still gets no `seat:` lane).
+- Added: the `rework` label. A QA FAIL writes `→ status:scoped` plus `rework`. The producer's
+  rework query is `status:scoped` + `seat:$KEY` + `rework`, and the re-deliver removes the label.
+  Shipped in `workflow/project-templates/labels.json` and the `board-label-sync.md` snippet.
+- Migration: create the `rework` label in the instance repo (`gh label create rework --color
+  D93F0B`). Label any story currently back in `scoped` after a QA FAIL with `rework`. Then
+  restore owner assignees on open stories.
+
+Files: `commands/check.md`, `commands/workload.md`, `workflow/state-machine.md`,
+`workflow/team-model.md`, `workflow/work-preparation.md`, `feedback/workflow/seat-label-mirror.md`,
+`feedback/workflow/a-slice-landing-does-not-make-the-item-merged.md`, `feedback/INDEX.md`,
+`MODES.md`, `seats/{engineer,pm,cloud-architect,data-architect,data-scientist}/KICKOFF.md`,
+`onboarding/{seat.engineer,seat.pm}.template.md`, `onboarding/board-label-sync.md`,
+`workflow/project-templates/labels.json`.
+
 ## 2026-09-23 - 2.0: the seats do their own work again
 
 Owner decision. Throughput on the reference instance fell from about 110 merged PRs a week
