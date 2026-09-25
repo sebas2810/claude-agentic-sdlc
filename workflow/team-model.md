@@ -47,24 +47,21 @@ the third:
 |---|---|---|---|
 | **Squad** (instance) | issue/PR `author` | which deployment owns this item | existing rule — [author is the ownership boundary](../feedback/workflow/author-is-the-ownership-boundary.md), unchanged |
 | **Seat** (agent) | comment signature + per-worktree git identity | which agent acted | existing rule — actor gate, unchanged |
-| **Operator** (human) | `assignee` — **at Epic/Initiative altitude only** | which human is accountable | completed by this model |
+| **Operator** (human) | `assignee` — **at every altitude** | which human is accountable | amended 2026-09-25 |
 
-The operator layer is deliberately narrow. Below epic altitude the assignee
-field is load-bearing execution machinery: an engineer self-assigns at claim,
-and QA leaves it set on a FAIL so the rework query re-pulls it — a
-`status:scoped` story with an assignee **means rework**, and a recorded 2026-08
-incident (ten owner-assigned stories each read as QA bounce-backs) is why
-visibility assignment on stories is stripped unconditionally. That rule
-already carves out the correct home: *"owner/stakeholder visibility assignment
-belongs on EPICs only."* The team layer standardizes it:
+The operator layer covers every altitude. Until 2026-09-25 the assignee on a
+story doubled as execution machinery (self-assign at claim, "scoped + assigned =
+rework"), which forced scoping to strip it and confined the human to Epics. Rework
+now carries its own `rework` label ([the rule](../feedback/workflow/seat-label-mirror.md)),
+so the assignee is free to mean one thing everywhere:
 
-- **Every Epic and Initiative carries an assignee: the accountable human's
-  GitHub login.** Set at framing, changed only by explicit human decision
-  (assigning to a peer *is* the handoff — see below).
+- **Every Initiative, Epic, Story and Task carries an assignee: the accountable
+  human's GitHub login** (the owner, or the engineer who leads the agents on it).
+  Set at creation, changed only by explicit human decision (assigning to a peer
+  *is* the handoff — see below).
 - Assignee is **accountability and visibility, never ownership and never
-  routing** — ownership stays with `author`, routing stays with the
-  `seat:*` lane. Nothing in any discovery query changes.
-- Stories and Tasks: unchanged, exclusively claim/rework semantics.
+  routing** — ownership stays with `author`, routing stays with the `seat:*`
+  lane. No seat writes it and no discovery query reads it.
 
 ## The altitude rule: Epics are the inter-human currency
 
@@ -194,7 +191,7 @@ fleet job adds `level:epic` items itself — the only fully scriptable path.
 At execution altitude the team layer *strengthens* the existing invariant
 rather than adding machinery: seats perform transitions through **one shipped
 script** (label + board field + read-back + the altitude-scoped assignee
-rules, atomically) instead of each seat hand-running the write sequence from
+rules (the script never writes the assignee), atomically) instead of each seat hand-running the write sequence from
 prose. Prompts drift; scripts don't. Same script solo and team — this is a
 capability every instance gains, not a team feature.
 
@@ -267,8 +264,8 @@ graduated-trust arc the framework prescribes for its agents.
 1. Transition script (execution altitude, all instances).
 2. Derived Epic/Initiative states + the fleet roll-up job (Watcher-fenced);
    rewrite of the fleet board's hand-set `Status` row.
-3. Assignee-at-altitude rule (amendment to the seat-label-mirror rule; doctor
-   check).
+3. Assignee-at-every-altitude rule plus the `rework` label (amendment to the
+   seat-label-mirror rule, 2026-09-25; doctor check).
 4. Fleet wiring completion: bootstrap wizard asks for `TEAM_BOARD_URL`
    (Enter = skip); fleet job auto-adds epics; `SQUAD_AUTHORS` added to
    `.env.local.example`.

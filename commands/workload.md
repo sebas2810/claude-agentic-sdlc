@@ -24,9 +24,9 @@ Discovery runs against THIS worktree's repo (`gh` resolves it from cwd). Each li
 List, by **role** — each line `#num  title  [labels]` (truncate long titles), oldest-first, with a **count** header:
 
 - **engineer** (KEY = `dex`/`sam`/…):
-  - **`status:scoped` · `seat:$KEY`** — your build queue, in the exact order `/check` pulls. **One** call, ordered in memory: **`priority:P0` → assigned (rework: QA-failed bounce-backs) → `priority:P1` → `P2` → `P3` → unlabelled**.
+  - **`status:scoped` · `seat:$KEY`** — your build queue, in the exact order `/check` pulls. **One** call, ordered in memory: **`priority:P0` → `rework` (QA-failed bounce-backs) → `priority:P1` → `P2` → `P3` → unlabelled**.
     `gh search issues --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)" --label "status:scoped" --label "seat:$KEY" --state open --include-prs -L 30 --json number,title,labels,assignees,isPullRequest`
-    *(An assigned `scoped` item = a QA **FAIL** re-pulled for rework, since a claimed item is `in-progress`. `/check` fixes those before fresh same-or-lower-priority work.)*
+    *(A `scoped` item labelled `rework` = a QA **FAIL** re-pulled for rework; the assignee is the human owner and says nothing about rework. `/check` fixes those before fresh same-or-lower-priority work.)*
   - **`status:in-progress` · `seat:$KEY`** — what you already have in flight.
 - **quality-engineer**: all **`status:delivered`** — your verify queue. `gh search issues --repo "$(gh repo view --json nameWithOwner -q .nameWithOwner)" --label "status:delivered" --state open --include-prs -L 30`
 - **scrum-master**: all **`status:tested`** — your **merge queue** (validate preconditions → squash-merge → drive `→ status:released`); plus a flow view — a count per `status:*` label; and any **`status:blocked`** items needing action — consult-exceptions to **verify + surface to the PM with a verdict** (the PM then re-frames + dual-writes `status:blocked → status:scoped` itself).

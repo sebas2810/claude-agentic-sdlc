@@ -35,7 +35,7 @@ section, and its issue still went to `merged`. The PR was honest; the label was 
 - **PM, at framing:** if the ACs cannot land in one PR, split before scoping. Each child is a
   sub-issue one level down the hierarchy (a Story's slices are Tasks) carrying the ACs its PR lands;
   together the children carry every parent AC. The parent goes `→ In Progress` with no lane label
-  and no assignee, and closes when every child is `Released`.
+  (it keeps its human assignee), and closes when every child is `Released`.
 - **Producer, mid-build:** once an item turns out to need more than one PR, stop and post a
   consult-exception. Never ship a PR marked "Partial" against the whole item. The PM splits it, and
   work already on a branch moves to the child that carries it.
