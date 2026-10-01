@@ -16,13 +16,14 @@ if [ -z "${SQUAD_AUTHORS:-}" ]; then
   if [ -n "$_me" ] && [ "$_me" != "$_owner" ]; then SQUAD_AUTHORS="$_owner,$_me"; else SQUAD_AUTHORS="$_owner"; fi
   echo "⚠ SQUAD_AUTHORS unset — inferred '$SQUAD_AUTHORS'. Set it explicitly in .env.local."
 fi
+[ -z "${HANDED_OVER_TO:-}" ] && [ -f .env.local ] && HANDED_OVER_TO="$(sed -n 's/^HANDED_OVER_TO=//p' .env.local | head -1)"
 ```
 
 **The framing queue** — open issues labelled `status:backlog`, oldest-first, with a count and the epic each sits under:
 ```
-gh issue list --search "is:open label:status:backlog sort:created-asc" -L 60 --json number,title,labels,author
+gh issue list --search "is:open label:status:backlog sort:created-asc" -L 60 --json number,title,labels,author,assignees
 ```
-**Count and list only squad-authored rows** (`author.login` ∈ `$SQUAD_AUTHORS`) — a foreign-authored `status:backlog` item is another squad's framing queue, not the PM's. Each line: `#num  title  [epic / seat label if set]` (truncate long titles). Head with the count, e.g. `7 in backlog:`.
+**Count and list only squad-authored rows** (`author.login` ∈ `$SQUAD_AUTHORS`, and not assigned to a login in `$HANDED_OVER_TO`: a handed-over item is the other squad's) — a foreign-authored `status:backlog` item is another squad's framing queue, not the PM's. Each line: `#num  title  [epic / seat label if set]` (truncate long titles). Head with the count, e.g. `7 in backlog:`.
 
 **Hygiene flag** — a freshly-filed issue with **no `status:*` label** isn't on the index yet and won't surface to `/check`. Surface any **squad-authored** ones you spot so the SM labels it `status:backlog` (the PM then frames it → dual-writes `status:scoped` itself):
 ```

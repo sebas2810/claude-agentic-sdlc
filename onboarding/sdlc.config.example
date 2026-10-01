@@ -18,6 +18,11 @@ BASE="$HOME/Code"                     # where the seat checkouts live
 # does not error, it silently shortens every seat's queue.
 SQUAD_AUTHORS=""                      # e.g. "acme-owner,squad-bot"
 
+# Login(s) of another squad in the same repo that this squad hands items to.
+# A handover keeps this squad as author but is assigned to the other squad's
+# login, and /check and /backlog then drop it. Leave empty with one squad.
+HANDED_OVER_TO=""                     # e.g. "other-squad-lead"
+
 # Seats: space-separated role:Name pairs — optionally role:Name:model triples.
 # The NAME is the seat's identity — its checkout is $BASE/<repo>-<name>
 # (lowercased), its launcher/.app is <Name>.app, and producer seats get a
