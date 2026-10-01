@@ -385,6 +385,7 @@ SEAT_LABEL=$lane
 BOARD_ID=$BOARD_ID
 BOARD_OWNER=$OWNER
 SQUAD_AUTHORS=$SQUAD_AUTHORS
+HANDED_OVER_TO=${HANDED_OVER_TO:-}
 TEAM_BOARD_URL=${TEAM_BOARD_URL:-}
 ENV
   c_ok ".env.local written ($name / $role · model $model${lane:+ · lane $lane})"
