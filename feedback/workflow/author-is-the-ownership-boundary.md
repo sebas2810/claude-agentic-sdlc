@@ -3,7 +3,7 @@ title: Squad ownership lives in the issue author — put it in every discovery q
 status: active
 scope: all-seats
 added: 2026-08-03
-last-confirmed: 2026-08-03
+last-confirmed: 2026-10-01
 ---
 
 ## Rule
@@ -45,6 +45,24 @@ else. Never scope, build, verify, gate, or merge a foreign-authored item.
   (`author:$SQUAD_AUTHORS` in the `--search` string) so the foreign row never returns.
 - `onboarding/doctor.sh` flags `seat:*` labels that map to no configured seat —
   a foreign lane surfaces loudly instead of masquerading as a queue.
+
+## Handed-over items: our author, their work
+A squad can hand an item it authored to another squad in the same repo. The author
+still says "ours", so the author filter alone keeps it in every queue, and a seat
+ends up verifying or merging the other squad's work.
+
+- Hand over by **assigning the item to the other squad's login** (the issue keeps
+  its author) and taking it off this squad's board.
+- List those logins in `HANDED_OVER_TO` (`sdlc.config` → `.env.local`). Every
+  discovery drops a squad-authored row assigned to one of them, right after the
+  author filter (server-side: `-assignee:<login>`).
+- From then on the item is foreign: no framing, building, verdict, label write or
+  merge. The other squad's PM owns the acceptance criteria. Comments as contract
+  asks are the only exception.
+
+**Observed 2026-10-01 (vdw):** the PM handed a P0 fix to the other squad as a new issue
+authored by the squad account. That squad framed and built it, and this squad's QA
+seat then pulled it as `Delivered` and ran a 14-minute verify on the other squad's PR.
 
 ## Cautionary tale
 2026-08-03: during a backlog sweep a PM scoped another squad's issue — five

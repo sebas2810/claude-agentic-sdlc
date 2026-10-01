@@ -2,6 +2,17 @@
 
 Every rule add, edit (significant), or deprecation is logged here. Newest at top.
 
+## 2026-10-01 - handed-over items leave the queue (`HANDED_OVER_TO`)
+
+From vdw, a repo shared by two squads. An item one squad authored and handed to the other
+still passed the author filter, so the first squad's QA seat verified the other squad's PR.
+
+- Added: `HANDED_OVER_TO` (`sdlc.config` → `.env.local`), the login(s) of another squad that
+  this squad hands items to. `/check` and `/backlog` drop a squad-authored row assigned to one
+  of them, right after the author filter, and targeted mode reports it as another squad's item.
+- Changed: `author-is-the-ownership-boundary.md` gets a section on handed-over items.
+  An empty value changes nothing for a single-squad repo.
+
 
 ## 2026-09-23 - 2.0: the seats do their own work again
 
